@@ -277,8 +277,11 @@ python scripts/06_train_student.py --skip-comparison   # train only, no eval aft
 python scripts/06_train_student.py --resume            # resume from latest checkpoint
 python scripts/06_train_student.py --max-steps 20      # smoke test the whole flow
 
-# A100 80GB — student is tiny, push the batch hard
-python scripts/06_train_student.py --batch-size 64 --grad-accum 1
+# A100 80GB — student is tiny, push the batch hard.
+# Eval batch must stay small even when train is huge: Trainer materializes
+# fp32 logits over Gemma 3's 256k vocab, and a big eval batch OOMs at step
+# `eval_steps` regardless of how much memory the train pass uses.
+python scripts/06_train_student.py --batch-size 128 --grad-accum 1 --eval-batch-size 8
 ```
 
 Shares the training loop with Stage 3 (`scripts/_training.py`). Student-specific defaults:
