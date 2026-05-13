@@ -1701,3 +1701,108 @@
 {"input": "three hundred on vegetables", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "vegetables", "category": "Groceries", "type": "expense"}]}, "_source": "teacher_label"}
 {"input": "1k for internet bill", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "internet bill", "category": "Bills", "type": "expense"}]}, "_source": "teacher_label"}
 {"input": "received 200 from friend", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "gift", "category": "Income", "type": "income"}]}, "_source": "teacher_label"}
+{"input": "do sau rupay ka juice", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "juice", "category": "Drinks", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "five hundred for haircut", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "haircut", "category": "Personal", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 800 for new shirt", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "shirt", "category": "Shopping", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I mean 750", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "spent 250 on dinner", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "dinner", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "two thousand for medicine", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 180 for taxi", "output": {"transactions": [{"amount": 180, "currency": "INR", "item": "taxi", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "5k for books", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "books", "category": "Education", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "four hundred for snacks", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "snacks", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "paanch sau rupay ka dudh", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "milk", "category": "Groceries", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "received 10000 salary", "output": {"transactions": [{"amount": 10000, "currency": "INR", "item": "salary", "category": "Income", "type": "income"}]}, "_source": "teacher_label"}
+{"input": "umm 50 for pencil", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "pencil", "category": "Education", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I spent 700 on jeans", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "jeans", "category": "Shopping", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "no 650", "output": {"transactions": [{"amount": 650, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "char so for groceries", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "groceries", "category": "Groceries", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "1k for petrol", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "petrol", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 220 for chai and pakora", "output": {"transactions": [{"amount": 220, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 220, "currency": "INR", "item": "pakora", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "wait no 180 chai 40 pakora", "output": {"transactions": [{"amount": 180, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 40, "currency": "INR", "item": "pakora", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "two hundred for bus pass", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "bus pass", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I mean 550", "output": {"transactions": [{"amount": 550, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "spent 1200 on mobile", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "mobile recharge", "category": "Bills", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 900 on shoes", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "shoes", "category": "Shopping", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "wait no 1000", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "do hazaar for electricity", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "electricity", "category": "Bills", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "1k for water bill", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "water bill", "category": "Bills", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "three hundred for fruits", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "fruits", "category": "Groceries", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 80 for auto", "output": {"transactions": [{"amount": 80, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I spent 400 on lunch", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "no 450", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "received 500 tip", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "tip", "category": "Income", "type": "income"}]}, "_source": "teacher_label"}
+{"input": "paanch sau rupay ka sabzi", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "sabzi", "category": "Groceries", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "wait no 650", "output": {"transactions": [{"amount": 650, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "four hundred for petrol", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "petrol", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "1k for groceries", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "groceries", "category": "Groceries", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "do sau rupay ka chai and samosa", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 200, "currency": "INR", "item": "samosa", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "five hundred for new bag", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "bag", "category": "Shopping", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 300 for taxi", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "taxi", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I spent 1000 on watch", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "watch", "category": "Shopping", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "no 1100", "output": {"transactions": [{"amount": 1100, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "2k for dinner with friends", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "dinner", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 250 for medicine", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I mean 300", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "spent 70 on bus", "output": {"transactions": [{"amount": 70, "currency": "INR", "item": "bus ticket", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "received 2000 cashback", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "cashback", "category": "Income", "type": "income"}]}, "_source": "teacher_label"}
+{"input": "wait no 1.4k", "output": {"transactions": [{"amount": 1400, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "three hundred for lunch", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "paanch sau rupay ka phone cover", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "phone cover", "category": "Shopping", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 500 for groceries", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "groceries", "category": "Groceries", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "do hazaar for laptop upgrade", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "laptop upgrade", "category": "Shopping", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I spent 350 on haircut", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "haircut", "category": "Personal", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "no 400", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "2k for electric bill", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "electricity bill", "category": "Bills", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "char so for milk and bread", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "milk", "category": "Groceries", "type": "expense"}, {"amount": 400, "currency": "INR", "item": "bread", "category": "Groceries", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "1k for uber", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I mean 100", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "spent 800 on clothes", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "clothes", "category": "Shopping", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "wait no 850", "output": {"transactions": [{"amount": 850, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "5k for salary", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "salary", "category": "Income", "type": "income"}]}, "_source": "teacher_label"}
+{"input": "received 300 from friend", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "gift", "category": "Income", "type": "income"}]}, "_source": "teacher_label"}
+{"input": "paanch sau for petrol", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "petrol", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 250 for chai", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I spent 700 on books", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "books", "category": "Education", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "no 750", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "2k for phone bill", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "phone bill", "category": "Bills", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "char hazaar for insurance", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "insurance", "category": "Bills", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 150 for parking", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "parking", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "spent 400 on lunch", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "wait no 450", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "five hundred for uber", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "received 1000 cashback", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "cashback", "category": "Income", "type": "income"}]}, "_source": "teacher_label"}
+{"input": "do sau rupay ka coffee", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "coffee", "category": "Drinks", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "three hundred for vegetables", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "vegetables", "category": "Groceries", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 600 for dinner", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "dinner", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I spent 300 on snacks", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "snacks", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "char so for electricity", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "electricity", "category": "Bills", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "1k for mobile recharge", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "mobile recharge", "category": "Bills", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 80 for bus", "output": {"transactions": [{"amount": 80, "currency": "INR", "item": "bus ticket", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "spent 900 on watch", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "watch", "category": "Shopping", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "wait no 950", "output": {"transactions": [{"amount": 950, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "paanch sau for medicine", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "received 500 tip from client", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "tip", "category": "Income", "type": "income"}]}, "_source": "teacher_label"}
+{"input": "five hundred for new shirt", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "shirt", "category": "Shopping", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 250 for lunch", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I spent 400 on tea", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "tea", "category": "Drinks", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "3k for gym", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "gym", "category": "Health", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "char sau rupay ka oil", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "oil", "category": "Groceries", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "1k for uber rides", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I mean 120", "output": {"transactions": [{"amount": 120, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "spent 700 on dinner", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "dinner", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "wait no 750", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "two thousand for books", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "books", "category": "Education", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "paanch sau for bus pass", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "bus pass", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "received 2000 cash", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "cash received", "category": "Income", "type": "income"}]}, "_source": "teacher_label"}
+{"input": "do sau for chai and biscuit", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 200, "currency": "INR", "item": "biscuit", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 500 for petrol", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "petrol", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I spent 300 on haircut", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "haircut", "category": "Personal", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "no 250", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "2k for electricity", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "electricity", "category": "Bills", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 200 for medicine", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "I mean 180", "output": {"transactions": [{"amount": 180, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "spent 600 on lunch", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "five hundred for coffee", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "coffee", "category": "Drinks", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "three hundred for taxi", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "taxi", "category": "Transport", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "2k for books", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "books", "category": "Education", "type": "expense"}]}, "_source": "teacher_label"}
+{"input": "umm 400 for snacks", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "snacks", "category": "Food", "type": "expense"}]}, "_source": "teacher_label"}
