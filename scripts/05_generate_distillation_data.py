@@ -227,7 +227,7 @@ def phase_inputs(args: argparse.Namespace) -> None:
 
 
 def _build_label_backend(args: argparse.Namespace):
-    """Return a callable infer(input_str) -> raw_text for the selected backend."""
+    """Return a callable batch_infer(inputs: list[str]) -> list[str]."""
     if args.backend == "gguf":
         from llama_cpp import Llama  # lazy import
 
@@ -268,16 +268,20 @@ def _build_label_backend(args: argparse.Namespace):
             logits_all=False,
         )
 
-        def infer(input_str: str) -> str:
-            resp = llm.create_chat_completion(
-                messages=build_messages(input_str),
-                temperature=0.0,
-                top_p=1.0,
-                max_tokens=args.max_new_tokens,
-            )
-            return (resp["choices"][0]["message"]["content"] or "").strip()
+        def batch_infer(inputs: list[str]) -> list[str]:
+            # llama-cpp-python doesn't batch — process sequentially.
+            out = []
+            for inp in inputs:
+                resp = llm.create_chat_completion(
+                    messages=build_messages(inp),
+                    temperature=0.0,
+                    top_p=1.0,
+                    max_tokens=args.max_new_tokens,
+                )
+                out.append((resp["choices"][0]["message"]["content"] or "").strip())
+            return out
 
-        return infer
+        return batch_infer
 
     # Default: transformers / Unsloth fp16
     from unsloth import FastLanguageModel
@@ -298,28 +302,38 @@ def _build_label_backend(args: argparse.Namespace):
     templater = processor
     tokenizer = getattr(processor, "tokenizer", processor)
     pad_id = tokenizer.pad_token_id or tokenizer.eos_token_id
+    # Generation needs LEFT padding so the EOS isn't on the wrong side.
+    tokenizer.padding_side = "left"
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token = tokenizer.eos_token
 
-    def infer(input_str: str) -> str:
-        msgs = build_messages(input_str)
-        prompt = templater.apply_chat_template(
-            msgs, tokenize=False, add_generation_prompt=True,
-        )
-        tokens = tokenizer(prompt, return_tensors="pt").to(model.device)
+    def batch_infer(inputs: list[str]) -> list[str]:
+        prompts = [
+            templater.apply_chat_template(
+                build_messages(s), tokenize=False, add_generation_prompt=True,
+            )
+            for s in inputs
+        ]
+        enc = tokenizer(
+            prompts, return_tensors="pt", padding=True, truncation=True,
+            max_length=args.max_seq_length,
+        ).to(model.device)
         with torch.inference_mode():
             out = model.generate(
-                **tokens,
+                **enc,
                 max_new_tokens=args.max_new_tokens,
                 do_sample=False,
                 temperature=0.0,
                 top_p=1.0,
                 pad_token_id=pad_id,
             )
-        return tokenizer.decode(
-            out[0][tokens["input_ids"].shape[1]:],
-            skip_special_tokens=True,
-        ).strip()
+        input_len = enc["input_ids"].shape[1]
+        return [
+            tokenizer.decode(out[i][input_len:], skip_special_tokens=True).strip()
+            for i in range(out.shape[0])
+        ]
 
-    return infer
+    return batch_infer
 
 
 def phase_label(args: argparse.Namespace) -> None:
@@ -351,7 +365,8 @@ def phase_label(args: argparse.Namespace) -> None:
         logging.info("Nothing to label.")
         return
 
-    infer = _build_label_backend(args)
+    batch_infer = _build_label_backend(args)
+    batch_size = max(1, args.batch_size)
 
     n_kept = 0
     n_failed = 0
@@ -359,35 +374,36 @@ def phase_label(args: argparse.Namespace) -> None:
 
     with TRAIN_FILE.open("a", encoding="utf-8") as train_out, \
          FAILED_FILE.open("a", encoding="utf-8") as fail_out:
-        for inp in tqdm(pending, desc="labeling"):
-            raw = infer(inp)
+        for start in tqdm(range(0, len(pending), batch_size), desc="labeling", unit="batch"):
+            chunk = pending[start : start + batch_size]
+            raws = batch_infer(chunk)
+            for inp, raw in zip(chunk, raws):
+                obj = extract_json(raw)
+                reason: str | None = None
+                if obj is None:
+                    reason = "json_invalid"
+                elif not is_schema_valid(obj):
+                    reason = "schema_invalid"
 
-            obj = extract_json(raw)
-            reason: str | None = None
-            if obj is None:
-                reason = "json_invalid"
-            elif not is_schema_valid(obj):
-                reason = "schema_invalid"
-
-            if reason is None:
-                train_out.write(json.dumps({
-                    "input": inp,
-                    "output": obj,
-                    "_source": "teacher_label",
-                }, ensure_ascii=False) + "\n")
-                train_out.flush()
-                n_kept += 1
-            else:
-                errs = schema_errors(obj)[:3] if obj is not None else []
-                fail_out.write(json.dumps({
-                    "input": inp,
-                    "raw": raw,
-                    "reason": reason,
-                    "schema_errors": errs,
-                }, ensure_ascii=False) + "\n")
-                fail_out.flush()
-                n_failed += 1
-                failure_reasons[reason] = failure_reasons.get(reason, 0) + 1
+                if reason is None:
+                    train_out.write(json.dumps({
+                        "input": inp,
+                        "output": obj,
+                        "_source": "teacher_label",
+                    }, ensure_ascii=False) + "\n")
+                    n_kept += 1
+                else:
+                    errs = schema_errors(obj)[:3] if obj is not None else []
+                    fail_out.write(json.dumps({
+                        "input": inp,
+                        "raw": raw,
+                        "reason": reason,
+                        "schema_errors": errs,
+                    }, ensure_ascii=False) + "\n")
+                    n_failed += 1
+                    failure_reasons[reason] = failure_reasons.get(reason, 0) + 1
+            train_out.flush()
+            fail_out.flush()
 
     total_attempted = n_kept + n_failed
     keep_rate = (n_kept / total_attempted * 100) if total_attempted else 0.0
@@ -446,6 +462,10 @@ def parse_args() -> argparse.Namespace:
                    help="Context length when loading the teacher (transformers backend).")
     p.add_argument("--max-new-tokens", type=int, default=384,
                    help="Max new tokens generated per label.")
+    p.add_argument("--batch-size", type=int, default=16,
+                   help="Phase 2 (transformers): inputs generated per forward pass. "
+                        "On A100 80GB try 32-64; on 5060 Ti 16GB try 8-16; gguf backend "
+                        "ignores this (always sequential).")
     p.add_argument("--limit", type=int, default=0,
                    help="Phase 2: only label the first N pending inputs (0 = all).")
     p.add_argument("--retry-failed", action="store_true",
