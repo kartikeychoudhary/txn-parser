@@ -1,5 +1,28 @@
 # On-Device Transaction Parser — Fine-Tuning Pipeline
 
+[![HF Models](https://img.shields.io/badge/%F0%9F%A4%97-kartikey31%2Ftxn--parser-yellow)](https://huggingface.co/kartikey31/txn-parser)
+
+A two-stage distillation pipeline that turns voice-transcribed transaction
+strings ("500 rs on beer 50 rs on candy") into structured JSON. Final student
+ships as a **260 MB** GGUF that runs on-device on Android via `llama.cpp`.
+
+## Recommended GGUF for Android
+
+| File | Size | JSON valid | Schema valid | Notes |
+|---|---|---|---|---|
+| [`gemma3_text-fixed.BF16.gguf`](https://huggingface.co/kartikey31/txn-parser/blob/main/student/gguf/gemma3_text-fixed.BF16.gguf) | 543 MB | 98% | 74% | Reference / highest quality |
+| [`gemma3_text-fixed.Q8_0.gguf`](https://huggingface.co/kartikey31/txn-parser/blob/main/student/gguf/gemma3_text-fixed.Q8_0.gguf) | ~290 MB | ~98% | ~74% | High-quality option |
+| **[`gemma3_text-fixed.Q5_K_M.gguf`](https://huggingface.co/kartikey31/txn-parser/blob/main/student/gguf/gemma3_text-fixed.Q5_K_M.gguf)** | **260 MB** | **94%** | **72%** | **Default — best size/quality** |
+| [`gemma3_text-fixed.Q4_K_M.gguf`](https://huggingface.co/kartikey31/txn-parser/blob/main/student/gguf/gemma3_text-fixed.Q4_K_M.gguf) | 253 MB | 68% | 56% | Too lossy for this 270M base |
+
+(50-example eval; full 300-example numbers in `eval_results/`. Base model:
+`unsloth/gemma-3-270m-it`. Architecture: Gemma 3, 270M params, 32k ctx.)
+
+The `-fixed` suffix means rebuilt via raw `llama.cpp/convert_hf_to_gguf.py`
+rather than Unsloth's `save_pretrained_gguf` wrapper — the latter strips the
+BOS token from the chat template and drops JSON-valid by ~26 percentage points.
+See `scripts/rebuild_gguf.py` if you want to reproduce.
+
 ## Quick start (Linux / WSL)
 
 One-shot setup — installs everything (torch cu128, training deps, CUDA-built
@@ -35,16 +58,27 @@ Re-running the same command resumes — already-present files are skipped.
 ---
 
 
-Trains a small language model that turns voice-transcribed transaction strings
-("500 rs on beer 50 rs on candy") into a structured JSON array of transaction
-DTOs. The final **student** model ships as a Q4_K_M GGUF (~300 MB) and runs
-on-device on Android via `llama.cpp`.
+## Pipeline overview
 
-The pipeline is two-stage distillation:
+Two-stage distillation:
 
-1. Fine-tune a **teacher** (Gemma 4 E2B) on a small human-supervised dataset.
-2. Use the teacher to label a much larger synthetic dataset, then fine-tune
-   the **student** (Gemma 3 270M) on it.
+1. Fine-tune a **teacher** (Gemma 4 E2B, ~5B params) on a small human-supervised dataset
+   (`data/clean/train.jsonl`, ~3k examples).
+2. Use the fine-tuned teacher to label a much larger synthetic dataset
+   (`data/distill/train.jsonl`, ~30k examples), then fine-tune the
+   **student** (Gemma 3 270M) on those labels.
+
+The student is the shippable model — small enough for on-device Android
+inference, accurate enough for the JSON-output task because the teacher did
+the heavy lifting of demonstrating the right structure across many phrasings.
+
+## Quick predict (one input)
+
+```bash
+python scripts/predict_one.py \
+    --model models/student/gguf/gemma3_text-fixed.Q5_K_M.gguf \
+    "500 rs on beer 50 rs on candy"
+```
 
 ---
 
