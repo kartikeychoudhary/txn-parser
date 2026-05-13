@@ -89,13 +89,20 @@ def main() -> int:
     p.add_argument("--quant", default=None,
                    help="GGUF quantization. Default: q3_k_m for teacher, q4_k_m for student. "
                         "Other useful options: q8_0 (less lossy), q5_k_m, bf16 (fp).")
+    p.add_argument("--quants", default=None,
+                   help="Comma-separated list of quants to export in one model load. "
+                        "Example: bf16,q8_0,q5_k_m,q4_k_m,q3_k_m. Overrides --quant. "
+                        "Implies --keep-existing across the list so files coexist.")
     p.add_argument("--max-seq-length", type=int, default=1024)
     p.add_argument("--keep-existing", action="store_true",
                    help="Don't wipe the existing gguf/ dir before re-exporting "
                         "(useful when you want both quants side-by-side).")
     args = p.parse_args()
 
-    quant = args.quant or ("q3_k_m" if args.role == "teacher" else "q4_k_m")
+    if args.quants:
+        quants = [q.strip() for q in args.quants.split(",") if q.strip()]
+    else:
+        quants = [args.quant or ("q3_k_m" if args.role == "teacher" else "q4_k_m")]
     adapters_dir = REPO_ROOT / "models" / args.role / "adapters"
     gguf_dir = REPO_ROOT / "models" / args.role / "gguf"
 
@@ -106,12 +113,14 @@ def main() -> int:
         logging.error("No adapter at %s — run Stage 3 or 6 first.", adapters_dir)
         return 2
 
-    logging.info("Exporting %s adapter -> GGUF (%s)", args.role, quant)
+    logging.info("Exporting %s adapter -> GGUF (quants: %s)", args.role, ", ".join(quants))
     logging.info("Adapter: %s", adapters_dir)
     logging.info("Output : %s", gguf_dir)
 
-    # Clear stale intermediates so the new export doesn't mix with old artifacts.
-    if not args.keep_existing and gguf_dir.exists():
+    # Only wipe the gguf dir on the FIRST export if --keep-existing wasn't passed.
+    # When exporting multiple quants in a single invocation, never wipe between
+    # them — that's the whole point.
+    if not args.keep_existing and not args.quants and gguf_dir.exists():
         for stale in list(gguf_dir.iterdir()):
             try:
                 if stale.is_dir():
@@ -130,7 +139,7 @@ def main() -> int:
     # Lazy import — these pull in CUDA.
     from unsloth import FastLanguageModel  # noqa: E402
 
-    logging.info("Loading adapter (fp16) — this also pulls the base model into HF cache")
+    logging.info("Loading adapter (fp16) once — same loaded model used for all quants")
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=str(adapters_dir),
         max_seq_length=args.max_seq_length,
@@ -138,26 +147,38 @@ def main() -> int:
         load_in_4bit=False,
     )
 
-    logging.info("save_pretrained_gguf -> %s  (quant=%s)", gguf_dir, quant)
-    try:
-        model.save_pretrained_gguf(
-            str(gguf_dir), tokenizer, quantization_method=quant,
-        )
-    except Exception as e:  # noqa: BLE001
-        logging.error("GGUF export failed: %s", e)
-        return 1
-
-    consolidate(gguf_dir)
+    failed_quants: list[str] = []
+    for quant in quants:
+        logging.info("=" * 60)
+        logging.info("save_pretrained_gguf -> %s  (quant=%s)", gguf_dir, quant)
+        try:
+            model.save_pretrained_gguf(
+                str(gguf_dir), tokenizer, quantization_method=quant,
+            )
+            consolidate(gguf_dir)
+        except Exception as e:  # noqa: BLE001
+            logging.error("GGUF export failed for quant=%s: %s", quant, e)
+            failed_quants.append(quant)
+            # Clean up any partial staging dir so it doesn't break the next quant.
+            sibling = gguf_dir.parent / f"{gguf_dir.name}_gguf"
+            if sibling.exists():
+                shutil.rmtree(sibling, ignore_errors=True)
+            continue
 
     # Confirm the result.
     out_files = sorted(p.name for p in gguf_dir.glob("*.gguf"))
     if out_files:
+        logging.info("=" * 60)
         logging.info("Final GGUF files in %s:", gguf_dir)
         for f in out_files:
             sz = (gguf_dir / f).stat().st_size / 1e6
             logging.info("  %s  (%.1f MB)", f, sz)
     else:
         logging.warning("No .gguf files in %s after export — check the log above.", gguf_dir)
+        return 1
+
+    if failed_quants:
+        logging.warning("Some quants failed: %s", ", ".join(failed_quants))
         return 1
 
     return 0
