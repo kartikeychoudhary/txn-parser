@@ -195,6 +195,7 @@ Useful flags:
 - `--force` — retrain even if the adapter already exists.
 - `--max-steps 20` — smoke-test the whole pipeline on a handful of steps.
 - `--max-seq-length 2048` — if your inputs+outputs get long.
+- `--batch-size N --grad-accum M` — 5060 Ti 16GB: `4 × 4`. A100 80GB: try `16 × 1` or `32 × 1`. Effective batch = `N × M`.
 
 ## Stage 4 — Evaluate a model
 
@@ -212,9 +213,18 @@ python scripts/04_eval.py --model models/student/gguf
 
 # Smoke test on the first 50 examples
 python scripts/04_eval.py --model models/teacher/gguf --limit 50
+
+# A100 80GB — push the adapter eval batch high
+python scripts/04_eval.py --model models/teacher/adapters --batch-size 32
 ```
 
 Reports % JSON-valid, % schema-valid, % exact match, and a confusion matrix for `category`. Per-example results land in `eval_results/<model_name>.jsonl`.
+
+Useful flags:
+- `--batch-size N` — examples per forward pass for the **transformers/adapter** backend. Default 16. A100 80GB: try 32-64. 5060 Ti 16GB: 8-16. The **GGUF** backend ignores this — `llama.cpp` doesn't natively batch chat completions.
+- `--max-tokens N` — generation cap per example (default 512).
+- `--n-gpu-layers N` / `--ngl` — GGUF only; `-1` = all (default), `0` = CPU.
+- `--n-ctx N` — context window (default 2048).
 
 ## Stage 5 — Teacher generates distillation data
 
@@ -233,6 +243,10 @@ python scripts/05_generate_distillation_data.py --phase eval
 
 # Smoke test: label only 50 inputs end-to-end
 python scripts/05_generate_distillation_data.py --phase label --limit 50
+
+# A100 80GB — batch hard, ~10x faster than the old single-example loop
+python scripts/05_generate_distillation_data.py --phase label \
+    --batch-size 32 --max-new-tokens 256
 ```
 
 Outputs:
@@ -242,6 +256,15 @@ Outputs:
 - `data/distill/eval.jsonl` — copy of `data/clean/eval.jsonl` (Phase 3)
 
 All three phases are idempotent. Phase 2 uses the teacher's LoRA adapter loaded in **fp16** (not the quantized GGUF) — quality matters for distillation labels. Re-running picks up from existing on-disk state via input-string deduplication.
+
+Useful flags (Phase 2):
+- `--batch-size N` — inputs per forward pass (transformers backend). Default 16. A100 80GB: 32-64. 5060 Ti 16GB: 8-16. **Single biggest perf knob** here — 28k labels go from ~20 hours at `batch=1` to ~45 min at `batch=32` on A100.
+- `--max-new-tokens N` — default 384. Drop to 256 if outputs fit — saves wall time.
+- `--limit N` — only label the first N pending inputs (smoke test).
+- `--retry-failed` — re-attempt inputs previously written to `failed.jsonl`.
+- `--backend gguf` — use the teacher GGUF (Q3_K_M) via `llama-cpp-python` instead of fp16. Lossier but useful if VRAM is tight or fp16 isn't an option. Sequential — batch_size is ignored.
+- `--ngl N` / `--n-gpu-layers N` — GGUF backend only; `-1` = all layers on GPU.
+- `--no-mmap`, `--mlock`, `--n-ctx`, `--n-batch` — passthrough to `llama-cpp-python`.
 
 ## Stage 6 — Fine-tune the student (Gemma 3 270M)
 
@@ -253,6 +276,9 @@ python scripts/06_train_student.py --skip-gguf         # iterate without GGUF ex
 python scripts/06_train_student.py --skip-comparison   # train only, no eval after
 python scripts/06_train_student.py --resume            # resume from latest checkpoint
 python scripts/06_train_student.py --max-steps 20      # smoke test the whole flow
+
+# A100 80GB — student is tiny, push the batch hard
+python scripts/06_train_student.py --batch-size 64 --grad-accum 1
 ```
 
 Shares the training loop with Stage 3 (`scripts/_training.py`). Student-specific defaults:
@@ -260,7 +286,7 @@ Shares the training loop with Stage 3 (`scripts/_training.py`). Student-specific
 - Training data: `data/distill/train.jsonl` (teacher-labeled, ~30k examples)
 - LoRA r=32 / α=64 (higher capacity than teacher since the base is much smaller)
 - 2 epochs (more data, fewer epochs to avoid overfit)
-- Batch 8 × grad-accum 2 (the smaller model fits a larger batch)
+- Batch 8 × grad-accum 2 (the smaller model fits a larger batch — bump `--batch-size` on a bigger GPU)
 - GGUF quant: **Q4_K_M** — this is the file that ships to Android
 
 Outputs:
@@ -302,15 +328,19 @@ Tuning env vars (see the table above): `PYTHON_BIN`, `LLAMA_N_GPU_LAYERS`, `INFE
 
 ```
 .
+├── setup.sh                    # one-shot installer + HF model download (Linux/WSL)
 ├── data_gen_prompt.md          # source prompt used in Stages 1 and 5
-├── requirements.txt            # base deps (Stages 1, 2 backend, 4)
+├── requirements.txt            # base deps (Stages 1, 2 backend)
 ├── requirements-train.txt      # Unsloth + training stack (Stages 3, 5, 6)
+├── requirements-eval.txt       # llama-cpp-python (Stages 4, 7)
 ├── data/
 │   ├── raw/                    # DeepSeek batches (Stage 1a)
 │   ├── clean/                  # train.jsonl, eval.jsonl (Stage 1b)
 │   ├── distill/                # teacher-labeled data (Stage 5)
 │   └── flags.json              # bad-example audit log (Stage 2)
 ├── scripts/
+│   ├── _lib.py                 # shared constants, schema, helpers
+│   ├── _training.py            # shared SFT + LoRA loop (Stages 3 & 6)
 │   ├── 01_generate_dataset.py
 │   ├── 02_clean_dataset.py
 │   ├── 03_train_teacher.py
@@ -321,7 +351,7 @@ Tuning env vars (see the table above): `PYTHON_BIN`, `LLAMA_N_GPU_LAYERS`, `INFE
 │   ├── server.js               # Express server (Stages 2 + 7)
 │   ├── inference_worker.py     # long-running llama-cpp-python worker (Stage 7)
 │   └── public/                 # index.html, playground.html, app.js, style.css
-├── models/
+├── models/                     # NOT tracked — pulled from kartikey31/txn-parser on HF
 │   ├── teacher/{adapters,gguf,checkpoints}/
 │   └── student/{adapters,gguf,checkpoints}/
 ├── eval_results/               # per-model evaluation outputs (Stage 4)
