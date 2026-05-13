@@ -1,5 +1,20 @@
 # On-Device Transaction Parser — Fine-Tuning Pipeline
 
+## Quick start (Linux / WSL)
+
+One-shot setup — installs everything (torch cu128, training deps, CUDA-built
+llama-cpp-python, node deps) and pulls the trained models from Hugging Face:
+
+```bash
+conda create -n llm-training python=3.11 -y && conda activate llm-training
+bash setup.sh                # full setup
+# bash setup.sh --no-models  # skip HF download
+# bash setup.sh --cpu-only   # skip CUDA build for llama-cpp-python
+```
+
+The script is idempotent — re-running it short-circuits already-satisfied
+steps. Manual setup instructions are below if you need finer control.
+
 ## Pretrained weights (Hugging Face)
 
 The trained teacher + student artifacts (LoRA adapters + GGUFs) are mirrored at

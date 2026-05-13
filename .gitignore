@@ -24,9 +24,10 @@ logs/
 viewer/node_modules/
 viewer/npm-debug.log*
 
-# OS / editor
+# OS / editor / agent state
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
+.claude/
 *.swp
