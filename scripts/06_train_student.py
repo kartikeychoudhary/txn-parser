@@ -99,7 +99,11 @@ def parse_args() -> argparse.Namespace:
 def _first_gguf(directory: Path) -> Path | None:
     if not directory.exists():
         return None
-    matches = sorted(directory.glob("*.gguf"))
+    # Skip multimodal projector sidecars (Gemma 4 ships an *.mmproj.gguf for vision)
+    # — they're not standalone LLM weights and llama.cpp can't load them as a model.
+    matches = sorted(
+        p for p in directory.glob("*.gguf") if "mmproj" not in p.name.lower()
+    )
     return matches[0] if matches else None
 
 
