@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transaction Parser — Dataset Viewer</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-title">Transaction Parser</span>
+      <span class="brand-sub">dataset viewer</span>
+    </div>
+    <div class="file-toggle" role="tablist" aria-label="Dataset file">
+      <button class="tab active" data-file="train" role="tab">train</button>
+      <button class="tab" data-file="eval" role="tab">eval</button>
+    </div>
+    <input
+      id="search"
+      type="search"
+      placeholder="filter by input…"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <div class="counts">
+      <span id="total-records">— records</span>
+      <span id="filtered-records" class="muted"></span>
+      <span id="flag-count" class="muted"></span>
+    </div>
+    <nav class="nav-links">
+      <a class="nav-link active" href="/">viewer</a>
+      <a class="nav-link" href="/playground.html">playground</a>
+    </nav>
+  </header>
+
+  <section class="stats">
+    <h2 class="stats-title">categories</h2>
+    <div id="cat-bars" class="cat-bars"></div>
+    <div class="stats-meta">
+      <span id="type-summary"></span>
+      <span id="txn-summary"></span>
+    </div>
+  </section>
+
+  <main id="cards" class="cards-grid"></main>
+
+  <footer class="pager">
+    <button id="prev" class="pager-btn">◀ prev</button>
+    <span id="page-info">page — / —</span>
+    <button id="next" class="pager-btn">next ▶</button>
+  </footer>
+
+  <div id="toast" class="toast"></div>
+
+  <template id="card-template">
+    <article class="card">
+      <div class="card-input"></div>
+      <pre class="card-output"><code></code></pre>
+      <div class="card-footer">
+        <span class="card-meta"></span>
+        <button class="flag-btn" type="button">flag as bad</button>
+      </div>
+    </article>
+  </template>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+{"input": "tinn sau rupay ka pizza aur cola", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "pizza", "category": "Food", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "cola", "category": "Drinks", "type": "expense"}]}}
+{"input": "paanch sau rupay ka mobile recharge", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "mobile recharge", "category": "Bills", "type": "expense"}]}}
+{"input": "chaar hazaar rent diya", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "rent", "category": "Bills", "type": "expense"}]}}
+{"input": "do hazaar ka petrol", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "petrol", "category": "Transport", "type": "expense"}]}}
+{"input": "ek sau rupay ki chai aur biscuit", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "biscuit", "category": "Food", "type": "expense"}]}}
+{"input": "pachchees rupay ka pani ki bottle", "output": {"transactions": [{"amount": 25, "currency": "INR", "item": "water bottle", "category": "Drinks", "type": "expense"}]}}
+{"input": "bees sau ka ola", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "ola ride", "category": "Transport", "type": "expense"}]}}
+{"input": "sattar rupay ki samosa", "output": {"transactions": [{"amount": 70, "currency": "INR", "item": "samosa", "category": "Food", "type": "expense"}]}}
+{"input": "nau sau ka wifi bill", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "wifi bill", "category": "Bills", "type": "expense"}]}}
+{"input": "tinn hazaar medicine ke liye", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}}
+{"input": "char sau movie ticket", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "movie ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "do sau rupay ka bus ka ticket", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "bus ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "paanch sau ka dress", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "dress", "category": "Shopping", "type": "expense"}]}}
+{"input": "ek hazaar ka gift friend ke liye", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "gift", "category": "Gifts", "type": "expense"}]}}
+{"input": "tinn sau ka coffee aur cake", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "coffee", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "cake", "category": "Food", "type": "expense"}]}}
+{"input": "bees rupay ka chewing gum", "output": {"transactions": [{"amount": 20, "currency": "INR", "item": "chewing gum", "category": "Food", "type": "expense"}]}}
+{"input": "panjaas rupay ka auto", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}]}}
+{"input": "sau rupay ka chai aur pakoda", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "pakoda", "category": "Food", "type": "expense"}]}}
+{"input": "chaar sau ka recharge", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "recharge", "category": "Bills", "type": "expense"}]}}
+{"input": "do hazaar ka shoes", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "shoes", "category": "Shopping", "type": "expense"}]}}
+{"input": "aath sau doctor ke paas", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "doctor visit", "category": "Health", "type": "expense"}]}}
+{"input": "tinn sau ka juice", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "juice", "category": "Drinks", "type": "expense"}]}}
+{"input": "ek sau pachchees ka book", "output": {"transactions": [{"amount": 125, "currency": "INR", "item": "book", "category": "Education", "type": "expense"}]}}
+{"input": "paanch sau ka electricity bill", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "electricity bill", "category": "Bills", "type": "expense"}]}}
+{"input": "do sau ka biryani", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "biryani", "category": "Food", "type": "expense"}]}}
+{"input": "char hazaar ka auto se ghar", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}]}}
+{"input": "sau rupay ki cold drink", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "cold drink", "category": "Drinks", "type": "expense"}]}}
+{"input": "bees rupay ka bidi", "output": {"transactions": [{"amount": 20, "currency": "INR", "item": "bidi", "category": "Other", "type": "expense"}]}}
+{"input": "tinn sau ka paratha aur dahi", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "paratha", "category": "Food", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "dahi", "category": "Food", "type": "expense"}]}}
+{"input": "paanch hazaar ka laptop ki repair", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "laptop repair", "category": "Other", "type": "expense"}]}}
+{"input": "do sau ka ice cream", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "ice cream", "category": "Food", "type": "expense"}]}}
+{"input": "ek sau ka pani puri", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "pani puri", "category": "Food", "type": "expense"}]}}
+{"input": "chaar sau ka uber", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "nau sau ka gym membership", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "gym membership", "category": "Health", "type": "expense"}]}}
+{"input": "sattar rupay ka egg", "output": {"transactions": [{"amount": 70, "currency": "INR", "item": "egg", "category": "Food", "type": "expense"}]}}
+{"input": "do sau ka cigarette", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "cigarette", "category": "Other", "type": "expense"}]}}
+{"input": "tinn sau ka chai aur toast", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "toast", "category": "Food", "type": "expense"}]}}
+{"input": "ek hazaar ka haircut", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "haircut", "category": "Personal", "type": "expense"}]}}
+{"input": "paanch sau ka laundry", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "laundry", "category": "Bills", "type": "expense"}]}}
+{"input": "bees rupay ka chai", "output": {"transactions": [{"amount": 20, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}}
+{"input": "do hazaar ka gas bill", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "gas bill", "category": "Bills", "type": "expense"}]}}
+{"input": "tinn sau ka kurti", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "kurti", "category": "Shopping", "type": "expense"}]}}
+{"input": "char sau ka wine", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "wine", "category": "Drinks", "type": "expense"}]}}
+{"input": "sau rupay ka pencil aur notebook", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "pencil", "category": "Education", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "notebook", "category": "Education", "type": "expense"}]}}
+{"input": "paanch hazaar ka courses", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "course", "category": "Education", "type": "expense"}]}}
+{"input": "do sau rupay ka dhokla", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "dhokla", "category": "Food", "type": "expense"}]}}
+{"input": "ek sau ka bus pass", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "bus pass", "category": "Transport", "type": "expense"}]}}
+{"input": "tinn sau ka movie", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "movie", "category": "Entertainment", "type": "expense"}]}}
+{"input": "nau sau ka spex", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "spectacles", "category": "Health", "type": "expense"}]}}
+{"input": "chaar sau ka biryani aur raita", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "biryani", "category": "Food", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "raita", "category": "Food", "type": "expense"}]}}
+{"input": "do hazaar ka mobile cover", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "mobile cover", "category": "Shopping", "type": "expense"}]}}
+{"input": "paanch sau ka dawai", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}}
+{"input": "sau rupay ka chai aur samosa", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "samosa", "category": "Food", "type": "expense"}]}}
+{"input": "bees rupay ka condom", "output": {"transactions": [{"amount": 20, "currency": "INR", "item": "condom", "category": "Personal", "type": "expense"}]}}
+{"input": "tinn sau ka joota", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "shoe", "category": "Shopping", "type": "expense"}]}}
+{"input": "char hazaar ka fridge rent", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "fridge rent", "category": "Bills", "type": "expense"}]}}
+{"input": "do sau ka dosa aur idli", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "dosa", "category": "Food", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "idli", "category": "Food", "type": "expense"}]}}
+{"input": "ek hazaar ka watch", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "watch", "category": "Shopping", "type": "expense"}]}}
+{"input": "paanch sau ka paint", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "paint", "category": "Other", "type": "expense"}]}}
+{"input": "sau rupay ka mobile stand", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "mobile stand", "category": "Shopping", "type": "expense"}]}}
+{"input": "tinn sau ka butter chicken", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "butter chicken", "category": "Food", "type": "expense"}]}}
+{"input": "do hazaar ka train ticket", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "train ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "chaar sau ka bada project", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "project", "category": "Other", "type": "expense"}]}}
+{"input": "nau sau ka shawl", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "shawl", "category": "Shopping", "type": "expense"}]}}
+{"input": "panjaas rupay ka bhelpuri", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "bhelpuri", "category": "Food", "type": "expense"}]}}
+{"input": "ek sau panjaas ka rexine bag", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "bag", "category": "Shopping", "type": "expense"}]}}
+{"input": "do sau ka chai aur cookies", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "cookie", "category": "Food", "type": "expense"}]}}
+{"input": "tinn hazaar ka party", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "party", "category": "Entertainment", "type": "expense"}]}}
+{"input": "paanch sau ka gym vest", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "gym vest", "category": "Shopping", "type": "expense"}]}}
+{"input": "sau rupay ka chai aur bun", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "bun", "category": "Food", "type": "expense"}]}}
+{"input": "char sau ka netflix subscription", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "netflix subscription", "category": "Entertainment", "type": "expense"}]}}
+{"input": "do sau ka kurta pyjama", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "kurta pyjama", "category": "Shopping", "type": "expense"}]}}
+{"input": "bees hazaar ka cycle", "output": {"transactions": [{"amount": 20000, "currency": "INR", "item": "cycle", "category": "Transport", "type": "expense"}]}}
+{"input": "tinn sau ka lunch", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}]}}
+{"input": "ek sau ka chai aur chole bhature", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "chole bhature", "category": "Food", "type": "expense"}]}}
+{"input": "pachas rupay ka pani ki bottle", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "water bottle", "category": "Drinks", "type": "expense"}]}}
+{"input": "do hazaar ka paints aur brushes", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "paint", "category": "Other", "type": "expense"}]}}
+{"input": "nau sau ka cricket bat", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "cricket bat", "category": "Shopping", "type": "expense"}]}}
+{"input": "sau rupay ka chai aur namkeen", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "namkeen", "category": "Food", "type": "expense"}]}}
+{"input": "chaar sau ka pedicure", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "pedicure", "category": "Personal", "type": "expense"}]}}
+{"input": "do sau ka chai aur vada pav", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "vada pav", "category": "Food", "type": "expense"}]}}
+{"input": "ek hazaar ka toothbrush aur paste", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "toothbrush", "category": "Personal", "type": "expense"}]}}
+{"input": "paanch sau ka guitar strings", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "guitar strings", "category": "Entertainment", "type": "expense"}]}}
+{"input": "tinn sau ka coffee aur sandwich", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "coffee", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "sandwich", "category": "Food", "type": "expense"}]}}
+{"input": "do hazaar ka school fees", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "school fees", "category": "Education", "type": "expense"}]}}
+{"input": "sau rupay ka chai aur mathi", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "mathi", "category": "Food", "type": "expense"}]}}
+{"input": "char sau ka new phone cover", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "phone cover", "category": "Shopping", "type": "expense"}]}}
+{"input": "bees rupay ka toffee", "output": {"transactions": [{"amount": 20, "currency": "INR", "item": "toffee", "category": "Food", "type": "expense"}]}}
+{"input": "tinn sau ka dosa aur sambhar", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "dosa", "category": "Food", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "sambhar", "category": "Food", "type": "expense"}]}}
+{"input": "paanch hazaar ka sari", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "sari", "category": "Shopping", "type": "expense"}]}}
+{"input": "do sau ka chai aur kachori", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "kachori", "category": "Food", "type": "expense"}]}}
+{"input": "ek sau ka bus ka ticket", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "bus ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "nau sau ka t-shirt", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "t-shirt", "category": "Shopping", "type": "expense"}]}}
+{"input": "chaar sau ka veg thali", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "veg thali", "category": "Food", "type": "expense"}]}}
+{"input": "do hazaar ka bag", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "bag", "category": "Shopping", "type": "expense"}]}}
+{"input": "sau rupay ka chai aur bhajiya", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "bhajiya", "category": "Food", "type": "expense"}]}}
+{"input": "paanch sau ka earphones", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "earphone", "category": "Shopping", "type": "expense"}]}}
+{"input": "tinn sau ka coffee aur muffin", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "coffee", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "muffin", "category": "Food", "type": "expense"}]}}
+{"input": "do sau ka chana chaat", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chana chaat", "category": "Food", "type": "expense"}]}}
+{"input": "char hazaar ka furniture", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "furniture", "category": "Shopping", "type": "expense"}]}}
+{"input": "ek sau ka chai aur roti", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "roti", "category": "Food", "type": "expense"}]}}
+{"input": "bees hazaar ka laptop", "output": {"transactions": [{"amount": 20000, "currency": "INR", "item": "laptop", "category": "Shopping", "type": "expense"}]}}
+{"input": "nau sau ka shoes", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "shoe", "category": "Shopping", "type": "expense"}]}}
+{"input": "paanch sau ka cold drink aur chips", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "cold drink", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "chip", "category": "Food", "type": "expense"}]}}
+{"input": "do sau ka chai aur aloo paratha", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "aloo paratha", "category": "Food", "type": "expense"}]}}
+{"input": "tinn hazaar ka hotel room", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "hotel room", "category": "Other", "type": "expense"}]}}
+{"input": "ek sau pachas ka movie ticket", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "movie ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "chaar sau ka chai aur paneer roll", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "paneer roll", "category": "Food", "type": "expense"}]}}
+{"input": "do hazaar ka bike service", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "bike service", "category": "Transport", "type": "expense"}]}}
+{"input": "sau rupay ka chai aur chilla", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "chilla", "category": "Food", "type": "expense"}]}}
+{"input": "paanch sau ka recharge ka bill", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "recharge bill", "category": "Bills", "type": "expense"}]}}
+{"input": "tinn sau ka cocktail", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "cocktail", "category": "Drinks", "type": "expense"}]}}
+{"input": "do sau ka chai aur pav bhaji", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "pav bhaji", "category": "Food", "type": "expense"}]}}
+{"input": "char hazaar ka insurance", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "insurance", "category": "Bills", "type": "expense"}]}}
+{"input": "nau sau ka kurti aur leggings", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "kurti", "category": "Shopping", "type": "expense"}]}}
+{"input": "ek sau ka chai aur idli", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "idli", "category": "Food", "type": "expense"}]}}
+{"input": "bees rupay ka pencil aur eraser", "output": {"transactions": [{"amount": 20, "currency": "INR", "item": "pencil", "category": "Education", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "eraser", "category": "Education", "type": "expense"}]}}
+{"input": "paanch hazaar ka dress ka material", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "dress material", "category": "Shopping", "type": "expense"}]}}
+{"input": "do sau ka chai aur bonda", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "bonda", "category": "Food", "type": "expense"}]}}
+{"input": "tinn sau ka auto ka bhada", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "auto fare", "category": "Transport", "type": "expense"}]}}
+{"input": "char sau ka chai aur pakora", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 0, "currency": "INR", "item": "pakora", "category": "Food", "type": "expense"}]}}
+{"input": "sau rupay ka bus pass", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "bus pass", "category": "Transport", "type": "expense"}]}}
+{"input": "do hazaar ka sunglass", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "sunglass", "category": "Shopping", "type": "expense"}]}}

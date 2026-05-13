@@ -1,0 +1,32 @@
+# Secrets / env
+.env
+.env.*
+!.env.example
+.ienv
+
+# Python virtualenvs
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Trained model artifacts — pulled from HF (kartikey31/txn-parser) instead
+models/
+
+# Local caches / build artifacts
+unsloth_compiled_cache/
+logs/
+
+# Node
+viewer/node_modules/
+viewer/npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

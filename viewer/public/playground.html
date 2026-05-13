@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transaction Parser — Playground</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="playground-body">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-title">Transaction Parser</span>
+      <span class="brand-sub">playground</span>
+    </div>
+    <div class="model-status" id="model-status">
+      <span class="muted">checking models…</span>
+    </div>
+    <nav class="nav-links">
+      <a class="nav-link" href="/">viewer</a>
+      <a class="nav-link active" href="/playground.html">playground</a>
+    </nav>
+  </header>
+
+  <main class="playground-main">
+    <section class="playground-input">
+      <div class="row">
+        <label class="control-label" for="model-select">Model</label>
+        <select id="model-select">
+          <option value="both">Both — side by side</option>
+          <option value="teacher">Teacher (Gemma 4 E2B Q3_K_M)</option>
+          <option value="student" selected>Student (Gemma 3 270M Q4_K_M)</option>
+        </select>
+        <label class="control-label" for="max-tokens">max_tokens</label>
+        <input id="max-tokens" type="number" min="16" max="2048" step="16" value="512" />
+        <button id="run-btn" class="run-btn">Run ▶</button>
+      </div>
+      <textarea
+        id="input-box"
+        placeholder="Paste or type a transcribed transaction string here… e.g. &#10;&#10;500 rs on beer 50 rs on candy&#10;do sau rupay ka chai&#10;1.5k for shoes from myntra"
+        spellcheck="false"
+        autocomplete="off"
+      ></textarea>
+      <div class="hint muted">
+        Cmd/Ctrl + Enter to run. Inference is deterministic (temp 0, top_p 1).
+      </div>
+    </section>
+
+    <section class="playground-output" id="output-area">
+      <div class="placeholder">Run a query to see model output here.</div>
+    </section>
+
+    <section class="playground-history">
+      <h2 class="stats-title">recent</h2>
+      <ul id="history" class="history-list"></ul>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="/playground.js"></script>
+</body>
+</html>

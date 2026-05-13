@@ -1,0 +1,134 @@
+{"input": "three hundred rupees on doctor consultation", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "doctor consultation", "category": "Health", "type": "expense"}]}}
+{"input": "1k for medicines", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "medicines", "category": "Health", "type": "expense"}]}}
+{"input": "do hazaar rupay hospital me", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "hospital", "category": "Health", "type": "expense"}]}}
+{"input": "five hundred on blood test", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "blood test", "category": "Health", "type": "expense"}]}}
+{"input": "1.2k paracetamol", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "paracetamol", "category": "Health", "type": "expense"}]}}
+{"input": "300 dentist 200 xray", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "dentist", "category": "Health", "type": "expense"}, {"amount": 200, "currency": "INR", "item": "xray", "category": "Health", "type": "expense"}]}}
+{"input": "paanch sau rupay ka checkup", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "checkup", "category": "Health", "type": "expense"}]}}
+{"input": "two thousand for eye glasses", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "eye glasses", "category": "Health", "type": "expense"}]}}
+{"input": "500/- syrup for cough", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "cough syrup", "category": "Health", "type": "expense"}]}}
+{"input": "1500 physiotherapy 800 ultrasound", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "physiotherapy", "category": "Health", "type": "expense"}, {"amount": 800, "currency": "INR", "item": "ultrasound", "category": "Health", "type": "expense"}]}}
+{"input": "char sau vaccination ka", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "vaccination", "category": "Health", "type": "expense"}]}}
+{"input": "ten thousand on surgery", "output": {"transactions": [{"amount": 10000, "currency": "INR", "item": "surgery", "category": "Health", "type": "expense"}]}}
+{"input": "2k dental cleaning", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "dental cleaning", "category": "Health", "type": "expense"}]}}
+{"input": "tin sau rupay dawai pe", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}}
+{"input": "seven hundred on vitamin tablets", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "vitamin tablets", "category": "Health", "type": "expense"}]}}
+{"input": "1.5k for lab tests", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "lab tests", "category": "Health", "type": "expense"}]}}
+{"input": "400 bandage 1000 ecg", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "bandage", "category": "Health", "type": "expense"}, {"amount": 1000, "currency": "INR", "item": "ecg", "category": "Health", "type": "expense"}]}}
+{"input": "500 on beer wait no 500 on medicine", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}}
+{"input": "3k gynac visit", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "gynecologist visit", "category": "Health", "type": "expense"}]}}
+{"input": "do sau rupay ka injection", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "injection", "category": "Health", "type": "expense"}]}}
+{"input": "eight hundred on eye checkup", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "eye checkup", "category": "Health", "type": "expense"}]}}
+{"input": "1k medical store", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "medical store", "category": "Health", "type": "expense"}]}}
+{"input": "chhah sau rupay physio", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "physiotherapy", "category": "Health", "type": "expense"}]}}
+{"input": "2000 on dentist for filling", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "dental filling", "category": "Health", "type": "expense"}]}}
+{"input": "350 thermometer", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "thermometer", "category": "Health", "type": "expense"}]}}
+{"input": "12k hospital admission fee", "output": {"transactions": [{"amount": 12000, "currency": "INR", "item": "hospital admission", "category": "Health", "type": "expense"}]}}
+{"input": "nau sau rupay ka blood pressure machine", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "blood pressure machine", "category": "Health", "type": "expense"}]}}
+{"input": "twenty five hundred for ayurvedic medicine", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "ayurvedic medicine", "category": "Health", "type": "expense"}]}}
+{"input": "700/- ortho doctor", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "orthopedic doctor", "category": "Health", "type": "expense"}]}}
+{"input": "1500 urine test 800 stool test", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "urine test", "category": "Health", "type": "expense"}, {"amount": 800, "currency": "INR", "item": "stool test", "category": "Health", "type": "expense"}]}}
+{"input": "ek hazaar gym membership", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "gym membership", "category": "Health", "type": "expense"}]}}
+{"input": "three thousand on skin cream", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "skin cream", "category": "Health", "type": "expense"}]}}
+{"input": "500 rs band aid and ointment", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "band aid and ointment", "category": "Health", "type": "expense"}]}}
+{"input": "2.5k for allergy test", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "allergy test", "category": "Health", "type": "expense"}]}}
+{"input": "400 chai 300 doctor fee 1000 medicine", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 300, "currency": "INR", "item": "doctor fee", "category": "Health", "type": "expense"}, {"amount": 1000, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}}
+{"input": "satt sau rupay ka diabetes test", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "diabetes test", "category": "Health", "type": "expense"}]}}
+{"input": "fifteen hundred on nebulizer", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "nebulizer", "category": "Health", "type": "expense"}]}}
+{"input": "800 specialist consultation", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "specialist consultation", "category": "Health", "type": "expense"}]}}
+{"input": "ath hazaar operation", "output": {"transactions": [{"amount": 8000, "currency": "INR", "item": "operation", "category": "Health", "type": "expense"}]}}
+{"input": "600 on hearing aid battery", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "hearing aid battery", "category": "Health", "type": "expense"}]}}
+{"input": "1.5k for baby vaccination", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "baby vaccination", "category": "Health", "type": "expense"}]}}
+{"input": "2000 specs frame", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "spectacles frame", "category": "Health", "type": "expense"}]}}
+{"input": "chaar sau rupay dant doctor", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "dental doctor", "category": "Health", "type": "expense"}]}}
+{"input": "nine hundred on multivitamins", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "multivitamins", "category": "Health", "type": "expense"}]}}
+{"input": "5000 on physio for 10 sessions", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "physiotherapy sessions", "category": "Health", "type": "expense"}]}}
+{"input": "ummm 1500 on MRI scan", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "mri scan", "category": "Health", "type": "expense"}]}}
+{"input": "200 lunch 300 medicine 1000 hospital", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}, {"amount": 300, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}, {"amount": 1000, "currency": "INR", "item": "hospital", "category": "Health", "type": "expense"}]}}
+{"input": "teen sau rupay ka painkiller", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "painkiller", "category": "Health", "type": "expense"}]}}
+{"input": "six hundred on bandages", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "bandage", "category": "Health", "type": "expense"}]}}
+{"input": "2k for yoga class", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "yoga class", "category": "Health", "type": "expense"}]}}
+{"input": "pachas rupay ka eye drop", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "eye drop", "category": "Health", "type": "expense"}]}}
+{"input": "1200 on chiropractor", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "chiropractor", "category": "Health", "type": "expense"}]}}
+{"input": "4000 lab work", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "lab work", "category": "Health", "type": "expense"}]}}
+{"input": "barah sau rupay dawai and injection", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "medicine and injection", "category": "Health", "type": "expense"}]}}
+{"input": "seven hundred on dental checkup", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "dental checkup", "category": "Health", "type": "expense"}]}}
+{"input": "300/- for cough medicine", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "cough medicine", "category": "Health", "type": "expense"}]}}
+{"input": "25k for eye surgery", "output": {"transactions": [{"amount": 25000, "currency": "INR", "item": "eye surgery", "category": "Health", "type": "expense"}]}}
+{"input": "do hazaar pachas rupay pathology", "output": {"transactions": [{"amount": 2050, "currency": "INR", "item": "pathology", "category": "Health", "type": "expense"}]}}
+{"input": "1k on gym supplements", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "gym supplements", "category": "Health", "type": "expense"}]}}
+{"input": "four hundred on antibiotic", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "antibiotic", "category": "Health", "type": "expense"}]}}
+{"input": "800 dentist extraction", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "tooth extraction", "category": "Health", "type": "expense"}]}}
+{"input": "5000 ambulance fee", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "ambulance fee", "category": "Health", "type": "expense"}]}}
+{"input": "tin sau rupay ka glucometer", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "glucometer", "category": "Health", "type": "expense"}]}}
+{"input": "ninety nine hundred on hospital bill", "output": {"transactions": [{"amount": 9900, "currency": "INR", "item": "hospital bill", "category": "Health", "type": "expense"}]}}
+{"input": "2000 on thyroid test", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "thyroid test", "category": "Health", "type": "expense"}]}}
+{"input": "450 rs for ointment", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "ointment", "category": "Health", "type": "expense"}]}}
+{"input": "1.2k on physio session", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "physiotherapy session", "category": "Health", "type": "expense"}]}}
+{"input": "um 300 for doctor wait no 400", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "doctor consultation", "category": "Health", "type": "expense"}]}}
+{"input": "bara rupay ka band aid", "output": {"transactions": [{"amount": 12, "currency": "INR", "item": "band aid", "category": "Health", "type": "expense"}]}}
+{"input": "five hundred on thermometer", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "thermometer", "category": "Health", "type": "expense"}]}}
+{"input": "3000 for dental crown", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "dental crown", "category": "Health", "type": "expense"}]}}
+{"input": "750/- blood sugar test", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "blood sugar test", "category": "Health", "type": "expense"}]}}
+{"input": "ek lakh operation ke liye", "output": {"transactions": [{"amount": 100000, "currency": "INR", "item": "operation", "category": "Health", "type": "expense"}]}}
+{"input": "1500 on dermatologist", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "dermatologist", "category": "Health", "type": "expense"}]}}
+{"input": "250 for panadol", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "panadol", "category": "Health", "type": "expense"}]}}
+{"input": "2000 physio 500 medicine 300 chai", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "physiotherapy", "category": "Health", "type": "expense"}, {"amount": 500, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}, {"amount": 300, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}}
+{"input": "chaar sau rupay ka denture", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "denture", "category": "Health", "type": "expense"}]}}
+{"input": "eight hundred on saline bottle", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "saline bottle", "category": "Health", "type": "expense"}]}}
+{"input": "600 for urine culture test", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "urine culture test", "category": "Health", "type": "expense"}]}}
+{"input": "2.5k on contact lenses", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "contact lenses", "category": "Health", "type": "expense"}]}}
+{"input": "anhoni 1500 for hospital registration", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "hospital registration", "category": "Health", "type": "expense"}]}}
+{"input": "paanch sau rupay ka bp check", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "blood pressure check", "category": "Health", "type": "expense"}]}}
+{"input": "three thousand on dentist root canal", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "root canal", "category": "Health", "type": "expense"}]}}
+{"input": "4000 for health checkup package", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "health checkup package", "category": "Health", "type": "expense"}]}}
+{"input": "250 rs for iron tablets", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "iron tablets", "category": "Health", "type": "expense"}]}}
+{"input": "1.8k on asthma inhaler", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "asthma inhaler", "category": "Health", "type": "expense"}]}}
+{"input": "sau rupay ka dawa", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}}
+{"input": "nine hundred on sunscreen cream", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "sunscreen cream", "category": "Health", "type": "expense"}]}}
+{"input": "1500 for psychiatrist session", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "psychiatrist session", "category": "Health", "type": "expense"}]}}
+{"input": "700/- anti allergic", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "anti allergic medicine", "category": "Health", "type": "expense"}]}}
+{"input": "2k for walker for grandfather", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "walker", "category": "Health", "type": "expense"}]}}
+{"input": "paanch hazaar physio rehab", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "physiotherapy rehab", "category": "Health", "type": "expense"}]}}
+{"input": "1200 on protein powder", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "protein powder", "category": "Health", "type": "expense"}]}}
+{"input": "three hundred on cough syrup", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "cough syrup", "category": "Health", "type": "expense"}]}}
+{"input": "4500 hospital deposit", "output": {"transactions": [{"amount": 4500, "currency": "INR", "item": "hospital deposit", "category": "Health", "type": "expense"}]}}
+{"input": "1000 for eye exam", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "eye exam", "category": "Health", "type": "expense"}]}}
+{"input": "200 rs bandage 50 chai", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "bandage", "category": "Health", "type": "expense"}, {"amount": 50, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}}
+{"input": "teen sau rupay ka calcium tablet", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "calcium tablet", "category": "Health", "type": "expense"}]}}
+{"input": "seven thousand on hospital bed charge", "output": {"transactions": [{"amount": 7000, "currency": "INR", "item": "hospital bed charge", "category": "Health", "type": "expense"}]}}
+{"input": "600 for dental xray", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "dental xray", "category": "Health", "type": "expense"}]}}
+{"input": "1.3k on hearing aid repair", "output": {"transactions": [{"amount": 1300, "currency": "INR", "item": "hearing aid repair", "category": "Health", "type": "expense"}]}}
+{"input": "500 that thing for health", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "do sau rupay ka covid test", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "covid test", "category": "Health", "type": "expense"}]}}
+{"input": "eighteen hundred on paediatrician", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "paediatrician", "category": "Health", "type": "expense"}]}}
+{"input": "350 for sanitizer and mask", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "sanitizer and mask", "category": "Health", "type": "expense"}]}}
+{"input": "2500 for physio equipment", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "physiotherapy equipment", "category": "Health", "type": "expense"}]}}
+{"input": "400/- liv 52 tablets", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "liv 52 tablets", "category": "Health", "type": "expense"}]}}
+{"input": "um 600 on dentist cleaning wait no 800", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "dental cleaning", "category": "Health", "type": "expense"}]}}
+{"input": "50 rupay ka thermometer", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "thermometer", "category": "Health", "type": "expense"}]}}
+{"input": "three hundred on nebulizer medicine", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "nebulizer medicine", "category": "Health", "type": "expense"}]}}
+{"input": "1k for orthopedic brace", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "orthopedic brace", "category": "Health", "type": "expense"}]}}
+{"input": "900 lab test 200 lunch 1500 doctor", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "lab test", "category": "Health", "type": "expense"}, {"amount": 200, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}, {"amount": 1500, "currency": "INR", "item": "doctor", "category": "Health", "type": "expense"}]}}
+{"input": "saat sau rupay ka operation theatre charge", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "operation theatre charge", "category": "Health", "type": "expense"}]}}
+{"input": "two thousand on wheelchair rental", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "wheelchair rental", "category": "Health", "type": "expense"}]}}
+{"input": "500 for steam inhalation", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "steam inhalation", "category": "Health", "type": "expense"}]}}
+{"input": "2.5k on cardiologist fee", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "cardiologist fee", "category": "Health", "type": "expense"}]}}
+{"input": "1500 for physio belt", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "physiotherapy belt", "category": "Health", "type": "expense"}]}}
+{"input": "pachas rupay ka paracetamol", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "paracetamol", "category": "Health", "type": "expense"}]}}
+{"input": "eight hundred on dental floss and brush", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "dental floss and brush", "category": "Health", "type": "expense"}]}}
+{"input": "3000 for home nurse", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "home nurse", "category": "Health", "type": "expense"}]}}
+{"input": "1200/- eye drops", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "eye drops", "category": "Health", "type": "expense"}]}}
+{"input": "do hazaar teen sau rupay blood test", "output": {"transactions": [{"amount": 2300, "currency": "INR", "item": "blood test", "category": "Health", "type": "expense"}]}}
+{"input": "450 on sunscreen lotion", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "sunscreen lotion", "category": "Health", "type": "expense"}]}}
+{"input": "7k for knee replacement consultation", "output": {"transactions": [{"amount": 7000, "currency": "INR", "item": "knee replacement consultation", "category": "Health", "type": "expense"}]}}
+{"input": "300 rs chai and 2000 medicine", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 2000, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}}
+{"input": "ninety rupees on cotton balls", "output": {"transactions": [{"amount": 90, "currency": "INR", "item": "cotton balls", "category": "Health", "type": "expense"}]}}
+{"input": "600 for ultrasound gel", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "ultrasound gel", "category": "Health", "type": "expense"}]}}
+{"input": "1k on dental implant consultation", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "dental implant consultation", "category": "Health", "type": "expense"}]}}
+{"input": "2000 for physio 10 k 500 meds", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "physiotherapy", "category": "Health", "type": "expense"}, {"amount": 500, "currency": "INR", "item": "medication", "category": "Health", "type": "expense"}]}}
+{"input": "um 1200 on skin specialist", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "skin specialist", "category": "Health", "type": "expense"}]}}
+{"input": "chalis rupay ka band aid", "output": {"transactions": [{"amount": 40, "currency": "INR", "item": "band aid", "category": "Health", "type": "expense"}]}}
+{"input": "fifteen hundred on chiropractic adjustment", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "chiropractic adjustment", "category": "Health", "type": "expense"}]}}
+{"input": "800/- thyroid medicine", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "thyroid medicine", "category": "Health", "type": "expense"}]}}
+{"input": "3000 for ecg and stress test", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "ecg and stress test", "category": "Health", "type": "expense"}]}}

@@ -1,0 +1,135 @@
+{"input": "2000 rupees on online course", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "online course", "category": "Education", "type": "expense"}]}}
+{"input": "500 for a textbook", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "textbook", "category": "Education", "type": "expense"}]}}
+{"input": "3k tuition fees for math classes", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "tuition fee", "category": "Education", "type": "expense"}]}}
+{"input": "char hazaar for exam registration", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "exam registration", "category": "Education", "type": "expense"}]}}
+{"input": "1500 on udemy course", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "udemy course", "category": "Education", "type": "expense"}]}}
+{"input": "two hundred for a notebook", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "notebook", "category": "Education", "type": "expense"}]}}
+{"input": "7k for semester fees", "output": {"transactions": [{"amount": 7000, "currency": "INR", "item": "semester fee", "category": "Education", "type": "expense"}]}}
+{"input": "500 rs stationery", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "stationery", "category": "Education", "type": "expense"}]}}
+{"input": "do hazaar on coding bootcamp", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "coding bootcamp", "category": "Education", "type": "expense"}]}}
+{"input": "12000 for university admission fee", "output": {"transactions": [{"amount": 12000, "currency": "INR", "item": "university admission fee", "category": "Education", "type": "expense"}]}}
+{"input": "1k for a pen drive used for college", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "pen drive", "category": "Education", "type": "expense"}]}}
+{"input": "800 on gk book", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "gk book", "category": "Education", "type": "expense"}]}}
+{"input": "pachas rupay ka pencil", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "pencil", "category": "Education", "type": "expense"}]}}
+{"input": "2.5k for GRE coaching", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "gre coaching", "category": "Education", "type": "expense"}]}}
+{"input": "150 for a geometry box", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "geometry box", "category": "Education", "type": "expense"}]}}
+{"input": "9k for school annual fee", "output": {"transactions": [{"amount": 9000, "currency": "INR", "item": "school annual fee", "category": "Education", "type": "expense"}]}}
+{"input": "300 on a ruler and compass", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "ruler and compass", "category": "Education", "type": "expense"}]}}
+{"input": "ek hazaar for library subscription", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "library subscription", "category": "Education", "type": "expense"}]}}
+{"input": "25 rupees for chart paper", "output": {"transactions": [{"amount": 25, "currency": "INR", "item": "chart paper", "category": "Education", "type": "expense"}]}}
+{"input": "400 for a calculator", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "calculator", "category": "Education", "type": "expense"}]}}
+{"input": "600 rs lunch 300 rs book", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}, {"amount": 300, "currency": "INR", "item": "book", "category": "Education", "type": "expense"}]}}
+{"input": "2000 for a science kit", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "science kit", "category": "Education", "type": "expense"}]}}
+{"input": "1.2k for guitar lessons", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "guitar lesson", "category": "Education", "type": "expense"}]}}
+{"input": "do sau for a study lamp", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "study lamp", "category": "Education", "type": "expense"}]}}
+{"input": "5000 for CAT preparation course", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "cat preparation course", "category": "Education", "type": "expense"}]}}
+{"input": "100 rupees for a dictionary", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "dictionary", "category": "Education", "type": "expense"}]}}
+{"input": "3k for lab coat and goggles", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "lab coat and goggles", "category": "Education", "type": "expense"}]}}
+{"input": "1500 on language classes", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "language class", "category": "Education", "type": "expense"}]}}
+{"input": "400 rs umm for a graph book", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "graph book", "category": "Education", "type": "expense"}]}}
+{"input": "six hundred on a college project supplies", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "college project supply", "category": "Education", "type": "expense"}]}}
+{"input": "10k for scholarship test fee", "output": {"transactions": [{"amount": 10000, "currency": "INR", "item": "scholarship test fee", "category": "Education", "type": "expense"}]}}
+{"input": "250 rs for a used textbook", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "used textbook", "category": "Education", "type": "expense"}]}}
+{"input": "750 on canvas for art class", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "canvas", "category": "Education", "type": "expense"}]}}
+{"input": "1800 for yoga certification course", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "yoga certification course", "category": "Education", "type": "expense"}]}}
+{"input": "5k for piano teacher fees", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "piano teacher fee", "category": "Education", "type": "expense"}]}}
+{"input": "450 ka notebook and pen", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "notebook and pen", "category": "Education", "type": "expense"}]}}
+{"input": "20 rupees for a eraser", "output": {"transactions": [{"amount": 20, "currency": "INR", "item": "eraser", "category": "Education", "type": "expense"}]}}
+{"input": "3000 for online python course", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "online python course", "category": "Education", "type": "expense"}]}}
+{"input": "1200 on school trip fee", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "school trip fee", "category": "Education", "type": "expense"}]}}
+{"input": "1k for a drawing kit", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "drawing kit", "category": "Education", "type": "expense"}]}}
+{"input": "2200 for mock test series", "output": {"transactions": [{"amount": 2200, "currency": "INR", "item": "mock test series", "category": "Education", "type": "expense"}]}}
+{"input": "do sau rupay for a file folder", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "file folder", "category": "Education", "type": "expense"}]}}
+{"input": "800 for a math problem set book", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "math problem set book", "category": "Education", "type": "expense"}]}}
+{"input": "3500 for graphic design course", "output": {"transactions": [{"amount": 3500, "currency": "INR", "item": "graphic design course", "category": "Education", "type": "expense"}]}}
+{"input": "60 rupees for a color pencil set", "output": {"transactions": [{"amount": 60, "currency": "INR", "item": "color pencil set", "category": "Education", "type": "expense"}]}}
+{"input": "15000 for school admission donation", "output": {"transactions": [{"amount": 15000, "currency": "INR", "item": "school admission donation", "category": "Education", "type": "expense"}]}}
+{"input": "300 rs on chocolate and 100 rs on eraser", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "chocolate", "category": "Food", "type": "expense"}, {"amount": 100, "currency": "INR", "item": "eraser", "category": "Education", "type": "expense"}]}}
+{"input": "pachas hazaar for MBA fees", "output": {"transactions": [{"amount": 50000, "currency": "INR", "item": "mba fee", "category": "Education", "type": "expense"}]}}
+{"input": "400 on a whiteboard for studying", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "whiteboard", "category": "Education", "type": "expense"}]}}
+{"input": "2k for ielts exam fee", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "ielts exam fee", "category": "Education", "type": "expense"}]}}
+{"input": "750 for a research paper printing", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "research paper printing", "category": "Education", "type": "expense"}]}}
+{"input": "120 for a sketch pen set", "output": {"transactions": [{"amount": 120, "currency": "INR", "item": "sketch pen set", "category": "Education", "type": "expense"}]}}
+{"input": "kat kick 1500 on books wait no 1800 on books", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "book", "category": "Education", "type": "expense"}]}}
+{"input": "300 for college fest pass", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "college fest pass", "category": "Education", "type": "expense"}]}}
+{"input": "1.8k for lab manual", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "lab manual", "category": "Education", "type": "expense"}]}}
+{"input": "1000 for a subscription to academic journal", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "academic journal subscription", "category": "Education", "type": "expense"}]}}
+{"input": "2.5k for board exam fees", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "board exam fee", "category": "Education", "type": "expense"}]}}
+{"input": "500 for a projector for presentation", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "projector", "category": "Education", "type": "expense"}]}}
+{"input": "150 for a certificate printing", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "certificate printing", "category": "Education", "type": "expense"}]}}
+{"input": "ek hazaar paid for karate class", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "karate class", "category": "Education", "type": "expense"}]}}
+{"input": "3000 for a swaacch bharat project supplies", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "swaacch bharat project supply", "category": "Education", "type": "expense"}]}}
+{"input": "2k for driver's license fees", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "driver's license fee", "category": "Education", "type": "expense"}]}}
+{"input": "4k on coaching class for neet", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "coaching class for neet", "category": "Education", "type": "expense"}]}}
+{"input": "800 for a musical instrument lesson book", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "musical instrument lesson book", "category": "Education", "type": "expense"}]}}
+{"input": "200 for a year planner", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "year planner", "category": "Education", "type": "expense"}]}}
+{"input": "12000 for private tuition for a year", "output": {"transactions": [{"amount": 12000, "currency": "INR", "item": "private tuition", "category": "Education", "type": "expense"}]}}
+{"input": "500 for a science experiment kit", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "science experiment kit", "category": "Education", "type": "expense"}]}}
+{"input": "1 lakh for engineering college fees", "output": {"transactions": [{"amount": 100000, "currency": "INR", "item": "engineering college fee", "category": "Education", "type": "expense"}]}}
+{"input": "350 rs for a reading lamp", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "reading lamp", "category": "Education", "type": "expense"}]}}
+{"input": "900 for a online certification test", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "online certification test", "category": "Education", "type": "expense"}]}}
+{"input": "2000 for a dance workshop", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "dance workshop", "category": "Education", "type": "expense"}]}}
+{"input": "do sau fifty for a drawing board", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "drawing board", "category": "Education", "type": "expense"}]}}
+{"input": "600 for a science fair entry fee", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "science fair entry fee", "category": "Education", "type": "expense"}]}}
+{"input": "4000 for a beginner's photography course", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "beginner's photography course", "category": "Education", "type": "expense"}]}}
+{"input": "1500 on art supplies for school project", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "art supply", "category": "Education", "type": "expense"}]}}
+{"input": "3.2k for a typing class", "output": {"transactions": [{"amount": 3200, "currency": "INR", "item": "typing class", "category": "Education", "type": "expense"}]}}
+{"input": "700 for a encyclopedia set", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "encyclopedia set", "category": "Education", "type": "expense"}]}}
+{"input": "500 on photocopying notes", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "photocopying note", "category": "Education", "type": "expense"}]}}
+{"input": "850 rs on umm a new school bag", "output": {"transactions": [{"amount": 850, "currency": "INR", "item": "school bag", "category": "Education", "type": "expense"}]}}
+{"input": "1.1k for online anatomy course", "output": {"transactions": [{"amount": 1100, "currency": "INR", "item": "online anatomy course", "category": "Education", "type": "expense"}]}}
+{"input": "450 for a bookmark and diary set", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "bookmark and diary set", "category": "Education", "type": "expense"}]}}
+{"input": "20000 for a CCIE training", "output": {"transactions": [{"amount": 20000, "currency": "INR", "item": "ccie training", "category": "Education", "type": "expense"}]}}
+{"input": "300 for a poster for project", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "poster for project", "category": "Education", "type": "expense"}]}}
+{"input": "2500 for a speaking skills course", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "speaking skills course", "category": "Education", "type": "expense"}]}}
+{"input": "600 on a magnifying glass for lab work", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "magnifying glass", "category": "Education", "type": "expense"}]}}
+{"input": "8k for NEET coaching monthly fee", "output": {"transactions": [{"amount": 8000, "currency": "INR", "item": "neet coaching monthly fee", "category": "Education", "type": "expense"}]}}
+{"input": "75 rupees for a glue stick", "output": {"transactions": [{"amount": 75, "currency": "INR", "item": "glue stick", "category": "Education", "type": "expense"}]}}
+{"input": "950 for a atlas", "output": {"transactions": [{"amount": 950, "currency": "INR", "item": "atlas", "category": "Education", "type": "expense"}]}}
+{"input": "4000 for an internship certificate course", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "internship certificate course", "category": "Education", "type": "expense"}]}}
+{"input": "220 for a highlighter set", "output": {"transactions": [{"amount": 220, "currency": "INR", "item": "highlighter set", "category": "Education", "type": "expense"}]}}
+{"input": "5k for a first aid course", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "first aid course", "category": "Education", "type": "expense"}]}}
+{"input": "do sau eighty on a protractor", "output": {"transactions": [{"amount": 280, "currency": "INR", "item": "protractor", "category": "Education", "type": "expense"}]}}
+{"input": "1500 for a language app subscription", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "language app subscription", "category": "Education", "type": "expense"}]}}
+{"input": "700 for a trigonometry workbook", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "trigonometry workbook", "category": "Education", "type": "expense"}]}}
+{"input": "1.2k for a robotics kit", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "robotics kit", "category": "Education", "type": "expense"}]}}
+{"input": "500 for a school photo session", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "school photo session", "category": "Education", "type": "expense"}]}}
+{"input": "3000 for a economics tuition", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "economics tuition", "category": "Education", "type": "expense"}]}}
+{"input": "150 for a folder and binder", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "folder and binder", "category": "Education", "type": "expense"}]}}
+{"input": "2k for a handwriting class", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "handwriting class", "category": "Education", "type": "expense"}]}}
+{"input": "400 for a pastel set", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "pastel set", "category": "Education", "type": "expense"}]}}
+{"input": "9k for a management course", "output": {"transactions": [{"amount": 9000, "currency": "INR", "item": "management course", "category": "Education", "type": "expense"}]}}
+{"input": "100 for a sticker sheet for project", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "sticker sheet for project", "category": "Education", "type": "expense"}]}}
+{"input": "1.5k for a calligraphy class", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "calligraphy class", "category": "Education", "type": "expense"}]}}
+{"input": "800 on a college hoodie", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "college hoodie", "category": "Shopping", "type": "expense"}]}}
+{"input": "7000 for a data science bootcamp", "output": {"transactions": [{"amount": 7000, "currency": "INR", "item": "data science bootcamp", "category": "Education", "type": "expense"}]}}
+{"input": "350 on a scientific calculator", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "scientific calculator", "category": "Education", "type": "expense"}]}}
+{"input": "1500 for a critical thinking course", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "critical thinking course", "category": "Education", "type": "expense"}]}}
+{"input": "3k for a biochemistry textbook", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "biochemistry textbook", "category": "Education", "type": "expense"}]}}
+{"input": "600 for a art history class", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "art history class", "category": "Education", "type": "expense"}]}}
+{"input": "40 for a geometry compass", "output": {"transactions": [{"amount": 40, "currency": "INR", "item": "geometry compass", "category": "Education", "type": "expense"}]}}
+{"input": "2000 for a public speaking workshop", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "public speaking workshop", "category": "Education", "type": "expense"}]}}
+{"input": "1k for a writing pad", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "writing pad", "category": "Education", "type": "expense"}]}}
+{"input": "4500 for a stock market course", "output": {"transactions": [{"amount": 4500, "currency": "INR", "item": "stock market course", "category": "Education", "type": "expense"}]}}
+{"input": "250 for a lunch box and 50 for chai", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "lunch box", "category": "Shopping", "type": "expense"}, {"amount": 50, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}}
+{"input": "800 for a history project model", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "history project model", "category": "Education", "type": "expense"}]}}
+{"input": "2.2k for a english grammar book", "output": {"transactions": [{"amount": 2200, "currency": "INR", "item": "english grammar book", "category": "Education", "type": "expense"}]}}
+{"input": "500 on that thing for college", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "13000 for a semester library fee", "output": {"transactions": [{"amount": 13000, "currency": "INR", "item": "semester library fee", "category": "Education", "type": "expense"}]}}
+{"input": "350 for a map for geography", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "map for geography", "category": "Education", "type": "expense"}]}}
+{"input": "2.8k for a tablet for studying", "output": {"transactions": [{"amount": 2800, "currency": "INR", "item": "tablet", "category": "Education", "type": "expense"}]}}
+{"input": "1000 for a home science kit", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "home science kit", "category": "Education", "type": "expense"}]}}
+{"input": "500 for a notebook and 300 for lunch", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "notebook", "category": "Education", "type": "expense"}, {"amount": 300, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}]}}
+{"input": "15k for a diploma registration", "output": {"transactions": [{"amount": 15000, "currency": "INR", "item": "diploma registration", "category": "Education", "type": "expense"}]}}
+{"input": "600 for a academic competition entry", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "academic competition entry", "category": "Education", "type": "expense"}]}}
+{"input": "1.8k for a essay writing course", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "essay writing course", "category": "Education", "type": "expense"}]}}
+{"input": "400 for a paintbrush set for art class", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "paintbrush set", "category": "Education", "type": "expense"}]}}
+{"input": "7.5k for a GRE test prep", "output": {"transactions": [{"amount": 7500, "currency": "INR", "item": "gre test prep", "category": "Education", "type": "expense"}]}}
+{"input": "200 for a attendance register", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "attendance register", "category": "Education", "type": "expense"}]}}
+{"input": "1.1k for a math competition fee", "output": {"transactions": [{"amount": 1100, "currency": "INR", "item": "math competition fee", "category": "Education", "type": "expense"}]}}
+{"input": "900 for a physics lab coat", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "physics lab coat", "category": "Education", "type": "expense"}]}}
+{"input": "2600 for a communication skills class", "output": {"transactions": [{"amount": 2600, "currency": "INR", "item": "communication skills class", "category": "Education", "type": "expense"}]}}
+{"input": "3500 for a webinar series on AI", "output": {"transactions": [{"amount": 3500, "currency": "INR", "item": "webinar series on ai", "category": "Education", "type": "expense"}]}}
+{"input": "700 for a flex board for science project", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "flex board for science project", "category": "Education", "type": "expense"}]}}
+{"input": "1200 for a spelling bee registration", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "spelling bee registration", "category": "Education", "type": "expense"}]}}
+{"input": "5000 for a dental assistant course", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "dental assistant course", "category": "Education", "type": "expense"}]}}

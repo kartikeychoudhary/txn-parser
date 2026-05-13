@@ -1,0 +1,22 @@
+# Stage 4 / Stage 7 — inference deps for evaluating GGUF models on GPU.
+#
+# llama-cpp-python needs to be built with CUDA support to use the RTX 5060 Ti.
+# On Windows (PowerShell):
+#
+#   $env:CMAKE_ARGS = "-DGGML_CUDA=on"
+#   pip install llama-cpp-python --upgrade --force-reinstall --no-cache-dir
+#
+# On Linux / WSL (bash):
+#
+#   export CMAKE_ARGS="-DGGML_CUDA=on"
+#   pip install llama-cpp-python --upgrade --force-reinstall --no-cache-dir
+#
+# Requires a C/C++ toolchain (MSVC on Windows, gcc on Linux), CMake, and
+# CUDA toolkit 12.8 on PATH (Blackwell sm_120 needs 12.8+; older 12.4 wheels
+# will not target your GPU).
+#
+# This package only depends on numpy at install time, so it will NOT touch
+# your torch install. If GPU build fails, fall back to CPU-only by omitting
+# the CMAKE_ARGS env var (eval still works, just slower).
+
+llama-cpp-python>=0.3.5

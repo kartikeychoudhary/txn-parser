@@ -1,0 +1,129 @@
+{"input": "paid 300 for movie ticket", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "movie ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1.5k netflix subscription", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "netflix subscription", "category": "Entertainment", "type": "expense"}]}}
+{"input": "do hazaar for concert tickets", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "concert ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "500 rs gaming session", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "gaming session", "category": "Entertainment", "type": "expense"}]}}
+{"input": "2k amusement park entry for family", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "amusement park entry", "category": "Entertainment", "type": "expense"}]}}
+{"input": "char sau on popcorn at movies", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "popcorn", "category": "Food", "type": "expense"}]}}
+{"input": "1 lakh spent on annual concert pass", "output": {"transactions": [{"amount": 100000, "currency": "INR", "item": "annual concert pass", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 rs pubg uc", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "pubg uc", "category": "Entertainment", "type": "expense"}]}}
+{"input": "25k on a ps5 game", "output": {"transactions": [{"amount": 25000, "currency": "INR", "item": "ps5 game", "category": "Entertainment", "type": "expense"}]}}
+{"input": "150 for bowling alley", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "bowling alley", "category": "Entertainment", "type": "expense"}]}}
+{"input": "eight hundred on theatre play", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "theatre play", "category": "Entertainment", "type": "expense"}]}}
+{"input": "500/- for laser tag", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "laser tag", "category": "Entertainment", "type": "expense"}]}}
+{"input": "panch sau rupay cricket match ticket", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "cricket match ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1.2k on amazon prime video", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "amazon prime video", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 rs escape room", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "escape room", "category": "Entertainment", "type": "expense"}]}}
+{"input": "200 for zoo entry", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "zoo entry", "category": "Entertainment", "type": "expense"}]}}
+{"input": "chaar hazaar on disney trip", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "disney trip", "category": "Entertainment", "type": "expense"}]}}
+{"input": "50 rc for pubg mobile", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "pubg mobile rc", "category": "Entertainment", "type": "expense"}]}}
+{"input": "two thousand for a concert ticket", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "concert ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1500 on headphones wait no 1800 for gaming headset", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "gaming headset", "category": "Entertainment", "type": "expense"}]}}
+{"input": "500 for go karting", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "go karting", "category": "Entertainment", "type": "expense"}]}}
+{"input": "2.5k on a steam game", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "steam game", "category": "Entertainment", "type": "expense"}]}}
+{"input": "sau rupay for a youtube premium subscription", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "youtube premium subscription", "category": "Entertainment", "type": "expense"}]}}
+{"input": "600 on a midnight movie", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "midnight movie", "category": "Entertainment", "type": "expense"}]}}
+{"input": "10k annual zoo membership", "output": {"transactions": [{"amount": 10000, "currency": "INR", "item": "annual zoo membership", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 for vr gaming", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "vr gaming", "category": "Entertainment", "type": "expense"}]}}
+{"input": "pachas rupay on candy crush", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "candy crush", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1.5k for a board game night", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "board game night", "category": "Entertainment", "type": "expense"}]}}
+{"input": "400 for a movie and snacks", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "movie and snacks", "category": "Entertainment", "type": "expense"}]}}
+{"input": "2k on a cricket bat", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "cricket bat", "category": "Entertainment", "type": "expense"}]}}
+{"input": "100 for a trampoline park", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "trampoline park", "category": "Entertainment", "type": "expense"}]}}
+{"input": "gote 3000 bonus from company", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "bonus", "category": "Income", "type": "income"}]}}
+{"input": "500 rs on beer and 200 on movie", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}, {"amount": 200, "currency": "INR", "item": "movie", "category": "Entertainment", "type": "expense"}]}}
+{"input": "30 rs chai 100 rs cinema", "output": {"transactions": [{"amount": 30, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 100, "currency": "INR", "item": "cinema", "category": "Entertainment", "type": "expense"}]}}
+{"input": "do hazaar for a night out 500 for food 1500 for drinks", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "night out food", "category": "Food", "type": "expense"}, {"amount": 1500, "currency": "INR", "item": "night out drinks", "category": "Drinks", "type": "expense"}]}}
+{"input": "300 uber 400 movie 100 popcorn", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}, {"amount": 400, "currency": "INR", "item": "movie", "category": "Entertainment", "type": "expense"}, {"amount": 100, "currency": "INR", "item": "popcorn", "category": "Food", "type": "expense"}]}}
+{"input": "1k for a water park ticket", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "water park ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "five hundred on a video game", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "video game", "category": "Entertainment", "type": "expense"}]}}
+{"input": "700 on a music festival pass", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "music festival pass", "category": "Entertainment", "type": "expense"}]}}
+{"input": "200 for a comedy show", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "comedy show", "category": "Entertainment", "type": "expense"}]}}
+{"input": "3k for a paintball session", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "paintball session", "category": "Entertainment", "type": "expense"}]}}
+{"input": "800 on a book for fun", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "book", "category": "Entertainment", "type": "expense"}]}}
+{"input": "chaar sau rupay on a mobile game", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "mobile game", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1.2k for a dolphin show", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "dolphin show", "category": "Entertainment", "type": "expense"}]}}
+{"input": "500 on a trampoline park ticket", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "trampoline park ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "received 1500 cashback on movie booking", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "cashback", "category": "Income", "type": "income"}]}}
+{"input": "200 for arcade games", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "arcade games", "category": "Entertainment", "type": "expense"}]}}
+{"input": "40k on a gaming laptop", "output": {"transactions": [{"amount": 40000, "currency": "INR", "item": "gaming laptop", "category": "Entertainment", "type": "expense"}]}}
+{"input": "150 for a swimming pool entry", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "swimming pool entry", "category": "Entertainment", "type": "expense"}]}}
+{"input": "7k for a live match ticket", "output": {"transactions": [{"amount": 7000, "currency": "INR", "item": "live match ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 on a badminton court", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "badminton court", "category": "Entertainment", "type": "expense"}]}}
+{"input": "2k for a tech gadget but just for fun", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "tech gadget", "category": "Entertainment", "type": "expense"}]}}
+{"input": "100 for a carousel ride for kid", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "carousel ride", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1.5k on a spa day for relaxation", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "spa day", "category": "Entertainment", "type": "expense"}]}}
+{"input": "500 on a zoo ticket", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "zoo ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "ummm 200 for a movie ticket", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "movie ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "600 on a roller coaster ride", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "roller coaster ride", "category": "Entertainment", "type": "expense"}]}}
+{"input": "4k for an amusement park season pass", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "amusement park season pass", "category": "Entertainment", "type": "expense"}]}}
+{"input": "150 on a miniature golf course", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "miniature golf course", "category": "Entertainment", "type": "expense"}]}}
+{"input": "2.5k for a music album pre-order", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "music album pre-order", "category": "Entertainment", "type": "expense"}]}}
+{"input": "do sau on a karaoke night", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "karaoke night", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 for a dance class", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "dance class", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1k on a bungee jumping experience", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "bungee jumping experience", "category": "Entertainment", "type": "expense"}]}}
+{"input": "800 for a sky diving session", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "sky diving session", "category": "Entertainment", "type": "expense"}]}}
+{"input": "500 on a horse riding session", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "horse riding session", "category": "Entertainment", "type": "expense"}]}}
+{"input": "received 2000 as gift for birthday", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "gift", "category": "Gifts", "type": "income"}]}}
+{"input": "1200 on a hot air balloon ride", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "hot air balloon ride", "category": "Entertainment", "type": "expense"}]}}
+{"input": "600 for a water sports session", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "water sports session", "category": "Entertainment", "type": "expense"}]}}
+{"input": "paanch sau on a magic show", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "magic show", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1.8k for a haunted house visit", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "haunted house visit", "category": "Entertainment", "type": "expense"}]}}
+{"input": "400 on a laser show", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "laser show", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 for a quiz night event", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "quiz night event", "category": "Entertainment", "type": "expense"}]}}
+{"input": "2k for a chess tournament entry", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "chess tournament entry", "category": "Entertainment", "type": "expense"}]}}
+{"input": "150 on a carnival ticket", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "carnival ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "5k for a silent disco event", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "silent disco event", "category": "Entertainment", "type": "expense"}]}}
+{"input": "700 on a camping trip", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "camping trip", "category": "Entertainment", "type": "expense"}]}}
+{"input": "200 for a pottery class for fun", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "pottery class", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1.2k on a photography walk", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "photography walk", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 for a food tasting event", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "food tasting event", "category": "Entertainment", "type": "expense"}]}}
+{"input": "800 on a wine tasting session", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "wine tasting session", "category": "Entertainment", "type": "expense"}]}}
+{"input": "chaar hazaar on a weekend getaway", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "weekend getaway", "category": "Entertainment", "type": "expense"}]}}
+{"input": "500 for a karaoke machine", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "karaoke machine", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1.5k on a vr headset for gaming", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "vr headset", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 for a paint your own pottery session", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "paint your own pottery session", "category": "Entertainment", "type": "expense"}]}}
+{"input": "6k on a theme park ticket for two", "output": {"transactions": [{"amount": 6000, "currency": "INR", "item": "theme park ticket for two", "category": "Entertainment", "type": "expense"}]}}
+{"input": "100 on a fair ride", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "fair ride", "category": "Entertainment", "type": "expense"}]}}
+{"input": "2k for a drone to play with", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "drone", "category": "Entertainment", "type": "expense"}]}}
+{"input": "400 on a cosplay contest entry", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "cosplay contest entry", "category": "Entertainment", "type": "expense"}]}}
+{"input": "900 for a stand up comedy workshop", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "stand up comedy workshop", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1.1k on a murder mystery dinner", "output": {"transactions": [{"amount": 1100, "currency": "INR", "item": "murder mystery dinner", "category": "Entertainment", "type": "expense"}]}}
+{"input": "550 for a reptile zoo visit", "output": {"transactions": [{"amount": 550, "currency": "INR", "item": "reptile zoo visit", "category": "Entertainment", "type": "expense"}]}}
+{"input": "250 on a balloon festival", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "balloon festival", "category": "Entertainment", "type": "expense"}]}}
+{"input": "3k for a hologram concert", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "hologram concert", "category": "Entertainment", "type": "expense"}]}}
+{"input": "800 on a casino night event", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "casino night event", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1200 for an immersive art exhibition", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "immersive art exhibition", "category": "Entertainment", "type": "expense"}]}}
+{"input": "500 for a foosball table rental", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "foosball table rental", "category": "Entertainment", "type": "expense"}]}}
+{"input": "400 on a billiard session", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "billiard session", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1.2k for a scuba diving intro", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "scuba diving intro", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 on a virtual reality escape room", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "virtual reality escape room", "category": "Entertainment", "type": "expense"}]}}
+{"input": "2.5k for a concert merch bundle", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "concert merch bundle", "category": "Entertainment", "type": "expense"}]}}
+{"input": "700 on a zip lining experience", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "zip lining experience", "category": "Entertainment", "type": "expense"}]}}
+{"input": "8000 ka month end party", "output": {"transactions": [{"amount": 8000, "currency": "INR", "item": "month end party", "category": "Entertainment", "type": "expense"}]}}
+{"input": "150 for a boat ride in park", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "boat ride", "category": "Entertainment", "type": "expense"}]}}
+{"input": "paid 450 for that thing at the mall", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 2500 yesterday on a gadget", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "gadget", "category": "Other", "type": "expense"}]}}
+{"input": "500 uber to the concert and 2000 for ticket", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}, {"amount": 2000, "currency": "INR", "item": "concert ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 on chai 150 on snacks 400 movie", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 150, "currency": "INR", "item": "snacks", "category": "Food", "type": "expense"}, {"amount": 400, "currency": "INR", "item": "movie", "category": "Entertainment", "type": "expense"}]}}
+{"input": "do sau uber teen sau movie", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}, {"amount": 300, "currency": "INR", "item": "movie", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1.5k for netflix and 500 for chai", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "netflix", "category": "Entertainment", "type": "expense"}, {"amount": 500, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}}
+{"input": "500 on a new game and 200 uber", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "new game", "category": "Entertainment", "type": "expense"}, {"amount": 200, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "300 for lunch 100 chai 700 for concert", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}, {"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 700, "currency": "INR", "item": "concert", "category": "Entertainment", "type": "expense"}]}}
+{"input": "2k netflix 500 amazon prime 300 hotstar", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "netflix", "category": "Entertainment", "type": "expense"}, {"amount": 500, "currency": "INR", "item": "amazon prime", "category": "Entertainment", "type": "expense"}, {"amount": 300, "currency": "INR", "item": "hotstar", "category": "Entertainment", "type": "expense"}]}}
+{"input": "do hazaar on a gaming mouse", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "gaming mouse", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1500 ka naya controller", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "controller", "category": "Entertainment", "type": "expense"}]}}
+{"input": "500 for a bowling session with friends", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "bowling session", "category": "Entertainment", "type": "expense"}]}}
+{"input": "2.2k for a music streaming subscription annual", "output": {"transactions": [{"amount": 2200, "currency": "INR", "item": "music streaming subscription", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1k on a mystery box from online", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "mystery box", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 for a karaoke session at a bar", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "karaoke session", "category": "Entertainment", "type": "expense"}]}}
+{"input": "5000 ka naya tv but wait no 5500 for entertainment", "output": {"transactions": [{"amount": 5500, "currency": "INR", "item": "tv", "category": "Entertainment", "type": "expense"}]}}
+{"input": "800 on an aquarium visit", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "aquarium visit", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1200 for a sky lantern festival", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "sky lantern festival", "category": "Entertainment", "type": "expense"}]}}
+{"input": "400 for a puppet show", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "puppet show", "category": "Entertainment", "type": "expense"}]}}
+{"input": "2.5k for a film festival pass", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "film festival pass", "category": "Entertainment", "type": "expense"}]}}
+{"input": "600 on a light and sound show", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "light and sound show", "category": "Entertainment", "type": "expense"}]}}
+{"input": "500 for a rage room experience", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "rage room experience", "category": "Entertainment", "type": "expense"}]}}
+{"input": "1.2k on a geocaching kit", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "geocaching kit", "category": "Entertainment", "type": "expense"}]}}
+{"input": "900 for a tree climbing adventure", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "tree climbing adventure", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 on a face painting at the fair", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "face painting", "category": "Entertainment", "type": "expense"}]}}
+{"input": "2k for a retro gaming console", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "retro gaming console", "category": "Entertainment", "type": "expense"}]}}

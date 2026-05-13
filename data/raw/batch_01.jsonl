@@ -1,0 +1,135 @@
+{"input": "I spent 150 rupees on a sandwich", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "sandwich", "category": "Food", "type": "expense"}]}}
+{"input": "I paid 350 rupees for a taxi ride", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "taxi ride", "category": "Transport", "type": "expense"}]}}
+{"input": "I bought a book for 450 rupees", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "book", "category": "Education", "type": "expense"}]}}
+{"input": "I spent 1200 rupees on a haircut", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "haircut", "category": "Personal", "type": "expense"}]}}
+{"input": "I paid 3000 rupees for electricity bill", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "electricity bill", "category": "Bills", "type": "expense"}]}}
+{"input": "I spent 800 rupees on medicines", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "medicines", "category": "Health", "type": "expense"}]}}
+{"input": "I paid 250 rupees for a movie ticket", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "movie ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "I bought a shirt for 700 rupees", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "shirt", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 100 rupees on a cup of coffee", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "coffee", "category": "Drinks", "type": "expense"}]}}
+{"input": "I paid 60 rupees for a bus ticket", "output": {"transactions": [{"amount": 60, "currency": "INR", "item": "bus ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "I spent 2000 rupees on groceries", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "groceries", "category": "Groceries", "type": "expense"}]}}
+{"input": "I paid 15000 rupees as rent", "output": {"transactions": [{"amount": 15000, "currency": "INR", "item": "rent", "category": "Bills", "type": "expense"}]}}
+{"input": "I donated 500 rupees to charity", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "charity", "category": "Gifts", "type": "expense"}]}}
+{"input": "I bought a gift for 1200 rupees", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "gift", "category": "Gifts", "type": "expense"}]}}
+{"input": "I spent 300 rupees on a yoga class", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "yoga class", "category": "Health", "type": "expense"}]}}
+{"input": "I paid 50 rupees for a pack of gum", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "gum", "category": "Food", "type": "expense"}]}}
+{"input": "I bought a pair of socks for 200 rupees", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "socks", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 2500 rupees on a dental checkup", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "dental checkup", "category": "Health", "type": "expense"}]}}
+{"input": "I paid 90 rupees for an auto rickshaw ride", "output": {"transactions": [{"amount": 90, "currency": "INR", "item": "auto rickshaw ride", "category": "Transport", "type": "expense"}]}}
+{"input": "I bought a notebook for 80 rupees", "output": {"transactions": [{"amount": 80, "currency": "INR", "item": "notebook", "category": "Education", "type": "expense"}]}}
+{"input": "I spent 4000 rupees on a new phone case", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "phone case", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 180 rupees for a glass of wine", "output": {"transactions": [{"amount": 180, "currency": "INR", "item": "wine", "category": "Drinks", "type": "expense"}]}}
+{"input": "I bought some vegetables for 120 rupees", "output": {"transactions": [{"amount": 120, "currency": "INR", "item": "vegetables", "category": "Groceries", "type": "expense"}]}}
+{"input": "I spent 600 rupees on a domain name renewal", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "domain name renewal", "category": "Bills", "type": "expense"}]}}
+{"input": "I paid 1500 rupees for a dinner at a restaurant", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "dinner", "category": "Food", "type": "expense"}]}}
+{"input": "I spent 70 rupees on a bottle of water", "output": {"transactions": [{"amount": 70, "currency": "INR", "item": "bottle of water", "category": "Drinks", "type": "expense"}]}}
+{"input": "I paid 2200 rupees for a pair of jeans", "output": {"transactions": [{"amount": 2200, "currency": "INR", "item": "jeans", "category": "Shopping", "type": "expense"}]}}
+{"input": "I bought a plant for 350 rupees", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "plant", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 4500 rupees on a weekend trip", "output": {"transactions": [{"amount": 4500, "currency": "INR", "item": "weekend trip", "category": "Entertainment", "type": "expense"}]}}
+{"input": "I paid 10000 rupees for a laptop repair", "output": {"transactions": [{"amount": 10000, "currency": "INR", "item": "laptop repair", "category": "Other", "type": "expense"}]}}
+{"input": "I spent 30 rupees on a pack of chips", "output": {"transactions": [{"amount": 30, "currency": "INR", "item": "chips", "category": "Food", "type": "expense"}]}}
+{"input": "I bought a face cream for 650 rupees", "output": {"transactions": [{"amount": 650, "currency": "INR", "item": "face cream", "category": "Personal", "type": "expense"}]}}
+{"input": "I paid 200 rupees for a street food snack", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "street food snack", "category": "Food", "type": "expense"}]}}
+{"input": "I spent 14000 rupees on a new mattress", "output": {"transactions": [{"amount": 14000, "currency": "INR", "item": "mattress", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 750 rupees for a pest control service", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "pest control service", "category": "Bills", "type": "expense"}]}}
+{"input": "I bought a cake for 400 rupees", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "cake", "category": "Food", "type": "expense"}]}}
+{"input": "I spent 1100 rupees on a wireless mouse", "output": {"transactions": [{"amount": 1100, "currency": "INR", "item": "wireless mouse", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 85 rupees for a metro ticket", "output": {"transactions": [{"amount": 85, "currency": "INR", "item": "metro ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "I bought a painting for 5000 rupees", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "painting", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 150 rupees on a haircut at the salon", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "haircut", "category": "Personal", "type": "expense"}]}}
+{"input": "I paid 3200 rupees for a gym subscription", "output": {"transactions": [{"amount": 3200, "currency": "INR", "item": "gym subscription", "category": "Health", "type": "expense"}]}}
+{"input": "I bought a toy for 500 rupees", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "toy", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 18000 rupees on a new refrigerator", "output": {"transactions": [{"amount": 18000, "currency": "INR", "item": "refrigerator", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 250 rupees for a parking fee", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "parking fee", "category": "Transport", "type": "expense"}]}}
+{"input": "I bought a packet of biscuits for 40 rupees", "output": {"transactions": [{"amount": 40, "currency": "INR", "item": "biscuits", "category": "Food", "type": "expense"}]}}
+{"input": "I spent 900 rupees on a concert ticket", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "concert ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "I paid 10 rupees for a local bus ride", "output": {"transactions": [{"amount": 10, "currency": "INR", "item": "bus ride", "category": "Transport", "type": "expense"}]}}
+{"input": "I bought a power bank for 1300 rupees", "output": {"transactions": [{"amount": 1300, "currency": "INR", "item": "power bank", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 7500 rupees on a new washing machine", "output": {"transactions": [{"amount": 7500, "currency": "INR", "item": "washing machine", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 550 rupees for a doctor's consultation", "output": {"transactions": [{"amount": 550, "currency": "INR", "item": "doctor consultation", "category": "Health", "type": "expense"}]}}
+{"input": "I bought a bottle of juice for 90 rupees", "output": {"transactions": [{"amount": 90, "currency": "INR", "item": "juice", "category": "Drinks", "type": "expense"}]}}
+{"input": "I spent 2000 rupees on a night out with friends", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "night out", "category": "Entertainment", "type": "expense"}]}}
+{"input": "I paid 400 rupees for a pair of earrings", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "earrings", "category": "Shopping", "type": "expense"}]}}
+{"input": "I bought milk for 60 rupees", "output": {"transactions": [{"amount": 60, "currency": "INR", "item": "milk", "category": "Groceries", "type": "expense"}]}}
+{"input": "I spent 12000 rupees on an online course", "output": {"transactions": [{"amount": 12000, "currency": "INR", "item": "online course", "category": "Education", "type": "expense"}]}}
+{"input": "I paid 300 rupees for a subscription to a streaming service", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "streaming service", "category": "Entertainment", "type": "expense"}]}}
+{"input": "I bought a new keyboard for 1800 rupees", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "keyboard", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 500 rupees on a charity donation", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "charity donation", "category": "Gifts", "type": "expense"}]}}
+{"input": "I paid 100 rupees for a cup of tea at a cafe", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "tea", "category": "Drinks", "type": "expense"}]}}
+{"input": "I bought a pair of sunglasses for 850 rupees", "output": {"transactions": [{"amount": 850, "currency": "INR", "item": "sunglasses", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 2700 rupees on a plane ticket", "output": {"transactions": [{"amount": 2700, "currency": "INR", "item": "plane ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "I paid 4000 rupees for a new water purifier", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "water purifier", "category": "Shopping", "type": "expense"}]}}
+{"input": "I bought a bag of rice for 600 rupees", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "rice", "category": "Groceries", "type": "expense"}]}}
+{"input": "I spent 150 rupees on a manicure", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "manicure", "category": "Personal", "type": "expense"}]}}
+{"input": "I paid 220 rupees for a battery replacement", "output": {"transactions": [{"amount": 220, "currency": "INR", "item": "battery replacement", "category": "Other", "type": "expense"}]}}
+{"input": "I bought a hat for 350 rupees", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "hat", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 8000 rupees on a new television", "output": {"transactions": [{"amount": 8000, "currency": "INR", "item": "television", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 120 rupees for a fresh coconut water", "output": {"transactions": [{"amount": 120, "currency": "INR", "item": "coconut water", "category": "Drinks", "type": "expense"}]}}
+{"input": "I bought a set of pens for 100 rupees", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "pens", "category": "Education", "type": "expense"}]}}
+{"input": "I spent 450 rupees on a spa treatment", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "spa treatment", "category": "Personal", "type": "expense"}]}}
+{"input": "I paid 16000 rupees for a vehicle insurance premium", "output": {"transactions": [{"amount": 16000, "currency": "INR", "item": "vehicle insurance", "category": "Bills", "type": "expense"}]}}
+{"input": "I bought a salad for 180 rupees", "output": {"transactions": [{"amount": 180, "currency": "INR", "item": "salad", "category": "Food", "type": "expense"}]}}
+{"input": "I spent 3300 rupees on a new watch", "output": {"transactions": [{"amount": 3300, "currency": "INR", "item": "watch", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 50 rupees for a lottery ticket", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "lottery ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "I bought a box of chocolates for 250 rupees", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "chocolates", "category": "Food", "type": "expense"}]}}
+{"input": "I spent 950 rupees on a new charger", "output": {"transactions": [{"amount": 950, "currency": "INR", "item": "charger", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 20000 rupees for a new air conditioner", "output": {"transactions": [{"amount": 20000, "currency": "INR", "item": "air conditioner", "category": "Shopping", "type": "expense"}]}}
+{"input": "I bought a bag of apples for 150 rupees", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "apples", "category": "Groceries", "type": "expense"}]}}
+{"input": "I spent 700 rupees on a book on history", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "history book", "category": "Education", "type": "expense"}]}}
+{"input": "I paid 80 rupees for a google play gift card", "output": {"transactions": [{"amount": 80, "currency": "INR", "item": "google play gift card", "category": "Entertainment", "type": "expense"}]}}
+{"input": "I bought a new wallet for 1200 rupees", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "wallet", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 550 rupees on a bus pass for the month", "output": {"transactions": [{"amount": 550, "currency": "INR", "item": "bus pass", "category": "Transport", "type": "expense"}]}}
+{"input": "I paid 2500 rupees for a utility bill", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "utility bill", "category": "Bills", "type": "expense"}]}}
+{"input": "I bought a piece of cake for 200 rupees", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "cake", "category": "Food", "type": "expense"}]}}
+{"input": "I spent 400 rupees on a bottle of shampoo", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "shampoo", "category": "Personal", "type": "expense"}]}}
+{"input": "I paid 170 rupees for a plate of biryani", "output": {"transactions": [{"amount": 170, "currency": "INR", "item": "biryani", "category": "Food", "type": "expense"}]}}
+{"input": "I bought a t-shirt for 600 rupees", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "t-shirt", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 14000 rupees on a new couch", "output": {"transactions": [{"amount": 14000, "currency": "INR", "item": "couch", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 35 rupees for a pack of razors", "output": {"transactions": [{"amount": 35, "currency": "INR", "item": "razors", "category": "Personal", "type": "expense"}]}}
+{"input": "I bought an umbrella for 250 rupees", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "umbrella", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 1100 rupees on a pair of running shoes", "output": {"transactions": [{"amount": 1100, "currency": "INR", "item": "running shoes", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 75 rupees for a magazine", "output": {"transactions": [{"amount": 75, "currency": "INR", "item": "magazine", "category": "Entertainment", "type": "expense"}]}}
+{"input": "I bought a new belt for 500 rupees", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "belt", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 2300 rupees on a hotel room for one night", "output": {"transactions": [{"amount": 2300, "currency": "INR", "item": "hotel room", "category": "Entertainment", "type": "expense"}]}}
+{"input": "I paid 900 rupees for a new backpack", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "backpack", "category": "Shopping", "type": "expense"}]}}
+{"input": "I bought some eggs for 80 rupees", "output": {"transactions": [{"amount": 80, "currency": "INR", "item": "eggs", "category": "Groceries", "type": "expense"}]}}
+{"input": "I spent 450 rupees on a bottle of perfume", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "perfume", "category": "Personal", "type": "expense"}]}}
+{"input": "I paid 10000 rupees for a new water heater", "output": {"transactions": [{"amount": 10000, "currency": "INR", "item": "water heater", "category": "Shopping", "type": "expense"}]}}
+{"input": "I bought a set of towels for 700 rupees", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "towels", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 350 rupees on a train ticket", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "train ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "I paid 1500 rupees for a new microwave", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "microwave", "category": "Shopping", "type": "expense"}]}}
+{"input": "I bought a pair of slippers for 200 rupees", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "slippers", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 6000 rupees on a new dining table", "output": {"transactions": [{"amount": 6000, "currency": "INR", "item": "dining table", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 130 rupees for a bottle of soda", "output": {"transactions": [{"amount": 130, "currency": "INR", "item": "soda", "category": "Drinks", "type": "expense"}]}}
+{"input": "I bought a curtain for 850 rupees", "output": {"transactions": [{"amount": 850, "currency": "INR", "item": "curtain", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 2500 rupees on a new printer", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "printer", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 200 rupees for a bowl of noodles", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "noodles", "category": "Food", "type": "expense"}]}}
+{"input": "I bought a new pillow for 400 rupees", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "pillow", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 12000 rupees on a new sofa set", "output": {"transactions": [{"amount": 12000, "currency": "INR", "item": "sofa set", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 45 rupees for a pack of cheap cigarettes", "output": {"transactions": [{"amount": 45, "currency": "INR", "item": "cigarettes", "category": "Other", "type": "expense"}]}}
+{"input": "I bought a single rose for 30 rupees", "output": {"transactions": [{"amount": 30, "currency": "INR", "item": "rose", "category": "Gifts", "type": "expense"}]}}
+{"input": "I spent 5000 rupees on a new smartphone screen protector", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "smartphone screen protector", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 110 rupees for a smoothie", "output": {"transactions": [{"amount": 110, "currency": "INR", "item": "smoothie", "category": "Drinks", "type": "expense"}]}}
+{"input": "I bought a candle for 150 rupees", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "candle", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 800 rupees on a headphone repair", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "headphone repair", "category": "Other", "type": "expense"}]}}
+{"input": "I paid 3000 rupees for a new bicycle tire", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "bicycle tire", "category": "Transport", "type": "expense"}]}}
+{"input": "I bought a pack of diapers for 650 rupees", "output": {"transactions": [{"amount": 650, "currency": "INR", "item": "diapers", "category": "Groceries", "type": "expense"}]}}
+{"input": "I spent 180 rupees on a kebab wrap", "output": {"transactions": [{"amount": 180, "currency": "INR", "item": "kebab wrap", "category": "Food", "type": "expense"}]}}
+{"input": "I paid 9500 rupees for a new ceiling fan", "output": {"transactions": [{"amount": 9500, "currency": "INR", "item": "ceiling fan", "category": "Shopping", "type": "expense"}]}}
+{"input": "I bought a bag of flour for 50 rupees", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "flour", "category": "Groceries", "type": "expense"}]}}
+{"input": "I spent 400 rupees on a hand cream", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "hand cream", "category": "Personal", "type": "expense"}]}}
+{"input": "I paid 25000 rupees for a new laptop case", "output": {"transactions": [{"amount": 25000, "currency": "INR", "item": "laptop case", "category": "Shopping", "type": "expense"}]}}
+{"input": "I bought a pack of toothbrushes for 120 rupees", "output": {"transactions": [{"amount": 120, "currency": "INR", "item": "toothbrushes", "category": "Personal", "type": "expense"}]}}
+{"input": "I spent 700 rupees on a new frying pan", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "frying pan", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 65 rupees for a bottle of cold drink", "output": {"transactions": [{"amount": 65, "currency": "INR", "item": "cold drink", "category": "Drinks", "type": "expense"}]}}
+{"input": "I bought a new rug for 2200 rupees", "output": {"transactions": [{"amount": 2200, "currency": "INR", "item": "rug", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 1600 rupees on a pair of new curtains", "output": {"transactions": [{"amount": 1600, "currency": "INR", "item": "curtains", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 75 rupees for a vada pav", "output": {"transactions": [{"amount": 75, "currency": "INR", "item": "vada pav", "category": "Food", "type": "expense"}]}}
+{"input": "I bought a new clock for 300 rupees", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "clock", "category": "Shopping", "type": "expense"}]}}
+{"input": "I spent 1500 rupees on a pair of wireless earphones", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "wireless earphones", "category": "Shopping", "type": "expense"}]}}
+{"input": "I paid 20000 rupees for a new geyser", "output": {"transactions": [{"amount": 20000, "currency": "INR", "item": "geyser", "category": "Bills", "type": "expense"}]}}
+{"input": "I bought a dozen donuts for 250 rupees", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "donuts", "category": "Food", "type": "expense"}]}}
+{"input": "I spent 1000 rupees on a new yoga mat", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "yoga mat", "category": "Health", "type": "expense"}]}}
+{"input": "I paid 180 rupees for an iced latte", "output": {"transactions": [{"amount": 180, "currency": "INR", "item": "iced latte", "category": "Drinks", "type": "expense"}]}}
+{"input": "I bought a new set of bedsheets for 1200 rupees", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "bedsheets", "category": "Shopping", "type": "expense"}]}}

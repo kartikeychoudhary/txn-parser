@@ -1,0 +1,5 @@
+{"input": "Gave 1500 for school fees.", "raw": "", "reason": "json_invalid", "schema_errors": []}
+{"input": "Spent 400 on laundry.", "raw": "", "reason": "json_invalid", "schema_errors": []}
+{"input": "Paid 800 for Uber ride.", "raw": "", "reason": "json_invalid", "schema_errors": []}
+{"input": "electricity bill", "raw": "{\"transactions\":[{\"amount\":<unspecified>,\"currency\":\"INR\",\"item\":\"electricity bill\",\"category\":\"Bills\",\"type\":\"expense\"}]}", "reason": "json_invalid", "schema_errors": []}
+{"input": "rs loan repayment", "raw": "{\"transactions\":[{\"amount\":<unspecified>,\"currency\":\"INR\",\"item\":\"loan repayment\",\"category\":\"Bills\",\"type\":\"expense\"}]}", "reason": "json_invalid", "schema_errors": []}

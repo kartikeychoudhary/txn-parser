@@ -1,0 +1,145 @@
+{"input": "five hundred for petrol", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "petrol", "category": "Transport", "type": "expense"}]}}
+{"input": "two thousand on medicines", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "medicines", "category": "Health", "type": "expense"}]}}
+{"input": "three hundred for dinner", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "dinner", "category": "Food", "type": "expense"}]}}
+{"input": "one thousand five hundred on groceries", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "groceries", "category": "Groceries", "type": "expense"}]}}
+{"input": "four hundred rupees for a movie ticket", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "movie ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "seven hundred for a new shirt", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "shirt", "category": "Shopping", "type": "expense"}]}}
+{"input": "six thousand on rent", "output": {"transactions": [{"amount": 6000, "currency": "INR", "item": "rent", "category": "Bills", "type": "expense"}]}}
+{"input": "two hundred for chai and samosa", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chai and samosa", "category": "Drinks", "type": "expense"}]}}
+{"input": "eight hundred on an uber ride", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "nine hundred for a book", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "book", "category": "Education", "type": "expense"}]}}
+{"input": "ten thousand for a laptop", "output": {"transactions": [{"amount": 10000, "currency": "INR", "item": "laptop", "category": "Shopping", "type": "expense"}]}}
+{"input": "five hundred on beer", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}]}}
+{"input": "three thousand for electricity bill", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "electricity bill", "category": "Bills", "type": "expense"}]}}
+{"input": "one hundred for a bus ticket", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "bus ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "fifteen hundred on vegetables", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "vegetables", "category": "Groceries", "type": "expense"}]}}
+{"input": "two hundred fifty for coffee", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "coffee", "category": "Drinks", "type": "expense"}]}}
+{"input": "four thousand on a course", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "course", "category": "Education", "type": "expense"}]}}
+{"input": "twelve thousand for rent", "output": {"transactions": [{"amount": 12000, "currency": "INR", "item": "rent", "category": "Bills", "type": "expense"}]}}
+{"input": "six hundred on pizza", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "pizza", "category": "Food", "type": "expense"}]}}
+{"input": "eighty rupees for a chocolate", "output": {"transactions": [{"amount": 80, "currency": "INR", "item": "chocolate", "category": "Food", "type": "expense"}]}}
+{"input": "twenty thousand for a phone", "output": {"transactions": [{"amount": 20000, "currency": "INR", "item": "phone", "category": "Shopping", "type": "expense"}]}}
+{"input": "seven hundred for auto ride", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}]}}
+{"input": "one hundred fifty for medicine", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}}
+{"input": "five thousand on a gift", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "gift", "category": "Gifts", "type": "expense"}]}}
+{"input": "three hundred for a haircut", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "haircut", "category": "Personal", "type": "expense"}]}}
+{"input": "nine hundred for gym subscription", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "gym subscription", "category": "Health", "type": "expense"}]}}
+{"input": "sixteen hundred on a jacket", "output": {"transactions": [{"amount": 1600, "currency": "INR", "item": "jacket", "category": "Shopping", "type": "expense"}]}}
+{"input": "fifty rupees for chips", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "chips", "category": "Food", "type": "expense"}]}}
+{"input": "two hundred fifty for a sim recharge", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "sim recharge", "category": "Bills", "type": "expense"}]}}
+{"input": "four hundred on ice cream", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "ice cream", "category": "Food", "type": "expense"}]}}
+{"input": "eleven hundred for printer paper", "output": {"transactions": [{"amount": 1100, "currency": "INR", "item": "printer paper", "category": "Education", "type": "expense"}]}}
+{"input": "eight hundred on a watch", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "watch", "category": "Shopping", "type": "expense"}]}}
+{"input": "thirty thousand for a fridge", "output": {"transactions": [{"amount": 30000, "currency": "INR", "item": "fridge", "category": "Shopping", "type": "expense"}]}}
+{"input": "ninety rupees for a pen", "output": {"transactions": [{"amount": 90, "currency": "INR", "item": "pen", "category": "Education", "type": "expense"}]}}
+{"input": "one hundred twenty for a pastry", "output": {"transactions": [{"amount": 120, "currency": "INR", "item": "pastry", "category": "Food", "type": "expense"}]}}
+{"input": "five hundred on wine", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "wine", "category": "Drinks", "type": "expense"}]}}
+{"input": "two thousand for a dentist", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "dentist", "category": "Health", "type": "expense"}]}}
+{"input": "seven hundred for a t-shirt", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "t-shirt", "category": "Shopping", "type": "expense"}]}}
+{"input": "one thousand for broadband", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "broadband", "category": "Bills", "type": "expense"}]}}
+{"input": "three hundred for a cake", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "cake", "category": "Food", "type": "expense"}]}}
+{"input": "eight hundred for a train ticket", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "train ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "four hundred on dairy milk", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "dairy milk", "category": "Groceries", "type": "expense"}]}}
+{"input": "two hundred for a massage", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "massage", "category": "Personal", "type": "expense"}]}}
+{"input": "fifty thousand for a car repair", "output": {"transactions": [{"amount": 50000, "currency": "INR", "item": "car repair", "category": "Transport", "type": "expense"}]}}
+{"input": "nineteen hundred for a suit", "output": {"transactions": [{"amount": 1900, "currency": "INR", "item": "suit", "category": "Shopping", "type": "expense"}]}}
+{"input": "seven hundred for a concert ticket", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "concert ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "one hundred fifty for a notebook", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "notebook", "category": "Education", "type": "expense"}]}}
+{"input": "twenty five hundred on a bag", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "bag", "category": "Shopping", "type": "expense"}]}}
+{"input": "six hundred on biryani", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "biryani", "category": "Food", "type": "expense"}]}}
+{"input": "three hundred for ola ride", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "ola ride", "category": "Transport", "type": "expense"}]}}
+{"input": "eighty thousand for a sofa", "output": {"transactions": [{"amount": 80000, "currency": "INR", "item": "sofa", "category": "Shopping", "type": "expense"}]}}
+{"input": "four hundred for a flower bouquet", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "flower bouquet", "category": "Gifts", "type": "expense"}]}}
+{"input": "ten hundred for a vacuum cleaner", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "vacuum cleaner", "category": "Shopping", "type": "expense"}]}}
+{"input": "one hundred for a magazine", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "magazine", "category": "Entertainment", "type": "expense"}]}}
+{"input": "two thousand for a therapy session", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "therapy session", "category": "Health", "type": "expense"}]}}
+{"input": "five hundred on milk", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "milk", "category": "Groceries", "type": "expense"}]}}
+{"input": "three hundred on a belt", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "belt", "category": "Shopping", "type": "expense"}]}}
+{"input": "four thousand for a certification exam", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "certification exam", "category": "Education", "type": "expense"}]}}
+{"input": "seven hundred for a spa session", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "spa session", "category": "Personal", "type": "expense"}]}}
+{"input": "one hundred twenty for a toy", "output": {"transactions": [{"amount": 120, "currency": "INR", "item": "toy", "category": "Shopping", "type": "expense"}]}}
+{"input": "six hundred for a taxi ride", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "taxi ride", "category": "Transport", "type": "expense"}]}}
+{"input": "two hundred for a pizza and coke", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "pizza and coke", "category": "Food", "type": "expense"}]}}
+{"input": "eight hundred on a curtain", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "curtain", "category": "Shopping", "type": "expense"}]}}
+{"input": "four hundred on medicine and doctor", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "medicine and doctor", "category": "Health", "type": "expense"}]}}
+{"input": "nine hundred for a shoe rack", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "shoe rack", "category": "Shopping", "type": "expense"}]}}
+{"input": "one hundred fifty for a cup of coffee", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "cup of coffee", "category": "Drinks", "type": "expense"}]}}
+{"input": "three thousand on water filter", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "water filter", "category": "Shopping", "type": "expense"}]}}
+{"input": "five hundred on a donation", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "donation", "category": "Gifts", "type": "expense"}]}}
+{"input": "eight hundred for a bike ride", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "bike ride", "category": "Transport", "type": "expense"}]}}
+{"input": "twenty two hundred for a dinner set", "output": {"transactions": [{"amount": 2200, "currency": "INR", "item": "dinner set", "category": "Shopping", "type": "expense"}]}}
+{"input": "one hundred for a pack of gum", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "pack of gum", "category": "Food", "type": "expense"}]}}
+{"input": "six hundred for a shampoo", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "shampoo", "category": "Groceries", "type": "expense"}]}}
+{"input": "ten thousand for a TV", "output": {"transactions": [{"amount": 10000, "currency": "INR", "item": "tv", "category": "Shopping", "type": "expense"}]}}
+{"input": "two hundred for a barber", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "barber", "category": "Personal", "type": "expense"}]}}
+{"input": "three hundred for a dvd", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "dvd", "category": "Entertainment", "type": "expense"}]}}
+{"input": "five hundred for a fruit basket", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "fruit basket", "category": "Groceries", "type": "expense"}]}}
+{"input": "one hundred for a pastry and juice", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "pastry and juice", "category": "Food", "type": "expense"}]}}
+{"input": "four thousand for a new tyre", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "new tyre", "category": "Transport", "type": "expense"}]}}
+{"input": "three hundred on a necklace", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "necklace", "category": "Shopping", "type": "expense"}]}}
+{"input": "six hundred for a birthday gift", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "birthday gift", "category": "Gifts", "type": "expense"}]}}
+{"input": "seven hundred for a hotel room", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "hotel room", "category": "Entertainment", "type": "expense"}]}}
+{"input": "two hundred for a scarf", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "scarf", "category": "Shopping", "type": "expense"}]}}
+{"input": "nine hundred for a photo frame", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "photo frame", "category": "Shopping", "type": "expense"}]}}
+{"input": "one hundred for a keychain", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "keychain", "category": "Shopping", "type": "expense"}]}}
+{"input": "five hundred for a bookshelf", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "bookshelf", "category": "Shopping", "type": "expense"}]}}
+{"input": "eight hundred for a parking fee", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "parking fee", "category": "Transport", "type": "expense"}]}}
+{"input": "three hundred for a headphone", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "headphone", "category": "Shopping", "type": "expense"}]}}
+{"input": "two thousand for a charger", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "charger", "category": "Shopping", "type": "expense"}]}}
+{"input": "four hundred for a haircut and shave", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "haircut and shave", "category": "Personal", "type": "expense"}]}}
+{"input": "six hundred on bread and butter", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "bread and butter", "category": "Groceries", "type": "expense"}]}}
+{"input": "one hundred for a candle", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "candle", "category": "Shopping", "type": "expense"}]}}
+{"input": "seven hundred for a dslr bag", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "dslr bag", "category": "Shopping", "type": "expense"}]}}
+{"input": "five hundred for a yoga class", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "yoga class", "category": "Health", "type": "expense"}]}}
+{"input": "three hundred for a vase", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "vase", "category": "Shopping", "type": "expense"}]}}
+{"input": "two hundred for a notebook and pen", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "notebook and pen", "category": "Education", "type": "expense"}]}}
+{"input": "eight hundred for a pet food", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "pet food", "category": "Groceries", "type": "expense"}]}}
+{"input": "four hundred for a car wash", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "car wash", "category": "Transport", "type": "expense"}]}}
+{"input": "one thousand for a bookshelf", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "bookshelf", "category": "Shopping", "type": "expense"}]}}
+{"input": "nine hundred for a frying pan", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "frying pan", "category": "Shopping", "type": "expense"}]}}
+{"input": "three hundred for a wireless mouse", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "wireless mouse", "category": "Shopping", "type": "expense"}]}}
+{"input": "seven hundred for a playstation game", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "playstation game", "category": "Entertainment", "type": "expense"}]}}
+{"input": "six hundred on a toy for my daughter", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "toy", "category": "Gifts", "type": "expense"}]}}
+{"input": "two hundred for a power bank", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "power bank", "category": "Shopping", "type": "expense"}]}}
+{"input": "five hundred for a new bag", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "new bag", "category": "Shopping", "type": "expense"}]}}
+{"input": "eight hundred for a blanket", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "blanket", "category": "Shopping", "type": "expense"}]}}
+{"input": "four hundred for a raincoat", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "raincoat", "category": "Shopping", "type": "expense"}]}}
+{"input": "one hundred for a bangle", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "bangle", "category": "Shopping", "type": "expense"}]}}
+{"input": "three hundred for a cricket bat", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "cricket bat", "category": "Entertainment", "type": "expense"}]}}
+{"input": "six hundred for a loaf of bread", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "loaf of bread", "category": "Groceries", "type": "expense"}]}}
+{"input": "two hundred for a pack of socks", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "pack of socks", "category": "Shopping", "type": "expense"}]}}
+{"input": "nine hundred for a cooking pot", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "cooking pot", "category": "Shopping", "type": "expense"}]}}
+{"input": "five hundred for a rechargeable fan", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "rechargeable fan", "category": "Shopping", "type": "expense"}]}}
+{"input": "four hundred for a handmade card", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "handmade card", "category": "Gifts", "type": "expense"}]}}
+{"input": "six hundred for a coaster set", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "coaster set", "category": "Shopping", "type": "expense"}]}}
+{"input": "eight hundred for a laptop stand", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "laptop stand", "category": "Shopping", "type": "expense"}]}}
+{"input": "three hundred for a cake and candles", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "cake and candles", "category": "Food", "type": "expense"}]}}
+{"input": "five hundred for a book and a pen", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "book and a pen", "category": "Education", "type": "expense"}]}}
+{"input": "two hundred for a comb and brush", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "comb and brush", "category": "Personal", "type": "expense"}]}}
+{"input": "seven hundred for a floor lamp", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "floor lamp", "category": "Shopping", "type": "expense"}]}}
+{"input": "four hundred for a mouse pad", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "mouse pad", "category": "Shopping", "type": "expense"}]}}
+{"input": "six hundred for a table cloth", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "table cloth", "category": "Shopping", "type": "expense"}]}}
+{"input": "one hundred for a pack of cards", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "pack of cards", "category": "Entertainment", "type": "expense"}]}}
+{"input": "nine hundred for a wall clock", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "wall clock", "category": "Shopping", "type": "expense"}]}}
+{"input": "three hundred for a spice rack", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "spice rack", "category": "Shopping", "type": "expense"}]}}
+{"input": "five hundred for a paint set", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "paint set", "category": "Entertainment", "type": "expense"}]}}
+{"input": "eight hundred for a shoe polish kit", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "shoe polish kit", "category": "Shopping", "type": "expense"}]}}
+{"input": "two hundred for a notebook and marker", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "notebook and marker", "category": "Education", "type": "expense"}]}}
+{"input": "four hundred for a fruit juice", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "fruit juice", "category": "Drinks", "type": "expense"}]}}
+{"input": "six hundred for a new pillow", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "new pillow", "category": "Shopping", "type": "expense"}]}}
+{"input": "one hundred for a birthday card", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "birthday card", "category": "Gifts", "type": "expense"}]}}
+{"input": "five hundred for a water bottle", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "water bottle", "category": "Shopping", "type": "expense"}]}}
+{"input": "three hundred for a ladder", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "ladder", "category": "Shopping", "type": "expense"}]}}
+{"input": "eight hundred for a telescope", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "telescope", "category": "Entertainment", "type": "expense"}]}}
+{"input": "two hundred for a flower pot", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "flower pot", "category": "Shopping", "type": "expense"}]}}
+{"input": "four hundred for a hair dryer", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "hair dryer", "category": "Personal", "type": "expense"}]}}
+{"input": "six hundred for a tie and cufflinks", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "tie and cufflinks", "category": "Shopping", "type": "expense"}]}}
+{"input": "one hundred for a bottle of soda", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "bottle of soda", "category": "Drinks", "type": "expense"}]}}
+{"input": "nine hundred for a file cabinet", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "file cabinet", "category": "Shopping", "type": "expense"}]}}
+{"input": "three hundred for a mosquito net", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "mosquito net", "category": "Shopping", "type": "expense"}]}}
+{"input": "eight hundred for a electric kettle", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "electric kettle", "category": "Shopping", "type": "expense"}]}}
+{"input": "five hundred for a pair of gloves", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "pair of gloves", "category": "Shopping", "type": "expense"}]}}
+{"input": "two hundred for a curtain rod", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "curtain rod", "category": "Shopping", "type": "expense"}]}}
+{"input": "four hundred for a door mat", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "door mat", "category": "Shopping", "type": "expense"}]}}
+{"input": "six hundred for a hammer and nails", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "hammer and nails", "category": "Shopping", "type": "expense"}]}}
+{"input": "one hundred for a sticker set", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "sticker set", "category": "Entertainment", "type": "expense"}]}}

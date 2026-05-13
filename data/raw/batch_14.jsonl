@@ -1,0 +1,131 @@
+{"input": "200 rupees for uber", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "ola ride 350", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "ola ride", "category": "Transport", "type": "expense"}]}}
+{"input": "auto wala 80 rupay", "output": {"transactions": [{"amount": 80, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}]}}
+{"input": "petrol bharwaya 1200 ka", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "petrol", "category": "Transport", "type": "expense"}]}}
+{"input": "bus ticket 150", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "bus ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "metro card recharge 500", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "metro card recharge", "category": "Transport", "type": "expense"}]}}
+{"input": "train ticket 750", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "train ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "parking charges 50", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "parking", "category": "Transport", "type": "expense"}]}}
+{"input": "500 rs uber to airport", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "ola se ghar aaya 250", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "ola ride", "category": "Transport", "type": "expense"}]}}
+{"input": "auto fare 120", "output": {"transactions": [{"amount": 120, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}]}}
+{"input": "diesel dalwaaya 1800", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "diesel", "category": "Transport", "type": "expense"}]}}
+{"input": "bus mein 60 rupees", "output": {"transactions": [{"amount": 60, "currency": "INR", "item": "bus ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "metro token 40", "output": {"transactions": [{"amount": 40, "currency": "INR", "item": "metro token", "category": "Transport", "type": "expense"}]}}
+{"input": "local train pass 1000", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "train pass", "category": "Transport", "type": "expense"}]}}
+{"input": "parking 200 mall mein", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "parking", "category": "Transport", "type": "expense"}]}}
+{"input": "1k petrol bike", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "petrol", "category": "Transport", "type": "expense"}]}}
+{"input": "uber 450 late night", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "ola 300 short ride", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "ola ride", "category": "Transport", "type": "expense"}]}}
+{"input": "auto 70 rupay office", "output": {"transactions": [{"amount": 70, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}]}}
+{"input": "paanch sau petrol", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "petrol", "category": "Transport", "type": "expense"}]}}
+{"input": "do sau bus ka ticket", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "bus ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "teen hazaar metro season pass", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "metro season pass", "category": "Transport", "type": "expense"}]}}
+{"input": "2.5k train journey", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "train ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "five hundred on uber eats delivery wait no uber ride", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "two thousand for car servicing", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "car servicing", "category": "Transport", "type": "expense"}]}}
+{"input": "150/- rickshaw", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "rickshaw", "category": "Transport", "type": "expense"}]}}
+{"input": "₹800 uber pool", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "3k for bike repair", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "bike repair", "category": "Transport", "type": "expense"}]}}
+{"input": "auto 90 chai 30", "output": {"transactions": [{"amount": 90, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}, {"amount": 30, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}}
+{"input": "200 petrol 150 lunch 80 bus", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "petrol", "category": "Transport", "type": "expense"}, {"amount": 150, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}, {"amount": 80, "currency": "INR", "item": "bus ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "uber 400 ola 350", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}, {"amount": 350, "currency": "INR", "item": "ola ride", "category": "Transport", "type": "expense"}]}}
+{"input": "got 15000 salary credited", "output": {"transactions": [{"amount": 15000, "currency": "INR", "item": "salary", "category": "Income", "type": "income"}]}}
+{"input": "received 500 cashback on fuel", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "cashback", "category": "Income", "type": "income"}]}}
+{"input": "1000 cashback from amazon", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "cashback", "category": "Income", "type": "income"}]}}
+{"input": "gift 2000 mila birthday mein", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "gift received", "category": "Income", "type": "income"}]}}
+{"input": "5000 refund from insurance", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "refund", "category": "Income", "type": "income"}]}}
+{"input": "paid 500 for that thing", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 300 yesterday", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "umm 200 for ola", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "ola ride", "category": "Transport", "type": "expense"}]}}
+{"input": "300 on uber no 350", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "500 for food 100 for chai", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "food", "category": "Food", "type": "expense"}, {"amount": 100, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}}
+{"input": "1k beer 500 pizza", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}, {"amount": 500, "currency": "INR", "item": "pizza", "category": "Food", "type": "expense"}]}}
+{"input": "do hazaar rent", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "rent", "category": "Bills", "type": "expense"}]}}
+{"input": "char sau electricity bill", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "electricity bill", "category": "Bills", "type": "expense"}]}}
+{"input": "tin sau wifi recharge", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "wifi recharge", "category": "Bills", "type": "expense"}]}}
+{"input": "eight hundred on medicines", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "medicines", "category": "Health", "type": "expense"}]}}
+{"input": "four thousand for doctor visit", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "doctor visit", "category": "Health", "type": "expense"}]}}
+{"input": "fifteen hundred on books", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "books", "category": "Education", "type": "expense"}]}}
+{"input": "2k for movie tickets", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "movie tickets", "category": "Entertainment", "type": "expense"}]}}
+{"input": "500/- chai and 300/- samosa", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 300, "currency": "INR", "item": "samosa", "category": "Food", "type": "expense"}]}}
+{"input": "1.2k shoes", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "shoes", "category": "Shopping", "type": "expense"}]}}
+{"input": "3.5k dress", "output": {"transactions": [{"amount": 3500, "currency": "INR", "item": "dress", "category": "Shopping", "type": "expense"}]}}
+{"input": "500 rupay grocery", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "grocery", "category": "Groceries", "type": "expense"}]}}
+{"input": "700 vegetables", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "vegetables", "category": "Groceries", "type": "expense"}]}}
+{"input": "400 fruits", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "fruits", "category": "Groceries", "type": "expense"}]}}
+{"input": "1500 for gym membership", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "gym membership", "category": "Health", "type": "expense"}]}}
+{"input": "2000 for mobile recharge", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "mobile recharge", "category": "Bills", "type": "expense"}]}}
+{"input": "300 for internet pack", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "internet pack", "category": "Bills", "type": "expense"}]}}
+{"input": "5000 for laptop installment", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "laptop installment", "category": "Shopping", "type": "expense"}]}}
+{"input": "200 for coffee at starbucks", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "coffee", "category": "Drinks", "type": "expense"}]}}
+{"input": "750 for dinner with friends", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "dinner", "category": "Food", "type": "expense"}]}}
+{"input": "1200 for brunch", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "brunch", "category": "Food", "type": "expense"}]}}
+{"input": "1000 for netflix and chill", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "netflix", "category": "Entertainment", "type": "expense"}]}}
+{"input": "500 for amazon prime", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "amazon prime", "category": "Entertainment", "type": "expense"}]}}
+{"input": "250 for toothpaste and soap", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "toothpaste and soap", "category": "Groceries", "type": "expense"}]}}
+{"input": "1800 for haircut", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "haircut", "category": "Personal", "type": "expense"}]}}
+{"input": "600 for movie snacks", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "movie snacks", "category": "Food", "type": "expense"}]}}
+{"input": "400 for pani puri and chaat", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "pani puri and chaat", "category": "Food", "type": "expense"}]}}
+{"input": "150 for cold drink", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "cold drink", "category": "Drinks", "type": "expense"}]}}
+{"input": "900 for biryani", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "biryani", "category": "Food", "type": "expense"}]}}
+{"input": "2000 for new jeans", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "jeans", "category": "Shopping", "type": "expense"}]}}
+{"input": "800 for tshirt", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "tshirt", "category": "Shopping", "type": "expense"}]}}
+{"input": "3000 for watch", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "watch", "category": "Shopping", "type": "expense"}]}}
+{"input": "15000 for rent", "output": {"transactions": [{"amount": 15000, "currency": "INR", "item": "rent", "category": "Bills", "type": "expense"}]}}
+{"input": "500 for water bill", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "water bill", "category": "Bills", "type": "expense"}]}}
+{"input": "200 for gas bill", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "gas bill", "category": "Bills", "type": "expense"}]}}
+{"input": "1000 for medicine", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "medicine", "category": "Health", "type": "expense"}]}}
+{"input": "2500 for dentist", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "dentist", "category": "Health", "type": "expense"}]}}
+{"input": "700 for prescription", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "prescription", "category": "Health", "type": "expense"}]}}
+{"input": "200 for notebook", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "notebook", "category": "Education", "type": "expense"}]}}
+{"input": "5000 for course fee", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "course fee", "category": "Education", "type": "expense"}]}}
+{"input": "150 for pen and pencil", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "pen and pencil", "category": "Education", "type": "expense"}]}}
+{"input": "1200 for concert ticket", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "concert ticket", "category": "Entertainment", "type": "expense"}]}}
+{"input": "400 for game night", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "game night", "category": "Entertainment", "type": "expense"}]}}
+{"input": "300 for birthday gift for friend", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "birthday gift", "category": "Gifts", "type": "expense"}]}}
+{"input": "1000 for diwali gift", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "diwali gift", "category": "Gifts", "type": "expense"}]}}
+{"input": "500 for mom's present", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "mom's present", "category": "Gifts", "type": "expense"}]}}
+{"input": "200 for lipstick", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "lipstick", "category": "Personal", "type": "expense"}]}}
+{"input": "1000 for skincare", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "skincare", "category": "Personal", "type": "expense"}]}}
+{"input": "300 for haircut cream", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "haircut cream", "category": "Personal", "type": "expense"}]}}
+{"input": "2k uber 500 lunch 300 chai", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}, {"amount": 500, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}, {"amount": 300, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}}
+{"input": "120 petrol 80 bus 200 ola", "output": {"transactions": [{"amount": 120, "currency": "INR", "item": "petrol", "category": "Transport", "type": "expense"}, {"amount": 80, "currency": "INR", "item": "bus ticket", "category": "Transport", "type": "expense"}, {"amount": 200, "currency": "INR", "item": "ola ride", "category": "Transport", "type": "expense"}]}}
+{"input": "400 beer 200 wine 100 chips", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}, {"amount": 200, "currency": "INR", "item": "wine", "category": "Drinks", "type": "expense"}, {"amount": 100, "currency": "INR", "item": "chips", "category": "Food", "type": "expense"}]}}
+{"input": "3k rent 500 electricity 200 water", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "rent", "category": "Bills", "type": "expense"}, {"amount": 500, "currency": "INR", "item": "electricity bill", "category": "Bills", "type": "expense"}, {"amount": 200, "currency": "INR", "item": "water bill", "category": "Bills", "type": "expense"}]}}
+{"input": "800 groceries 200 chicken 300 milk", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "groceries", "category": "Groceries", "type": "expense"}, {"amount": 200, "currency": "INR", "item": "chicken", "category": "Groceries", "type": "expense"}, {"amount": 300, "currency": "INR", "item": "milk", "category": "Groceries", "type": "expense"}]}}
+{"input": "1500 uber 250 chai 450 lunch", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}, {"amount": 250, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 450, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}]}}
+{"input": "got 800 cashback from google pay", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "cashback", "category": "Income", "type": "income"}]}}
+{"input": "received 3000 gift from uncle", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "gift received", "category": "Income", "type": "income"}]}}
+{"input": "salary aayi 25000", "output": {"transactions": [{"amount": 25000, "currency": "INR", "item": "salary", "category": "Income", "type": "income"}]}}
+{"input": "20000 bonus mila", "output": {"transactions": [{"amount": 20000, "currency": "INR", "item": "bonus", "category": "Income", "type": "income"}]}}
+{"input": "refund 1200 from flipkart", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "refund", "category": "Income", "type": "income"}]}}
+{"input": "paid 250 for that stuff", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 150 for some errand", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "umm 350 for auto wait no 380", "output": {"transactions": [{"amount": 380, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}]}}
+{"input": "500 for breakfast no 550", "output": {"transactions": [{"amount": 550, "currency": "INR", "item": "breakfast", "category": "Food", "type": "expense"}]}}
+{"input": "1.8k for uber to railway station", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "₹450 ola to office", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "ola ride", "category": "Transport", "type": "expense"}]}}
+{"input": "700/- auto to market", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}]}}
+{"input": "2.5k for bus pass for 3 months", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "bus pass", "category": "Transport", "type": "expense"}]}}
+{"input": "400 for metro ride to delhi", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "metro ride", "category": "Transport", "type": "expense"}]}}
+{"input": "120 for train snack", "output": {"transactions": [{"amount": 120, "currency": "INR", "item": "train snack", "category": "Food", "type": "expense"}]}}
+{"input": "350 for parking at airport", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "parking", "category": "Transport", "type": "expense"}]}}
+{"input": "800 for toll and petrol", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "toll and petrol", "category": "Transport", "type": "expense"}]}}
+{"input": "1k for bike service", "output": {"transactions": [{"amount": 1000, "currency": "INR", "item": "bike service", "category": "Transport", "type": "expense"}]}}
+{"input": "400 for new tire", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "new tire", "category": "Transport", "type": "expense"}]}}
+{"input": "2500 for car insurance", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "car insurance", "category": "Transport", "type": "expense"}]}}
+{"input": "100 for cycle repair", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "cycle repair", "category": "Transport", "type": "expense"}]}}
+{"input": "600 for rickshaw to metro", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "rickshaw", "category": "Transport", "type": "expense"}]}}
+{"input": "2000 for uber weekend trip", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "450 for ola to friend's place", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "ola ride", "category": "Transport", "type": "expense"}]}}
+{"input": "130 for auto to station", "output": {"transactions": [{"amount": 130, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}]}}
+{"input": "1.2lakh for car down payment", "output": {"transactions": [{"amount": 120000, "currency": "INR", "item": "car down payment", "category": "Transport", "type": "expense"}]}}
+{"input": "50000 for new scooter", "output": {"transactions": [{"amount": 50000, "currency": "INR", "item": "new scooter", "category": "Transport", "type": "expense"}]}}
+{"input": "100 rs for bus to delhi", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "bus ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "300 for metro smart card", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "metro smart card", "category": "Transport", "type": "expense"}]}}
+{"input": "750 for train from mumbai to pune", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "train ticket", "category": "Transport", "type": "expense"}]}}
+{"input": "200 for parking at mall", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "parking", "category": "Transport", "type": "expense"}]}}
+{"input": "600 for uber to airport and back", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "2k ola 1k petrol 500 auto", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "ola ride", "category": "Transport", "type": "expense"}, {"amount": 1000, "currency": "INR", "item": "petrol", "category": "Transport", "type": "expense"}, {"amount": 500, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}]}}
+{"input": "150 auto 250 lunch 100 coffee", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "auto ride", "category": "Transport", "type": "expense"}, {"amount": 250, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}, {"amount": 100, "currency": "INR", "item": "coffee", "category": "Drinks", "type": "expense"}]}}

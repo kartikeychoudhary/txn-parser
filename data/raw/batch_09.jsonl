@@ -1,0 +1,134 @@
+{"input": "paid 500 for that thing", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 300 yesterday on some stuff", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1500 for that item from the shop", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought something for 200 rupees", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "paid 1200 for the thing we discussed", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "800 on some random purchase", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "umm 450 for that stuff from amazon", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 75 rupees on something", "output": {"transactions": [{"amount": 75, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "2500 for a thing at the mall", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "paid 300 for that small item", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "600 on random stuff at the station", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i spent 1800 on some things", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "400 for that thing from the vendor", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought a thing for 2200 rupees", "output": {"transactions": [{"amount": 2200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 150 on some item", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1000 rupees on that thing wait no 1200", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "900 for the thing from the market", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "paid 3200 for random stuff online", "output": {"transactions": [{"amount": 3200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "5000 on something i needed", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought that for 350 rupees", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "700 on a thing from the shop near home", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 250 on stuff for the trip", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "6000 for that item from the store", "output": {"transactions": [{"amount": 6000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "200 on some random thing", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i spent 1500 on that thing last week", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "800 for stuff from the general store", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "450 rupees on something or other", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "paid 100 for that small thing", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "3000 on random purchases today", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought something for 550 rupees", "output": {"transactions": [{"amount": 550, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "2000 for that thing from the website", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 350 on some stuff at the fair", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1200 on a thing i bought online", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "2500 rupees on random things", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "150 for something from the canteen", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1800 on that stuff we bought together", "output": {"transactions": [{"amount": 1800, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "700 for a thing from the roadside shop", "output": {"transactions": [{"amount": 700, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 900 on some item for the house", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "4000 for that thing from the vendor", "output": {"transactions": [{"amount": 4000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought something for 200 rupees cash", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "600 on random stuff at the grocery store", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1400 for that item from the exhibition", "output": {"transactions": [{"amount": 1400, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 50 on some small thing", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "2200 rupees for the thing we talked about", "output": {"transactions": [{"amount": 2200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "850 on stuff from the local shop", "output": {"transactions": [{"amount": 850, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i paid 3000 for that item yesterday", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "500 on a thing from the pharmacy", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1600 for random purchase at the store", "output": {"transactions": [{"amount": 1600, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 100 on something small", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "3500 for that thing from the factory outlet", "output": {"transactions": [{"amount": 3500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "750 rupees on stuff for the project", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought a thing for 120 rupees", "output": {"transactions": [{"amount": 120, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "2800 on some random item from the mall", "output": {"transactions": [{"amount": 2800, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "550 for that thing from the electronic shop", "output": {"transactions": [{"amount": 550, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 200 on stuff for the kids", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "9000 for the thing i ordered online", "output": {"transactions": [{"amount": 9000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i paid 450 for something from the street vendor", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1700 on random stuff at the supermarket", "output": {"transactions": [{"amount": 1700, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "300 for that item from the hardware store", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought something for 650 rupees today", "output": {"transactions": [{"amount": 650, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "4200 for the thing we needed at home", "output": {"transactions": [{"amount": 4200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 150 on some small purchase", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "850 rupees on stuff for the office", "output": {"transactions": [{"amount": 850, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i bought a thing for 2700 rupees", "output": {"transactions": [{"amount": 2700, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "500 on random item from the corner shop", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1900 for that thing from the gift shop", "output": {"transactions": [{"amount": 1900, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 350 on something at the market", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "7000 for stuff we got from the wholesale", "output": {"transactions": [{"amount": 7000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "250 for that item from the clothing store", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i spent 1100 on some stuff earlier", "output": {"transactions": [{"amount": 1100, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "80 rupees on a small thing", "output": {"transactions": [{"amount": 80, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "3400 for the thing from the furniture shop", "output": {"transactions": [{"amount": 3400, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought something for 400 rupees cash", "output": {"transactions": [{"amount": 400, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "950 on random stuff at the kiosk", "output": {"transactions": [{"amount": 950, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1500 for that item from the online store", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 600 on something at the shop", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "2000 rupees for the thing we got from the vendor", "output": {"transactions": [{"amount": 2000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i paid 120 for some small item", "output": {"transactions": [{"amount": 120, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "5100 on random purchase today", "output": {"transactions": [{"amount": 5100, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "300 for that thing from the bookshop", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought something for 220 rupees", "output": {"transactions": [{"amount": 220, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1600 for stuff from the department store", "output": {"transactions": [{"amount": 1600, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 450 on a thing from the toy shop", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "8000 for the item we ordered", "output": {"transactions": [{"amount": 8000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i paid 2500 for some stuff", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "100 on that small thing from the shop", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "2300 rupees for the thing from the sports store", "output": {"transactions": [{"amount": 2300, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought something for 500 rupees yesterday evening", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "750 on random item at the department store", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1900 for that thing from the bakery", "output": {"transactions": [{"amount": 1900, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 300 on something at the grocery shop", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "6500 for stuff we bought at the expo", "output": {"transactions": [{"amount": 6500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i bought that for 150 rupees", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1200 rupees on random stuff for the room", "output": {"transactions": [{"amount": 1200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "680 for that item from the chemist", "output": {"transactions": [{"amount": 680, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 2500 on some purchase today", "output": {"transactions": [{"amount": 2500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "40 rupees on a thing from the shop", "output": {"transactions": [{"amount": 40, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "3500 for stuff for the garden", "output": {"transactions": [{"amount": 3500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought something for 1100 rupees at the fair", "output": {"transactions": [{"amount": 1100, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "900 on a random item from the shop near the station", "output": {"transactions": [{"amount": 900, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "2800 for that thing from the custom shop", "output": {"transactions": [{"amount": 2800, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 200 on some stuff at the mall food court", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "4500 rupees for the item from the electronics store", "output": {"transactions": [{"amount": 4500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i paid 350 for something small", "output": {"transactions": [{"amount": 350, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "7200 on random purchases this week", "output": {"transactions": [{"amount": 7200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "250 for that thing from the stationery shop", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought a thing for 800 rupees from the street", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "4700 rupees on stuff for the car", "output": {"transactions": [{"amount": 4700, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 600 on something at the utensil shop", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1300 for that item from the shop in the market", "output": {"transactions": [{"amount": 1300, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "90 rupees for a small thing from the cart", "output": {"transactions": [{"amount": 90, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "3000 on random stuff from the wholesale market", "output": {"transactions": [{"amount": 3000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i bought that thing for 540 rupees", "output": {"transactions": [{"amount": 540, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "8200 for stuff from the shop near the office", "output": {"transactions": [{"amount": 8200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 150 on some item from the counter", "output": {"transactions": [{"amount": 150, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "2700 rupees for the thing we got from the store", "output": {"transactions": [{"amount": 2700, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "500 on random purchase at the petrol pump", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought a thing for 1700 rupees from amazon", "output": {"transactions": [{"amount": 1700, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "650 rupees for something from the shop last night", "output": {"transactions": [{"amount": 650, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "5400 on stuff for the room renovation", "output": {"transactions": [{"amount": 5400, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 380 on that small item from the shop", "output": {"transactions": [{"amount": 380, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "12000 for the thing from the furniture store", "output": {"transactions": [{"amount": 12000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i paid 220 for some stuff at the bakery counter", "output": {"transactions": [{"amount": 220, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "7600 rupees on random items at the expo", "output": {"transactions": [{"amount": 7600, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "450 for that item from the shop near temple", "output": {"transactions": [{"amount": 450, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "250 rupees for something from the canteen", "output": {"transactions": [{"amount": 250, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "15000 on stuff for the new home", "output": {"transactions": [{"amount": 15000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "bought that thing for 3200 rupees from the market", "output": {"transactions": [{"amount": 3200, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "800 rupees for some small item from the roadside", "output": {"transactions": [{"amount": 800, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "1900 on random purchase at the shop in the mall", "output": {"transactions": [{"amount": 1900, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "spent 5000 on that thing from the shop last week", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "110 rupees for a thing from the cart", "output": {"transactions": [{"amount": 110, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "4300 on stuff for the trip to the hills", "output": {"transactions": [{"amount": 4300, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "i bought something for 750 rupees from the fair", "output": {"transactions": [{"amount": 750, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
