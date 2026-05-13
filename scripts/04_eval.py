@@ -206,9 +206,23 @@ def resolve_backend(path: Path, args: argparse.Namespace) -> Backend:
 
 
 def deep_equal(a: Any, b: Any) -> bool:
-    return json.dumps(a, sort_keys=True, ensure_ascii=False) == json.dumps(
-        b, sort_keys=True, ensure_ascii=False
-    )
+    """Recursive comparison that treats numeric equivalents (100 == 100.0) as equal.
+    `json.dumps` would render them as different strings, scoring a correct model
+    at 0% when the only difference is int-vs-float."""
+    # bool is a subclass of int — keep them distinct
+    if isinstance(a, bool) or isinstance(b, bool):
+        return type(a) is type(b) and a == b
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return float(a) == float(b)
+    if isinstance(a, dict) and isinstance(b, dict):
+        if a.keys() != b.keys():
+            return False
+        return all(deep_equal(a[k], b[k]) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        if len(a) != len(b):
+            return False
+        return all(deep_equal(x, y) for x, y in zip(a, b))
+    return a == b
 
 
 def score_example(expected: dict, predicted_raw: str) -> dict:
