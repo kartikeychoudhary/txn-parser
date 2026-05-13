@@ -57,11 +57,15 @@ LOGS_DIR = REPO_ROOT / "logs"
 class Backend(Protocol):
     name: str
 
-    def infer(self, input_str: str, max_tokens: int) -> tuple[str, float]: ...
+    def batch_infer(
+        self, inputs: list[str], max_tokens: int,
+    ) -> list[tuple[str, float]]: ...
 
 
 class GgufBackend:
-    """llama-cpp-python inference over a GGUF file."""
+    """llama-cpp-python inference over a GGUF file. Sequential — llama.cpp
+    doesn't natively batch chat completions, so batch_size only controls
+    progress-bar granularity here."""
 
     def __init__(self, gguf_path: Path, *, n_ctx: int, n_gpu_layers: int) -> None:
         from llama_cpp import Llama  # imported lazily so missing dep doesn't break --help
@@ -95,17 +99,20 @@ class GgufBackend:
             logits_all=False,
         )
 
-    def infer(self, input_str: str, max_tokens: int) -> tuple[str, float]:
-        t0 = time.perf_counter()
-        resp = self.llm.create_chat_completion(
-            messages=build_messages(input_str),
-            temperature=0.0,
-            top_p=1.0,
-            max_tokens=max_tokens,
-        )
-        latency_ms = (time.perf_counter() - t0) * 1000.0
-        text = resp["choices"][0]["message"]["content"] or ""
-        return text, latency_ms
+    def batch_infer(self, inputs: list[str], max_tokens: int) -> list[tuple[str, float]]:
+        out = []
+        for s in inputs:
+            t0 = time.perf_counter()
+            resp = self.llm.create_chat_completion(
+                messages=build_messages(s),
+                temperature=0.0,
+                top_p=1.0,
+                max_tokens=max_tokens,
+            )
+            latency_ms = (time.perf_counter() - t0) * 1000.0
+            text = resp["choices"][0]["message"]["content"] or ""
+            out.append((text, latency_ms))
+        return out
 
 
 class TransformersBackend:
@@ -133,31 +140,45 @@ class TransformersBackend:
         # `tokenizer(text)` returns input_ids without expecting image inputs.
         self.processor = processor
         self.tokenizer = getattr(processor, "tokenizer", processor)
+        # Generation needs LEFT padding so trailing tokens don't collide with EOS.
+        self.tokenizer.padding_side = "left"
+        if self.tokenizer.pad_token_id is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
 
-    def infer(self, input_str: str, max_tokens: int) -> tuple[str, float]:
-        msgs = build_messages(input_str)
-        # Prefer the processor's chat template (has the right special tokens
-        # for Gemma 3/4); fall back to the tokenizer if processor isn't one.
+    def batch_infer(self, inputs: list[str], max_tokens: int) -> list[tuple[str, float]]:
         templater = self.processor if hasattr(self.processor, "apply_chat_template") else self.tokenizer
-        prompt = templater.apply_chat_template(
-            msgs, tokenize=False, add_generation_prompt=True,
-        )
-        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        prompts = [
+            templater.apply_chat_template(
+                build_messages(s), tokenize=False, add_generation_prompt=True,
+            )
+            for s in inputs
+        ]
+        enc = self.tokenizer(
+            prompts, return_tensors="pt", padding=True, truncation=True,
+            max_length=self.max_seq_length,
+        ).to(self.model.device)
         t0 = time.perf_counter()
         with self.torch.inference_mode():
             out = self.model.generate(
-                **inputs,
+                **enc,
                 max_new_tokens=max_tokens,
                 do_sample=False,
                 temperature=0.0,
                 top_p=1.0,
                 pad_token_id=self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
             )
-        latency_ms = (time.perf_counter() - t0) * 1000.0
-        gen = self.tokenizer.decode(
-            out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True,
-        )
-        return gen, latency_ms
+        batch_ms = (time.perf_counter() - t0) * 1000.0
+        # Amortize wall time across the batch — useful for mean/p95, less so
+        # for individual-sample timing.
+        per_example_ms = batch_ms / max(1, len(inputs))
+        input_len = enc["input_ids"].shape[1]
+        return [
+            (
+                self.tokenizer.decode(out[i][input_len:], skip_special_tokens=True),
+                per_example_ms,
+            )
+            for i in range(out.shape[0])
+        ]
 
 
 def resolve_backend(path: Path, args: argparse.Namespace) -> Backend:
@@ -281,6 +302,10 @@ def parse_args() -> argparse.Namespace:
                    help="Context length for llama.cpp / Unsloth.")
     p.add_argument("--n-gpu-layers", type=int, default=-1,
                    help="(GGUF backend) layers offloaded to GPU. -1 = all.")
+    p.add_argument("--batch-size", type=int, default=16,
+                   help="(transformers backend) examples per forward pass. "
+                        "On A100 80GB try 32-64; on 5060 Ti 16GB try 8-16. "
+                        "GGUF backend ignores this — llama.cpp runs sequentially.")
     return p.parse_args()
 
 
@@ -318,45 +343,55 @@ def main() -> int:
     latencies: list[float] = []
     failure_buckets: Counter[str] = Counter()
 
+    # GGUF runs one-at-a-time anyway; force batch=1 there so the progress bar
+    # advances per example rather than per N.
+    batch_size = 1 if isinstance(backend, GgufBackend) else max(1, args.batch_size)
+
     with results_path.open("w", encoding="utf-8") as fout:
-        for ex in tqdm(eval_records, desc=model_name):
-            inp = ex["input"]
-            expected = ex["output"]
-            try:
-                raw, latency_ms = backend.infer(inp, max_tokens=args.max_tokens)
-            except Exception as e:  # noqa: BLE001
-                logging.error("inference failed on %r: %s", inp, e)
-                raw, latency_ms = "", 0.0
+        with tqdm(total=n, desc=model_name) as pbar:
+            for start in range(0, n, batch_size):
+                chunk = eval_records[start : start + batch_size]
+                chunk_inputs = [ex["input"] for ex in chunk]
+                try:
+                    results = backend.batch_infer(chunk_inputs, max_tokens=args.max_tokens)
+                except Exception as e:  # noqa: BLE001
+                    logging.error("inference failed on batch starting %r: %s",
+                                  chunk_inputs[0] if chunk_inputs else "<empty>", e)
+                    results = [("", 0.0)] * len(chunk)
 
-            scored = score_example(expected, raw)
-            latencies.append(latency_ms)
-            if scored["json_valid"]:
-                n_json += 1
-            if scored["schema_valid"]:
-                n_schema += 1
-            if scored["exact_match"]:
-                n_exact += 1
-            if update_confusion(confusion, expected, scored["predicted"]):
-                confusion_eligible += 1
+                for ex, (raw, latency_ms) in zip(chunk, results):
+                    inp = ex["input"]
+                    expected = ex["output"]
+                    scored = score_example(expected, raw)
+                    latencies.append(latency_ms)
+                    if scored["json_valid"]:
+                        n_json += 1
+                    if scored["schema_valid"]:
+                        n_schema += 1
+                    if scored["exact_match"]:
+                        n_exact += 1
+                    if update_confusion(confusion, expected, scored["predicted"]):
+                        confusion_eligible += 1
 
-            if not scored["json_valid"]:
-                failure_buckets["json_invalid"] += 1
-            elif not scored["schema_valid"]:
-                failure_buckets["schema_invalid"] += 1
-            elif not scored["exact_match"]:
-                failure_buckets["semantic_mismatch"] += 1
+                    if not scored["json_valid"]:
+                        failure_buckets["json_invalid"] += 1
+                    elif not scored["schema_valid"]:
+                        failure_buckets["schema_invalid"] += 1
+                    elif not scored["exact_match"]:
+                        failure_buckets["semantic_mismatch"] += 1
 
-            fout.write(json.dumps({
-                "input": inp,
-                "expected": expected,
-                "predicted_raw": raw,
-                "predicted": scored["predicted"],
-                "json_valid": scored["json_valid"],
-                "schema_valid": scored["schema_valid"],
-                "exact_match": scored["exact_match"],
-                "schema_errors": scored["schema_errors"],
-                "latency_ms": round(latency_ms, 2),
-            }, ensure_ascii=False) + "\n")
+                    fout.write(json.dumps({
+                        "input": inp,
+                        "expected": expected,
+                        "predicted_raw": raw,
+                        "predicted": scored["predicted"],
+                        "json_valid": scored["json_valid"],
+                        "schema_valid": scored["schema_valid"],
+                        "exact_match": scored["exact_match"],
+                        "schema_errors": scored["schema_errors"],
+                        "latency_ms": round(latency_ms, 2),
+                    }, ensure_ascii=False) + "\n")
+                pbar.update(len(chunk))
 
     pct = lambda x: f"{(x / n * 100):.1f}%" if n else "—"  # noqa: E731
     mean_lat = (sum(latencies) / len(latencies)) if latencies else 0.0
