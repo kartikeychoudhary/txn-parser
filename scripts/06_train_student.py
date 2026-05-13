@@ -66,6 +66,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--grad-accum", type=int, default=2,
                    help="Bump this to keep effective batch size the same when "
                         "you can't fit more in VRAM. effective_bs = batch_size * grad_accum.")
+    p.add_argument("--eval-batch-size", type=int, default=8,
+                   help="Per-device eval batch size. Keep small (4-16) even when "
+                        "train batch is huge — Trainer materializes fp32 logits "
+                        "(Gemma 3's 256k vocab × batch × seq) and will OOM otherwise.")
     p.add_argument("--lr", type=float, default=2e-4)
     p.add_argument("--warmup-ratio", type=float, default=0.03)
     p.add_argument("--lora-r", type=int, default=32,
@@ -214,6 +218,7 @@ def main() -> int:
         epochs=args.epochs,
         batch_size=args.batch_size,
         grad_accum=args.grad_accum,
+        eval_batch_size=args.eval_batch_size,
         lr=args.lr,
         warmup_ratio=args.warmup_ratio,
         max_steps=args.max_steps,

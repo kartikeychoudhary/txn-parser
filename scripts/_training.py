@@ -47,6 +47,7 @@ class TrainingConfig:
     epochs: float = 3.0
     batch_size: int = 4
     grad_accum: int = 4
+    eval_batch_size: int = 8  # decoupled from train batch — large eval batches OOM on fp32 logit conversion
     lr: float = 2e-4
     warmup_ratio: float = 0.03
     weight_decay: float = 0.01
@@ -201,7 +202,9 @@ def run_training(cfg: TrainingConfig) -> int:
     training_args = TrainingArguments(
         output_dir=str(checkpoints_dir),
         per_device_train_batch_size=cfg.batch_size,
-        per_device_eval_batch_size=cfg.batch_size,
+        # Eval batch is decoupled from train batch. Large eval batches blow up
+        # because Trainer materializes logits in fp32 (vocab is ~256k on Gemma 3).
+        per_device_eval_batch_size=cfg.eval_batch_size,
         gradient_accumulation_steps=cfg.grad_accum,
         num_train_epochs=cfg.epochs,
         max_steps=cfg.max_steps,
@@ -215,6 +218,9 @@ def run_training(cfg: TrainingConfig) -> int:
         logging_steps=cfg.logging_steps,
         eval_strategy="steps",
         eval_steps=cfg.eval_steps,
+        # Only keep loss during eval — skip returning logits (256k vocab × batch
+        # × seq would OOM in fp32 conversion, and we don't need them for eval loss).
+        prediction_loss_only=True,
         save_strategy="steps",
         save_steps=cfg.save_steps,
         save_total_limit=cfg.save_total_limit,
