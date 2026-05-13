@@ -61,8 +61,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--epochs", type=float, default=2.0,
                    help="Spec: 2 epochs on the larger teacher-labeled set.")
     p.add_argument("--batch-size", type=int, default=8,
-                   help="Student is much smaller — bigger batch fits.")
-    p.add_argument("--grad-accum", type=int, default=2)
+                   help="Per-device training batch size. Student is small; on "
+                        "5060 Ti 16GB stay at 8-16, on A100 80GB push to 32-64.")
+    p.add_argument("--grad-accum", type=int, default=2,
+                   help="Bump this to keep effective batch size the same when "
+                        "you can't fit more in VRAM. effective_bs = batch_size * grad_accum.")
     p.add_argument("--lr", type=float, default=2e-4)
     p.add_argument("--warmup-ratio", type=float, default=0.03)
     p.add_argument("--lora-r", type=int, default=32,

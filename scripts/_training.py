@@ -260,28 +260,42 @@ def run_training(cfg: TrainingConfig) -> int:
 
     # ---- sample generations (deterministic) for a vibe-check before eval
     FastLanguageModel.for_inference(model)
-    pad_id = tokenizer.pad_token_id or tokenizer.eos_token_id
+    text_tok = getattr(tokenizer, "tokenizer", tokenizer)  # unwrap Gemma 3/4 processor
+    pad_id = text_tok.pad_token_id or text_tok.eos_token_id
+    # Generation needs LEFT padding so EOS isn't on the wrong side.
+    prev_padding_side = text_tok.padding_side
+    text_tok.padding_side = "left"
+    if text_tok.pad_token_id is None:
+        text_tok.pad_token = text_tok.eos_token
     logging.info("=" * 60)
-    logging.info("Sample generations (greedy, max_new_tokens=256)")
-    for inp in SAMPLE_INPUTS:
-        msgs = build_messages(inp, output_obj=None)
-        prompt_text = tokenizer.apply_chat_template(
-            msgs, tokenize=False, add_generation_prompt=True,
+    logging.info("Sample generations (greedy, max_new_tokens=256, batched)")
+    prompts = [
+        tokenizer.apply_chat_template(
+            build_messages(inp, output_obj=None),
+            tokenize=False, add_generation_prompt=True,
         )
-        inputs = tokenizer(text=prompt_text, return_tensors="pt").to(model.device)
-        with torch.inference_mode():
-            out = model.generate(
-                **inputs,
-                max_new_tokens=256,
-                do_sample=False,
-                temperature=0.0,
-                top_p=1.0,
-                pad_token_id=pad_id,
-            )
-        gen = tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+        for inp in SAMPLE_INPUTS
+    ]
+    enc = text_tok(
+        prompts, return_tensors="pt", padding=True, truncation=True,
+        max_length=cfg.max_seq_length,
+    ).to(model.device)
+    with torch.inference_mode():
+        out = model.generate(
+            **enc,
+            max_new_tokens=256,
+            do_sample=False,
+            temperature=0.0,
+            top_p=1.0,
+            pad_token_id=pad_id,
+        )
+    input_len = enc["input_ids"].shape[1]
+    for inp, row in zip(SAMPLE_INPUTS, out):
+        gen = text_tok.decode(row[input_len:], skip_special_tokens=True)
         logging.info("INPUT : %s", inp)
         logging.info("OUTPUT: %s", gen.strip())
         logging.info("-" * 40)
+    text_tok.padding_side = prev_padding_side
 
     # ---- merged GGUF export
     if cfg.skip_gguf:

@@ -51,8 +51,11 @@ def parse_args() -> argparse.Namespace:
                    help="Base model. Default: unsloth/gemma-4-E2B-it (pre-quantized 4-bit).")
     p.add_argument("--max-seq-length", type=int, default=1024)
     p.add_argument("--epochs", type=float, default=3.0)
-    p.add_argument("--batch-size", type=int, default=4)
-    p.add_argument("--grad-accum", type=int, default=4)
+    p.add_argument("--batch-size", type=int, default=4,
+                   help="Per-device training batch size. 5060 Ti 16GB: 4-8; "
+                        "A100 80GB: 16-32. effective_bs = batch_size * grad_accum.")
+    p.add_argument("--grad-accum", type=int, default=4,
+                   help="Bump to keep effective batch the same when VRAM is tight.")
     p.add_argument("--lr", type=float, default=2e-4)
     p.add_argument("--warmup-ratio", type=float, default=0.03)
     p.add_argument("--lora-r", type=int, default=16)
