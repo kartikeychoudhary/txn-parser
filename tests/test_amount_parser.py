@@ -150,6 +150,20 @@ def test_number_word_with_unit(text, expected_value, expected_source):
     assert c.source == expected_source
 
 
+@pytest.mark.parametrize("text,expected_value,expected_source", [
+    ("fifty thousand",  50000.0, "number_word_en"),
+    ("thirty thousand", 30000.0, "number_word_en"),
+    ("ninety hundred",   9000.0, "number_word_en"),
+    ("forty lakh",    4000000.0, "number_word_en"),
+])
+def test_extended_en_numeral_tens(text, expected_value, expected_source):
+    cands = parse_amounts(text)
+    assert len(cands) == 1, f"expected one candidate, got {cands}"
+    c = cands[0]
+    assert math.isclose(c.value, expected_value, abs_tol=0.001)
+    assert c.source == expected_source
+
+
 @pytest.mark.parametrize("text", [
     "do coffee",
     "char people",

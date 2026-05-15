@@ -102,10 +102,10 @@ Large amounts with explicit cues (e.g., `"paid 125000 rent deposit"`, `"₹12500
 
 Bounded vocabulary to avoid ambiguity:
 
-- `<one..twenty> hundred` (e.g., `five hundred`, `twenty hundred`)
-- `<one..twenty> thousand` (e.g., `two thousand`)
+- `<one..ninety> hundred` (e.g., `five hundred`, `fifty hundred`, `ninety hundred`)
+- `<one..ninety> thousand` (e.g., `two thousand`, `fifty thousand`)
 - `<one..ten> lakh` (e.g., `one lakh`, `five lakh`)
-- Compound `<one..twenty> <one..nine> hundred` (e.g., `twenty five hundred` → 2500)
+- Compound `<twenty..ninety> <one..nine> hundred` (e.g., `twenty five hundred` → 2500)
 
 Out of v1 vocabulary (`twelve fifty`, casual compounds, word-form decimals, ranges, Devanagari numerals, mixed-script). Documented as known gaps; surfaced via `NO_AMOUNT_IN_INPUT` or `AMOUNT_NOT_IN_INPUT` rather than silent passes.
 
