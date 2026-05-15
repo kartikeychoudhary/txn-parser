@@ -133,7 +133,9 @@ class FakeProvider:
         *,
         inputs_path: Path | None = None,
         labels_path: Path | None = None,
-        seed: int = 0,
+        seed: int = 0,                  # reserved; FakeProvider in Slice 1 is purely
+                                        # cursor-deterministic and does not randomize.
+                                        # Slice 2/3 may use it if a randomized fake is needed.
         miss_payload: str = "",
     ) -> None: ...
 
@@ -795,7 +797,7 @@ Single commit on `feat/multi-provider-generation`. This is purely additive scaff
 9. Update `README.md`:
    - New "Multi-provider scaffolding (Slice 1)" subsection with the smoke commands from §9.
    - Verify the prior validator-slice README content (Stage 4 aggregates paragraph, Stage 5 validator-gate paragraph, Dev dependencies subsection) is still present and accurate; touch up any wording gaps left from the prior slice.
-10. Run full suite (`pytest tests/`) → existing 90 + ~30 new tests ≈ 120 passed.
+10. Run full suite (`pytest tests/`) and verify all existing + new tests pass.
 11. Single commit.
 
 ---
@@ -807,7 +809,7 @@ After running smoke command 5 (probe against existing `data/distill/train.jsonl`
 | Pass rate | Action |
 |---|---|
 | < 50% | Validator is more aggressive than expected. Triage `reports/validator_probe_existing_train.jsonl` for top failure codes BEFORE planning Slice 2. May need parser tweaks before regenerating any data. |
-| 50–80% | Expected range given the model card's ~80% semantic-mismatch rate. Slice 2 (real input gen) and Slice 3 (real labeling) proceed as planned. |
+| 50–80% | Plausible range. Inspect top failure codes; if failures are explainable (known parser gaps, known v1-vocab limitations), proceed with Slice 2/3 as planned. |
 | > 90% | Validator may be too lenient. Manually inspect a sample of OK rows to confirm we're not under-rejecting. |
 
 These thresholds are heuristics, not release gates.
@@ -828,12 +830,16 @@ generation_config.py
 
 generation_orchestrator.py
   ├─ stdlib only (math, threading, itertools)
-  ├─ imports ProviderConfig from generation_config (typing only)
+  ├─ runtime import: `from generation_config import ProviderConfig, GenerationConfig`
+  │   (both modules are stdlib-only, so a runtime import does not bloat anything)
   └─ allocate_quota, RoundRobinScheduler, render_dry_run
 
 probe_validator.py
   ├─ stdlib only
-  └─ imports validate_example, serialize_validation_result from _lib
+  ├─ flat-import setup (matches repo convention):
+  │     sys.path.insert(0, str(Path(__file__).resolve().parent))
+  │     from _lib import validate_example, serialize_validation_result
+  └─ standalone CLI
 
 scripts/05_generate_distillation_data.py
   └─ +imports generation_config, generation_orchestrator inside _run_dry_run only
