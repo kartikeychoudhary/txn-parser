@@ -48,9 +48,10 @@ from _lib import (  # noqa: E402
     build_messages,
     call_deepseek,
     extract_json,
-    is_schema_valid,
     load_jsonl,
-    schema_errors,
+    parse_amounts,
+    serialize_validation_result,
+    validate_example,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -350,8 +351,14 @@ def phase_label(args: argparse.Namespace) -> None:
 
     labeled = {r["input"] for r in load_jsonl(TRAIN_FILE)} if TRAIN_FILE.exists() else set()
     failed_set: set[str] = set()
-    if FAILED_FILE.exists() and not args.retry_failed:
+    if FAILED_FILE.exists():
         for r in load_jsonl(FAILED_FILE):
+            reason = r.get("reason")
+            if args.retry_failed:
+                # Old behavior: re-attempt every failed row regardless of reason.
+                continue
+            if args.retry_validation_failed and reason == "validation_failed":
+                continue
             failed_set.add(r["input"])
 
     pending = [s for s in all_inputs if s not in labeled and s not in failed_set]
@@ -376,16 +383,52 @@ def phase_label(args: argparse.Namespace) -> None:
          FAILED_FILE.open("a", encoding="utf-8") as fail_out:
         for start in tqdm(range(0, len(pending), batch_size), desc="labeling", unit="batch"):
             chunk = pending[start : start + batch_size]
-            raws = batch_infer(chunk)
-            for inp, raw in zip(chunk, raws):
-                obj = extract_json(raw)
-                reason: str | None = None
-                if obj is None:
-                    reason = "json_invalid"
-                elif not is_schema_valid(obj):
-                    reason = "schema_invalid"
+            try:
+                raws = batch_infer(chunk)
+                batch_error: str | None = None
+            except Exception as e:  # noqa: BLE001
+                logging.error("teacher batch failed at start=%d size=%d: %s",
+                              start, len(chunk), e)
+                raws = [""] * len(chunk)
+                batch_error = repr(e)
 
-                if reason is None:
+            for inp, raw in zip(chunk, raws):
+                candidates = parse_amounts(inp)
+                cand_payload = [
+                    {
+                        "value": c.value, "raw": c.raw, "span": list(c.span),
+                        "status": c.status, "source": c.source,
+                        "currency_hint": c.currency_hint,
+                    }
+                    for c in candidates
+                ]
+
+                if batch_error is not None:
+                    fail_out.write(json.dumps({
+                        "input": inp,
+                        "raw_output": None,
+                        "candidates": cand_payload,
+                        "reason": "teacher_error",
+                        "error": batch_error,
+                    }, ensure_ascii=False) + "\n")
+                    n_failed += 1
+                    failure_reasons["teacher_error"] = failure_reasons.get("teacher_error", 0) + 1
+                    continue
+
+                obj = extract_json(raw)
+                if obj is None:
+                    fail_out.write(json.dumps({
+                        "input": inp,
+                        "raw_output": raw,
+                        "candidates": cand_payload,
+                        "reason": "json_parse_failed",
+                    }, ensure_ascii=False) + "\n")
+                    n_failed += 1
+                    failure_reasons["json_parse_failed"] = failure_reasons.get("json_parse_failed", 0) + 1
+                    continue
+
+                result = validate_example(inp, obj, mode="strict")
+                if result.ok:
                     train_out.write(json.dumps({
                         "input": inp,
                         "output": obj,
@@ -393,15 +436,16 @@ def phase_label(args: argparse.Namespace) -> None:
                     }, ensure_ascii=False) + "\n")
                     n_kept += 1
                 else:
-                    errs = schema_errors(obj)[:3] if obj is not None else []
                     fail_out.write(json.dumps({
                         "input": inp,
-                        "raw": raw,
-                        "reason": reason,
-                        "schema_errors": errs,
+                        "raw_output": raw,
+                        "parsed_output": obj,
+                        "candidates": cand_payload,
+                        "validation": serialize_validation_result(result),
+                        "reason": "validation_failed",
                     }, ensure_ascii=False) + "\n")
                     n_failed += 1
-                    failure_reasons[reason] = failure_reasons.get(reason, 0) + 1
+                    failure_reasons["validation_failed"] = failure_reasons.get("validation_failed", 0) + 1
             train_out.flush()
             fail_out.flush()
 
@@ -470,6 +514,10 @@ def parse_args() -> argparse.Namespace:
                    help="Phase 2: only label the first N pending inputs (0 = all).")
     p.add_argument("--retry-failed", action="store_true",
                    help="Phase 2: re-attempt inputs previously written to failed.jsonl.")
+    p.add_argument("--retry-validation-failed", action="store_true",
+                   help="Phase 2: re-attempt rows in failed.jsonl where "
+                        "reason == 'validation_failed'. Analogous to --retry-failed "
+                        "but scoped to semantic-validation failures.")
     # Phase 2 / GGUF backend
     p.add_argument("--gguf-path",
                    help="Path to a .gguf file or directory (gguf backend). "

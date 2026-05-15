@@ -136,6 +136,15 @@ python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_
 > torch ≥ 2.6. The older cu124 wheels predate sm_120 and will either crash with
 > "no kernel image" or silently fall back to ptxas JIT (very slow).
 
+### Dev dependencies
+
+Tests for the amount parser and validator use `pytest`:
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests/ --cov=amount_parser --cov=validator
+```
+
 ## Environment variables
 
 | Variable | Used by | Notes |
@@ -254,6 +263,12 @@ python scripts/04_eval.py --model models/teacher/adapters --batch-size 32
 
 Reports % JSON-valid, % schema-valid, % exact match, and a confusion matrix for `category`. Per-example results land in `eval_results/<model_name>.jsonl`.
 
+Stage 4 also reports four validator-derived aggregates: `amount_exact` (predicted
+amounts equal expected as multisets), `txn_count_exact`, `duplicate_rate` (fraction
+of examples with `duplicate_transactions_found`), and `superseded_amount_used_rate`.
+Per-example rows in `eval_results/<name>.jsonl` carry the same fields plus
+`validation_errors[]` for failed rows.
+
 Useful flags:
 - `--batch-size N` — examples per forward pass for the **transformers/adapter** backend. Default 16. A100 80GB: try 32-64. 5060 Ti 16GB: 8-16. The **GGUF** backend ignores this — `llama.cpp` doesn't natively batch chat completions.
 - `--max-tokens N` — generation cap per example (default 512).
@@ -299,6 +314,15 @@ Useful flags (Phase 2):
 - `--backend gguf` — use the teacher GGUF (Q3_K_M) via `llama-cpp-python` instead of fp16. Lossier but useful if VRAM is tight or fp16 isn't an option. Sequential — batch_size is ignored.
 - `--ngl N` / `--n-gpu-layers N` — GGUF backend only; `-1` = all layers on GPU.
 - `--no-mmap`, `--mlock`, `--n-ctx`, `--n-batch` — passthrough to `llama-cpp-python`.
+
+**Validator gate (Phase 2).** Phase 2 uses `scripts/validator.py` to gate teacher
+labels: a label must pass the JSON schema AND the semantic checks (amount-in-input,
+no-superseded-amount, currency hint, txn count, no unjustified duplicates). Rejected
+rows land in `data/distill/failed.jsonl` with `reason ∈ {validation_failed,
+json_parse_failed, teacher_error}` and structured `validation.errors[]` carrying
+machine-readable codes. The `failed.jsonl` shape changed in this release — delete
+or archive the old file before re-running. Re-attempt only semantic-validation
+failures with `--retry-validation-failed`.
 
 ## Stage 6 — Fine-tune the student (Gemma 3 270M)
 
