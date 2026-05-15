@@ -34,6 +34,56 @@
 
 ---
 
+### Task 0: Preflight — confirm prerequisites are in place
+
+**Files:** none modified.
+
+This task fails fast if the prior validator slice isn't merged, dev deps aren't installed, or `conftest.py` is missing. Costs ~30 seconds; saves hours if a prerequisite is broken.
+
+- [ ] **Step 1: Confirm we're on the right branch**
+
+```bash
+cd "C:/work/llm training" && git branch --show-current
+```
+
+Expected: `feat/multi-provider-generation`. If not, STOP and report — this plan assumes that branch.
+
+- [ ] **Step 2: Confirm the validator slice's symbols are importable**
+
+```bash
+cd "C:/work/llm training" && PYTHONPATH=scripts python -c "from _lib import validate_example, serialize_validation_result, parse_amounts; print('validator slice ok')"
+```
+
+Expected: prints `validator slice ok`. If it fails with ImportError, the prerequisite slice isn't merged — STOP and report.
+
+- [ ] **Step 3: Confirm dev deps are installed**
+
+```bash
+pytest --version
+```
+
+Expected: any pytest version. If missing, run `pip install -r requirements-dev.txt` first.
+
+- [ ] **Step 4: Confirm `tests/conftest.py` puts `scripts/` on sys.path**
+
+```bash
+cd "C:/work/llm training" && python -c "import sys; sys.path.insert(0, 'tests'); import conftest; print('conftest ok')"
+```
+
+Expected: prints `conftest ok` (and a SCRIPTS_DIR side effect adding `scripts/` to sys.path). If it errors, the test harness from the prior slice was deleted — STOP and report.
+
+- [ ] **Step 5: Confirm the prior slice's tests still pass**
+
+```bash
+cd "C:/work/llm training" && pytest tests/test_amount_parser.py tests/test_validator.py tests/test_stage4_metrics.py -q
+```
+
+Expected: all tests pass. If any fail, the working tree is dirty in a way this plan can't safely modify on top of — STOP and report.
+
+- [ ] **Step 6: Do NOT commit. Preflight has no diffs.**
+
+---
+
 ### Task 1: Fixture files
 
 **Files:**
@@ -107,13 +157,13 @@ These are static JSONL files used by tests in Tasks 2-14. Create them first so l
 Row coverage (in order):
 1. OK — clean single transaction.
 2. OK — clean single transaction.
-3. OK — warning only (TXN_COUNT_BELOW_CANDIDATES: 2 candidates, 1 txn — actually wait, this has 2 candidates and 2 txns, so this is just clean. Adjust if needed in test wiring.)
+3. OK — clean multi-transaction (2 candidates, 2 txns).
 4. Warning only — TXN_COUNT_BELOW_CANDIDATES (2 candidates, 1 txn).
 5. NO_AMOUNT_IN_INPUT — parser finds no amounts but txns emitted.
 6. AMOUNT_NOT_IN_INPUT — model invented "500" not in input "600 beer".
 7. SUPERSEDED_AMOUNT_USED — picks the corrected-out 500 instead of 600.
 8. CURRENCY_MISMATCH — `$50` is USD, txn says INR.
-9. SUSPICIOUS_DUPLICATE — two beer txns, input has one candidate.
+9. SUSPICIOUS_DUPLICATE — two beer txns, input has one candidate (also triggers TXN_COUNT_EXCEEDS_CANDIDATES — both codes acceptable here).
 10. TXN_COUNT_EXCEEDS_CANDIDATES — three txns, one candidate.
 11. SCHEMA_INVALID — missing required fields.
 
@@ -220,6 +270,31 @@ def test_loader_raises_provider_error_on_missing_input_field():
             FakeProvider(name="x", inputs_path=bad_fixture)
         msg = str(exc.value)
         assert "input" in msg and ("line 2" in msg.lower() or "2" in msg)
+    finally:
+        bad_fixture.unlink(missing_ok=True)
+
+
+def test_generate_inputs_zero_returns_empty():
+    p = FakeProvider(name="x", inputs_path=INPUTS_FIXTURE)
+    assert p.generate_inputs(prompt="", n=0) == []
+
+
+def test_generate_inputs_negative_raises_provider_error():
+    p = FakeProvider(name="x", inputs_path=INPUTS_FIXTURE)
+    with pytest.raises(ProviderError):
+        p.generate_inputs(prompt="", n=-1)
+
+
+def test_loader_rejects_non_string_raw_output():
+    bad_fixture = REPO_ROOT / "tests" / "fixtures" / "_bad_raw_output.jsonl"
+    bad_fixture.write_text(
+        '{"input": "x", "raw_output": {"not": "a string"}}\n',
+        encoding="utf-8",
+    )
+    try:
+        with pytest.raises(ProviderError) as exc:
+            FakeProvider(name="x", labels_path=bad_fixture)
+        assert "raw_output" in str(exc.value)
     finally:
         bad_fixture.unlink(missing_ok=True)
 
@@ -364,7 +439,11 @@ class FakeProvider:
                         f"{path}: line {line_no}: missing required 'input' string field"
                     )
                 if "raw_output" in obj:
-                    out[obj["input"]] = str(obj["raw_output"])
+                    if not isinstance(obj["raw_output"], str):
+                        raise ProviderError(
+                            f"{path}: line {line_no}: 'raw_output' must be a string"
+                        )
+                    out[obj["input"]] = obj["raw_output"]
                 elif "output" in obj:
                     out[obj["input"]] = json.dumps(obj["output"], separators=(",", ":"))
                 else:
@@ -374,7 +453,9 @@ class FakeProvider:
         return out
 
     def generate_inputs(self, prompt: str, n: int) -> list[str]:
-        if not self._inputs:
+        if n < 0:
+            raise ProviderError(f"generate_inputs: n must be >= 0, got {n}")
+        if n == 0 or not self._inputs:
             return []
         with self._cursor_lock:
             result: list[str] = []
@@ -692,6 +773,53 @@ class ConfigError(ValueError):
     """Raised with a field path in the message (e.g. 'input_generation.providers[1].weight')."""
 
 
+# ---- Strict type helpers ---------------------------------------------------
+# These reject wrong types instead of coercing. bool("false") == True and
+# int("10") == 10 are footguns we deliberately avoid.
+
+def _require_bool(value, path: str) -> bool:
+    if not isinstance(value, bool):
+        raise ConfigError(f"{path}: must be a boolean (got {type(value).__name__})")
+    return value
+
+
+def _require_int(value, path: str, *, min_value: int | None = None) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ConfigError(f"{path}: must be an integer (got {type(value).__name__})")
+    if min_value is not None and value < min_value:
+        raise ConfigError(f"{path}: must be >= {min_value}")
+    return value
+
+
+def _require_str(value, path: str) -> str:
+    if not isinstance(value, str):
+        raise ConfigError(f"{path}: must be a string (got {type(value).__name__})")
+    return value
+
+
+def _optional_int(value, path: str, *, min_value: int | None = None) -> int | None:
+    if value is None:
+        return None
+    return _require_int(value, path, min_value=min_value)
+
+
+def _optional_float(value, path: str, *, min_value: float | None = None) -> float | None:
+    if value is None:
+        return None
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ConfigError(f"{path}: must be a number or null (got {type(value).__name__})")
+    result = float(value)
+    if min_value is not None and result < min_value:
+        raise ConfigError(f"{path}: must be >= {min_value}")
+    return result
+
+
+def _optional_str(value, path: str) -> str | None:
+    if value is None:
+        return None
+    return _require_str(value, path)
+
+
 @dataclass(frozen=True)
 class ProviderConfig:
     name: str
@@ -793,18 +921,18 @@ def load_generation_config(path: Path | str) -> GenerationConfig:
 def _parse_input_generation(d: Any, config_dir: Path) -> InputGenerationConfig:
     if not isinstance(d, dict):
         raise ConfigError("input_generation: must be an object")
-    enabled = bool(d.get("enabled", True))
-    target_inputs = d.get("target_inputs", 0)
-    batch_size = d.get("batch_size", 100)
-    dedupe = bool(d.get("dedupe", True))
+    enabled = _require_bool(d.get("enabled", True), "input_generation.enabled")
+    target_inputs = _require_int(d.get("target_inputs", 0), "input_generation.target_inputs", min_value=0)
+    batch_size = _require_int(d.get("batch_size", 100), "input_generation.batch_size", min_value=1)
+    dedupe = _require_bool(d.get("dedupe", True), "input_generation.dedupe")
     providers_raw = d.get("providers", [])
     providers = _parse_providers(
         providers_raw, "input_generation", config_dir, used_in_phase="input",
     )
     return InputGenerationConfig(
         enabled=enabled,
-        target_inputs=int(target_inputs),
-        batch_size=int(batch_size),
+        target_inputs=target_inputs,
+        batch_size=batch_size,
         dedupe=dedupe,
         providers=tuple(providers),
     )
@@ -813,20 +941,31 @@ def _parse_input_generation(d: Any, config_dir: Path) -> InputGenerationConfig:
 def _parse_output_generation(d: Any, config_dir: Path) -> OutputGenerationConfig:
     if not isinstance(d, dict):
         raise ConfigError("output_generation: must be an object")
-    enabled = bool(d.get("enabled", True))
-    label_attempts = d.get("label_attempts_per_input", 1)
-    selection_policy = d.get("selection_policy", "first_valid_then_score")
+    enabled = _require_bool(d.get("enabled", True), "output_generation.enabled")
+    label_attempts = _require_int(
+        d.get("label_attempts_per_input", 1),
+        "output_generation.label_attempts_per_input",
+        min_value=1,
+    )
+    selection_policy = _require_str(
+        d.get("selection_policy", "first_valid_then_score"),
+        "output_generation.selection_policy",
+    )
     providers_raw = d.get("providers", [])
     providers = _parse_providers(
         providers_raw, "output_generation", config_dir, used_in_phase="output",
     )
-    priority = tuple(d.get("provider_priority", []) or [])
+    priority_raw = d.get("provider_priority", [])
+    if not isinstance(priority_raw, list) or not all(isinstance(x, str) for x in priority_raw):
+        raise ConfigError(
+            "output_generation.provider_priority: must be a list of strings"
+        )
     return OutputGenerationConfig(
         enabled=enabled,
-        label_attempts_per_input=int(label_attempts),
-        selection_policy=str(selection_policy),
+        label_attempts_per_input=label_attempts,
+        selection_policy=selection_policy,
         providers=tuple(providers),
-        provider_priority=priority,
+        provider_priority=tuple(priority_raw),
     )
 
 
@@ -834,11 +973,20 @@ def _parse_validation_gate(d: Any) -> ValidationGateConfig:
     if not isinstance(d, dict):
         raise ConfigError("validation: must be an object")
     return ValidationGateConfig(
-        schema=bool(d.get("schema", True)),
-        semantic_validator=bool(d.get("semantic_validator", True)),
-        reject_invalid=bool(d.get("reject_invalid", True)),
-        retry_invalid_with_stricter_prompt=bool(d.get("retry_invalid_with_stricter_prompt", False)),
-        max_repair_attempts=int(d.get("max_repair_attempts", 0)),
+        schema=_require_bool(d.get("schema", True), "validation.schema"),
+        semantic_validator=_require_bool(
+            d.get("semantic_validator", True), "validation.semantic_validator",
+        ),
+        reject_invalid=_require_bool(d.get("reject_invalid", True), "validation.reject_invalid"),
+        retry_invalid_with_stricter_prompt=_require_bool(
+            d.get("retry_invalid_with_stricter_prompt", False),
+            "validation.retry_invalid_with_stricter_prompt",
+        ),
+        max_repair_attempts=_require_int(
+            d.get("max_repair_attempts", 0),
+            "validation.max_repair_attempts",
+            min_value=0,
+        ),
     )
 
 
@@ -846,8 +994,16 @@ def _parse_rate_limits(d: Any) -> RateLimitsConfig:
     if not isinstance(d, dict):
         raise ConfigError("rate_limits: must be an object")
     return RateLimitsConfig(
-        global_max_workers=int(d.get("global_max_workers", 8)),
-        write_flush_every=int(d.get("write_flush_every", 50)),
+        global_max_workers=_require_int(
+            d.get("global_max_workers", 8),
+            "rate_limits.global_max_workers",
+            min_value=1,
+        ),
+        write_flush_every=_require_int(
+            d.get("write_flush_every", 50),
+            "rate_limits.write_flush_every",
+            min_value=1,
+        ),
     )
 
 
@@ -879,16 +1035,18 @@ def _parse_providers(
                 fixture_labels, config_dir, f"{prefix}.fixture_labels",
             )
         out.append(ProviderConfig(
-            name=str(item.get("name", "")),
+            name=_require_str(item.get("name", ""), f"{prefix}.name"),
             provider_type=ptype,
-            weight=int(item.get("weight", 1)),
-            threads=int(item.get("threads", 1)),
-            model=item.get("model"),
-            temperature=item.get("temperature"),
-            max_tokens=item.get("max_tokens"),
-            max_retries=int(item.get("max_retries", 3)),
-            structured_output=bool(item.get("structured_output", False)),
-            seed=item.get("seed"),
+            weight=_require_int(item.get("weight", 1), f"{prefix}.weight", min_value=1),
+            threads=_require_int(item.get("threads", 1), f"{prefix}.threads", min_value=1),
+            model=_optional_str(item.get("model"), f"{prefix}.model"),
+            temperature=_optional_float(item.get("temperature"), f"{prefix}.temperature", min_value=0),
+            max_tokens=_optional_int(item.get("max_tokens"), f"{prefix}.max_tokens", min_value=1),
+            max_retries=_require_int(item.get("max_retries", 3), f"{prefix}.max_retries", min_value=0),
+            structured_output=_require_bool(
+                item.get("structured_output", False), f"{prefix}.structured_output",
+            ),
+            seed=_optional_int(item.get("seed"), f"{prefix}.seed"),
             fixture_inputs=fixture_inputs,
             fixture_labels=fixture_labels,
         ))
@@ -1068,6 +1226,49 @@ def test_unknown_selection_policy_raises(tmp_path):
     assert "selection_policy" in str(exc.value)
 
 
+@pytest.mark.parametrize("path,value,expect_substring", [
+    ("input_generation.enabled", "false", "enabled"),
+    ("input_generation.target_inputs", "10", "target_inputs"),
+    ("input_generation.batch_size", "5", "batch_size"),
+    ("output_generation.label_attempts_per_input", "2", "label_attempts_per_input"),
+    ("output_generation.selection_policy", 123, "selection_policy"),
+    ("output_generation.provider_priority", "fake_a", "provider_priority"),
+    ("validation.max_repair_attempts", "0", "max_repair_attempts"),
+    ("rate_limits.global_max_workers", "4", "global_max_workers"),
+])
+def test_wrong_type_fields_raise_config_error(tmp_path, path, value, expect_substring):
+    """Strict loader: no silent coercion of strings to int/bool."""
+    data = _minimal_dict()
+    # Walk dotted path and set the value.
+    parts = path.split(".")
+    target = data
+    for key in parts[:-1]:
+        target = target[key]
+    target[parts[-1]] = value
+    config_path = _write_config(tmp_path, data)
+    with pytest.raises(ConfigError) as exc:
+        load_generation_config(config_path)
+    assert expect_substring in str(exc.value)
+
+
+@pytest.mark.parametrize("field,bad_value", [
+    ("weight", "1"),
+    ("threads", "1"),
+    ("temperature", "0.5"),
+    ("max_tokens", "512"),
+    ("max_retries", "3"),
+    ("structured_output", "true"),
+    ("seed", "42"),
+])
+def test_wrong_type_provider_fields_raise(tmp_path, field, bad_value):
+    data = _minimal_dict()
+    data["input_generation"]["providers"][0][field] = bad_value
+    config_path = _write_config(tmp_path, data)
+    with pytest.raises(ConfigError) as exc:
+        load_generation_config(config_path)
+    assert field in str(exc.value)
+
+
 def test_fixture_path_resolved_relative_to_config_dir(tmp_path):
     """Place config in tmp_path/configs/, fixture path '../inputs.jsonl'
     must resolve to tmp_path/inputs.jsonl."""
@@ -1144,12 +1345,10 @@ Then add the `_validate` function at module bottom:
 
 ```python
 def _validate(cfg: GenerationConfig) -> None:
-    """Apply the rules in spec §4.3. Raises ConfigError on violation."""
+    """Apply cross-field rules. Min-value and type checks are already enforced
+    by the strict helpers during parsing; this function covers the rules that
+    span multiple fields (enabled+providers, selection policy, priority refs)."""
     ig = cfg.input_generation
-    if ig.target_inputs < 0:
-        raise ConfigError("input_generation.target_inputs: must be >= 0")
-    if ig.batch_size < 1:
-        raise ConfigError("input_generation.batch_size: must be >= 1")
     if ig.enabled and ig.target_inputs >= 1 and not ig.providers:
         raise ConfigError(
             "input_generation.providers: must be non-empty when enabled=true and target_inputs>=1"
@@ -1157,8 +1356,6 @@ def _validate(cfg: GenerationConfig) -> None:
     _validate_providers(ig.providers, "input_generation", used_in_phase="input")
 
     og = cfg.output_generation
-    if og.label_attempts_per_input < 1:
-        raise ConfigError("output_generation.label_attempts_per_input: must be >= 1")
     if og.selection_policy not in _VALID_SELECTION_POLICIES:
         raise ConfigError(
             f"output_generation.selection_policy: {og.selection_policy!r} "
@@ -1176,17 +1373,12 @@ def _validate(cfg: GenerationConfig) -> None:
                 f"output_generation.provider_priority: {name!r} not in declared providers"
             )
 
-    if cfg.validation.max_repair_attempts < 0:
-        raise ConfigError("validation.max_repair_attempts: must be >= 0")
-    if cfg.rate_limits.global_max_workers < 1:
-        raise ConfigError("rate_limits.global_max_workers: must be >= 1")
-    if cfg.rate_limits.write_flush_every < 1:
-        raise ConfigError("rate_limits.write_flush_every: must be >= 1")
-
 
 def _validate_providers(
     providers: tuple[ProviderConfig, ...], phase_path: str, *, used_in_phase: str,
 ) -> None:
+    """Cross-provider rules that the parser couldn't check per-row (uniqueness,
+    type-conditional requirements). Min-value/type already enforced upstream."""
     seen_names: set[str] = set()
     for i, p in enumerate(providers):
         prefix = f"{phase_path}.providers[{i}]"
@@ -1201,16 +1393,6 @@ def _validate_providers(
             raise ConfigError(
                 f"{prefix}.type: {p.provider_type!r} not in {sorted(_VALID_PROVIDER_TYPES)}"
             )
-        if p.weight < 1:
-            raise ConfigError(f"{prefix}.weight: must be >= 1")
-        if p.threads < 1:
-            raise ConfigError(f"{prefix}.threads: must be >= 1")
-        if p.temperature is not None and p.temperature < 0:
-            raise ConfigError(f"{prefix}.temperature: must be null or >= 0")
-        if p.max_tokens is not None and p.max_tokens < 1:
-            raise ConfigError(f"{prefix}.max_tokens: must be null or >= 1")
-        if p.max_retries < 0:
-            raise ConfigError(f"{prefix}.max_retries: must be >= 0")
         if p.provider_type == "fake":
             if used_in_phase == "input" and not p.fixture_inputs:
                 raise ConfigError(
@@ -1529,10 +1711,12 @@ class RoundRobinScheduler:
 def _bresenham_interleave(weighted: list[tuple[str, int]]) -> list[str]:
     """Build a length-sum(weights) sequence that interleaves names by weight.
 
-    Uses a credit-accumulator scheme: at each slot, pick the provider whose
-    (cumulative-credit / weight) ratio is smallest, breaking ties by
-    declaration order. Equivalent to Bresenham's line-drawing applied to
-    multi-line distribution.
+    Deterministic weighted interleaver. At each slot, pick the provider
+    whose (cumulative-credit + 1) / weight ratio is smallest, breaking
+    ties by declaration order. Produces a sequence with no long single-
+    provider runs at high weight ratios. Name historical: it is informed
+    by Bresenham's line drawing but not an exact port; tests pin behavior
+    by distribution and max-run-length, not by the exact algorithm.
     """
     total = sum(w for _, w in weighted)
     credits = {name: 0 for name, _ in weighted}
@@ -2437,8 +2621,10 @@ def run_cli(*args: str) -> subprocess.CompletedProcess:
     )
 
 
-def test_help_works_without_provider_config():
-    """Sanity: existing CLI exposes --help and imports cleanly."""
+def test_help_confirms_cli_imports_cleanly():
+    """Sanity: --help still works and exposes the new flags. This proves the
+    CLI imports cleanly; it does NOT prove legacy runtime behavior, which is
+    covered transitively by the existing legacy tests in the prior slice."""
     result = run_cli("--help")
     assert result.returncode == 0
     assert "--provider-config" in result.stdout
@@ -2707,7 +2893,7 @@ python scripts/05_generate_distillation_data.py \
     --provider-config configs/test_providers.json \
     --dry-run-quota
 
-# 2. CLI help still works (legacy untouched)
+# 2. CLI help still works (confirms import path)
 python scripts/05_generate_distillation_data.py --help
 
 # 3. Probe the validator against hand-picked fixture
