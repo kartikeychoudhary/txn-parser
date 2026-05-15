@@ -431,7 +431,7 @@ def test_plain_digit_has_no_currency_hint():
 - [ ] **Step 2: Run, watch them fail**
 
 Run: `pytest tests/test_amount_parser.py -v -k currency_hint`
-Expected: 5 failures (the no-hint test will fail too because plain-digit matcher doesn't exist yet, see Task 6).
+Expected: 6 failures (the 5 parametrized currency cases plus `test_plain_digit_has_no_currency_hint` — the latter fails because the plain-digit matcher doesn't exist yet; it passes after Task 6).
 
 - [ ] **Step 3: Implement priority 6**
 
@@ -1309,12 +1309,18 @@ def _input_supports_repeat(input_text: str, amount: float, item: str,
       1. same amount appears >= dup_count times AND same item phrase
          appears >= dup_count times in the input, OR
       2. a repetition cue appears in the input.
+
+    v1: cue match is global (anywhere in the input). Spec wording allows
+    'near the amount/item phrase'; tightening to a span-based check is
+    deferred to a follow-up parser slice.
     """
+    import re as _re  # local: keep module-import block tidy
     lower = input_text.lower()
     if any(cue in lower for cue in _REPETITION_CUES):
         return True
     amount_count = sum(1 for c in candidates if _matches_amount(c, amount))
-    item_count = lower.count(item.lower())
+    # Word-boundary match — substring would overcount, e.g. 'beer' inside 'rootbeer'.
+    item_count = len(_re.findall(rf"\b{_re.escape(item.lower())}\b", lower))
     return amount_count >= dup_count and item_count >= dup_count
 
 
@@ -1526,8 +1532,6 @@ into ranked AmountCandidate list with active/superseded status, currency
 hints, and source tags. Validator runs schema preflight then input-vs-
 output consistency checks (amount, currency, count, duplicate). Stage 5
 gate / Stage 4 metrics wired up in the next commit.
-
-Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -1658,11 +1662,20 @@ def score_validation_fields(
     result = validate_example(input_text, predicted, mode="strict")
     serialized = serialize_validation_result(result)
 
+    # Defensive: schema-invalid `predicted` may not have a list of dicts here.
     exp_txns = expected.get("transactions", [])
     pred_txns = predicted.get("transactions", [])
+    if not isinstance(pred_txns, list):
+        pred_txns = []
+    pred_amounts: list[float] = []
+    for t in pred_txns:
+        if isinstance(t, dict) and isinstance(t.get("amount"), (int, float)):
+            pred_amounts.append(float(t["amount"]))
+        else:
+            pred_amounts.append(float("nan"))
     amount_exact = _multiset_close(
         [float(t["amount"]) for t in exp_txns],
-        [float(t.get("amount", float("nan"))) for t in pred_txns],
+        pred_amounts,
     )
     txn_count_exact = len(exp_txns) == len(pred_txns)
 
@@ -1912,7 +1925,7 @@ Expected: prints `ok` with no import errors.
 
 Spec reference: §10.
 
-- [ ] **Step 1: Archive the existing `failed.jsonl` (incompatible shape)**
+- [ ] **Step 1: Archive the existing `failed.jsonl` locally (incompatible shape, DO NOT commit)**
 
 ```bash
 mv "data/distill/failed.jsonl" "data/distill/failed.jsonl.pre-validator.bak"
@@ -1920,17 +1933,35 @@ mv "data/distill/failed.jsonl" "data/distill/failed.jsonl.pre-validator.bak"
 
 (Powershell equivalent: `Rename-Item data/distill/failed.jsonl data/distill/failed.jsonl.pre-validator.bak`.)
 
+The `.bak` file is local-only diagnostic data — it must not be staged or committed in Step 6.
+
 - [ ] **Step 2: Manual Stage 5 smoke**
 
+Two flavors. Run both so we exercise the fresh-file path and the new flag.
+
+Fresh-file run (after archiving in Step 1, `failed.jsonl` does not exist):
 ```bash
-python scripts/05_generate_distillation_data.py --phase label --limit 50 --retry-failed
+python scripts/05_generate_distillation_data.py --phase label --limit 50
+```
+
+New-flag run (re-attempt only rows the validator rejected last time):
+```bash
+python scripts/05_generate_distillation_data.py --phase label --limit 50 --retry-validation-failed
 ```
 
 What to check (do NOT proceed if any of these go sideways without an explanation):
 
 1. Script completes without crash.
 2. New rows in `data/distill/failed.jsonl` have the §6.3 shape — `raw_output`, `candidates`, `reason` populated; `validation` only on `reason=validation_failed`.
-3. Pass-rate decision point: of rows that were **previously JSON-valid AND schema-valid**, fewer than ~25% now fail validation. If higher, inspect the top failure codes in `failed.jsonl` and consider adding parser fixtures before declaring this slice done.
+3. Pass-rate decision point. Use the rows from this smoke run only — the archived old `failed.jsonl` is not in the denominator. Approximate as:
+
+   ```
+   denom = (rows kept in train.jsonl this run) + (failed.jsonl rows with reason == "validation_failed" this run)
+   numer = (failed.jsonl rows with reason == "validation_failed" this run)
+   ratio = numer / denom
+   ```
+
+   Exclude `json_parse_failed` and `teacher_error` from both numerator and denominator — those measure model/infra failures, not parser gaps. If `ratio > ~0.25`, inspect the top failure codes in `failed.jsonl` and add parser fixtures before declaring the slice done.
 
 - [ ] **Step 3: Manual Stage 4 smoke**
 
@@ -1987,11 +2018,14 @@ pytest tests/ --cov=amount_parser --cov=validator
 Run: `pytest tests/ --cov=amount_parser --cov=validator --cov-report=term`
 Expected: all pass; parser ≥95%, validator ≥90%.
 
-- [ ] **Step 6: Commit B**
+- [ ] **Step 6: Commit B (do NOT include `failed.jsonl*` files)**
+
+Stage only source + tests + README. The `.pre-validator.bak` archive and any new `failed.jsonl` produced by the smoke are local diagnostics and stay out of git.
 
 ```bash
 git add scripts/04_eval.py scripts/05_generate_distillation_data.py \
-        tests/test_stage4_metrics.py README.md data/distill/failed.jsonl.pre-validator.bak
+        tests/test_stage4_metrics.py README.md
+git status   # verify no data/distill/* files are staged before committing
 git commit -m "$(cat <<'EOF'
 Wire validator into Stage 4 and Stage 5
 
@@ -2005,9 +2039,8 @@ txn_count_matches_active_candidates, duplicate_transactions_found,
 superseded_amount_used, validation_errors) plus eval-only amount_exact
 and txn_count_exact; four new aggregate rows in the summary.
 
-The old failed.jsonl is incompatible — archived to .pre-validator.bak.
-
-Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+The old failed.jsonl shape is incompatible; users should delete or
+archive it locally before rerunning Stage 5.
 EOF
 )"
 ```
