@@ -91,8 +91,10 @@ A digit group at priority 7 is **rejected** (not emitted as a candidate) when an
 
 - Length ≥ 7 consecutive digits.
 - Preceded by `phone`, `mobile`, `otp`, `pin`, `account`, `upi id`, `order id` within ~5 tokens.
-- Matches a time pattern: `\b\d{1,2}:\d{2}\b`.
-- Matches a date pattern: `\b\d{1,2}/\d{1,2}/\d{2,4}\b`.
+- The digit's span falls inside a wider time match `\b\d{1,2}:\d{2}\b` in the input. (Not just "matches the pattern" — the rejection check runs against the full surrounding substring so that `12` and `30` in `"12:30"` are both rejected.)
+- The digit's span falls inside a wider date match `\b\d{1,2}/\d{1,2}/\d{2,4}\b` in the input. So `12`, `05`, and `2026` in `"12/05/2026"` are all rejected.
+
+Implementation note: scan for time/date patterns **before** plain-digit emission; build a "blocked spans" set; reject any plain-digit candidate whose span overlaps a blocked span.
 
 Large amounts with explicit cues (e.g., `"paid 125000 rent deposit"`, `"₹125000 deposit"`, `"1.25 lakh deposit"`) remain parseable because the cue or unit beats the rejection.
 
@@ -109,17 +111,24 @@ Out of v1 vocabulary (`twelve fifty`, casual compounds, word-form decimals, rang
 
 ### 3.5 Hindi number-words rule
 
-Hindi number words (`paanch`, `do`, `char`, etc.) are parsed **only when followed by a unit word** (`sau`, `hazaar`, `lakh`). Bare Hindi number words are NOT parsed in v1 — this prevents `"do coffee"`, `"char people"`, `"paanch minute"` from being misread as amounts.
+Hindi number words are parsed **only when followed by a unit word**. Bare Hindi number words are NOT parsed in v1 — this prevents `"do coffee"`, `"char people"`, `"paanch minute"` from being misread as amounts.
+
+v1 Hindi numerals: `ek` (1), `do` (2), `teen` (3), `char` / `chaar` (4), `paanch` (5), `chhe` / `che` (6), `saat` (7), `aath` (8), `nau` (9), `das` (10).
+v1 Hindi units: `sau` (×100), `hazaar` (×1000), `lakh` (×100000).
+
+Composite forms beyond `<numeral> <unit>` (e.g., `do hazaar paanch sau` for 2500) are **out of v1 scope**. Spec covers the simple `numeral × unit` form only; multi-unit compounds will surface as `AMOUNT_NOT_IN_INPUT` and are addressed in a follow-up parser slice.
 
 ### 3.6 Correction / supersession
 
-After collecting raw candidates, a second pass scans for correction markers:
+After collecting raw candidates, a second pass scans for correction markers. **Bare `wait` is NOT a marker** — only stronger compound forms.
 
-- `wait`, `wait no`, `wait actually`
+- `wait no`, `wait actually`, `wait sorry`, `wait correction`, `wait,`(comma)
 - `i mean`, `actually`, `scratch that`, `nope`
 - `umm ... no`, `uhh no`
 - `nahi`, `nahin`, `galat`
 - `correction:`
+
+`wait` followed by a non-marker word (e.g., `"500 beer wait and 600 candy"`) is treated as a stop-word, NOT a correction.
 
 Rule (exact wording):
 
@@ -172,11 +181,23 @@ def serialize_validation_result(result: ValidationResult) -> dict: ...
 
 - `mode="strict"` (default): `ok = not any(e.severity == "error" for e in errors)`.
 - `mode="warn"`: `ok = True` regardless, errors list still populated.
-- `serialize_validation_result` uses `dataclasses.asdict` on `errors`; `AmountCandidate.span` JSON-serializes as a 2-element array.
+- `serialize_validation_result` returns `{ok, amount_values_match_active_candidates, txn_count_matches_active_candidates, duplicate_transactions_found, superseded_amount_used, errors: [...]}`. It **excludes** `candidates` — `candidates` are serialized separately by callers (Stage 5 writes them at the top level of the failed.jsonl row per §6.3). This keeps the validation block stable when `candidates` schema evolves.
+- `AmountCandidate.span` JSON-serializes as a 2-element array.
 
 ### 4.2 Imports
 
-`validator.py` imports `parse_amounts` from `amount_parser` at module load. It imports `is_schema_valid` and `schema_errors` **lazily** from `_lib` inside `validate_example` to avoid a circular import (`_lib` re-exports validator symbols at its file bottom).
+The project's existing scripts use the flat-script import pattern (`sys.path.insert(0, scripts_dir)` then `from _lib import ...`). The new modules and tests use the same style:
+
+- `validator.py` does `from amount_parser import parse_amounts` at module load.
+- `validator.py` does `from _lib import is_schema_valid, schema_errors` **lazily** inside `validate_example` to break the circular load (`_lib` re-exports validator symbols at its file bottom).
+- Tests import via `sys.path.insert(0, scripts_dir)` then flat imports.
+- Smoke check at end of step 4 of the rollout uses `PYTHONPATH`:
+
+  ```bash
+  PYTHONPATH=scripts python -c "from _lib import validate_example, parse_amounts; print('ok')"
+  ```
+
+If a future refactor turns `scripts/` into a package, the imports must be migrated everywhere together — out of scope for this slice.
 
 ### 4.3 Pipeline
 
@@ -340,6 +361,8 @@ Field naming standardized: `raw_output` everywhere (not `raw`).
 
 `candidates` is included for **all** failure types. `validation` and `parsed_output` only for `validation_failed`. `error` only for `teacher_error`.
 
+**`teacher_error` granularity.** The current labeling loop batches teacher inference. When a batch raises, the implementation writes one `teacher_error` row per input in that batch (so retry tooling can target individual inputs); the same `error` string is repeated across all rows of the failing batch. Batch-level error context (batch size, batch index) is logged to the per-run logfile, not duplicated in `failed.jsonl`.
+
 ---
 
 ## 7. Stage 4 integration — `scripts/04_eval.py`
@@ -402,9 +425,18 @@ def score_validation_fields(
     input_text: str,
     expected: dict,
     predicted_raw: str,
+    predicted: dict | None = None,
 ) -> dict:
-    """Returns the per-example fields described in §7.1 / §7.2."""
+    """Returns the per-example fields described in §7.1 / §7.2.
+
+    If `predicted` is provided, it is used as-is and `predicted_raw` is
+    only stored for diagnostics. If `predicted is None`, the helper
+    calls `extract_json(predicted_raw)` itself; `None` from that call
+    triggers the §7.2 invalid-JSON row shape.
+    """
 ```
+
+Stage 4 callers that already have `predicted` from `extract_json` should pass it in so JSON is not parsed twice.
 
 ---
 
