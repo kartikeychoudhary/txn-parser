@@ -250,3 +250,16 @@ def extract_json(text: str) -> dict | None:
         if isinstance(obj, dict):
             return obj
     return None
+
+
+# ---------------------------------------------------------------------------
+# Re-exports — placed at the bottom of _lib.py so amount_parser/validator can
+# `from _lib import is_schema_valid, schema_errors` lazily without a circular
+# load. Existing imports of _lib symbols are untouched.
+# ---------------------------------------------------------------------------
+
+from amount_parser import AmountCandidate, parse_amounts  # noqa: E402
+from validator import (  # noqa: E402
+    ValidationError, ValidationResult,
+    validate_example, serialize_validation_result,
+)
