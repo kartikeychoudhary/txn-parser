@@ -12,7 +12,7 @@
 
 **Branch:** `feat/multi-provider-slice4` (already exists, branched from `feat/multi-provider-slice3` HEAD `0b79433`; spec commits `375e269` and `f3cb4d9` are on this branch).
 
-**Test baseline at start:** 294 passing on `feat/multi-provider-slice3`. Target at end of plan: **333 passing** (294 baseline + 18 helper tests + 12 recorder tests + 5 provider tests + 1 orchestrator test + 2 label E2E + 1 inputs E2E = 333; coverage check at Task 12 may add 1–2 more).
+**Test baseline at start:** 294 passing on `feat/multi-provider-slice3`. Target at end of plan: **~333 passing** (294 baseline + 18 helper tests + 12 recorder tests + 5 provider tests + 1 orchestrator test + 2 label E2E + 1 inputs E2E + 1 repair-exhausted unit test = 334; exact count may drift up by 1–2 if the Task 12 coverage check adds a small gap-filler test. Treat counts as smoke signals, not hard blockers — `335 passed` is not a failure as long as nothing regressed).
 
 **Single commit at landing.** Same convention as Slices 1–3: spec + amendments live on the branch as their own commits; the implementation lands as one additive commit at Task 13. Data files in `data/distill/`, `.coverage`, and `reports/` are NEVER staged.
 
@@ -767,6 +767,28 @@ def test_recorder_render_stdout_prices_source_none_says_default_zero():
                          finished_at=datetime(2026, 5, 17, 14, 35, 42, tzinfo=timezone.utc))
     text = r.render_stdout(summary)
     assert "default zero pricing" in text
+
+
+def test_recorder_repair_exhausted_not_inflated_by_unrelated_failed_rows():
+    """repair.exhausted must reflect explicit calls to record_repair_exhausted,
+    not approximate from failed_rows. Two failed rows; only one entered repair."""
+    r = _recorder()
+    # Two failed inputs total.
+    r.record_output_row("failed")
+    r.record_output_row("failed")
+    # Only one of them entered the repair loop and exhausted it.
+    r.record_call(
+        provider="p", provider_type="fake", model=None,
+        phase="label", attempt_type="repair",
+        latency_ms=10.0, prompt_tokens=1, completion_tokens=1,
+        estimated_tokens=True, success=True, failure_reason=None,
+    )
+    r.record_repair_exhausted()
+    summary = r.finalize(phase="label", inputs_processed=2,
+                         finished_at=datetime(2026, 5, 17, 14, 35, 42, tzinfo=timezone.utc))
+    assert summary["totals"]["failed_rows_written"] == 2
+    assert summary["repair"]["attempts"] == 1
+    assert summary["repair"]["exhausted"] == 1   # NOT 2
 ```
 
 - [ ] **Step 2: Run the recorder tests — expect AttributeError**
@@ -826,6 +848,7 @@ class MetricsRecorder:
         self._input_rows = 0
         self._train_rows = 0
         self._failed_rows = 0
+        self._repair_exhausted = 0
         self._lock = threading.Lock()
         self._prices = prices
         self._prices_source = prices_source
@@ -897,6 +920,13 @@ class MetricsRecorder:
                 self._failed_rows += 1
             else:
                 raise ValueError(f"unknown output row kind: {kind!r}")
+
+    def record_repair_exhausted(self) -> None:
+        """Called once per input whose repair loop finished without accepting
+        any candidate. Distinct from record_output_row('failed') because a
+        failed row may or may not have entered repair."""
+        with self._lock:
+            self._repair_exhausted += 1
 
     # -- finalize --
 
@@ -1024,14 +1054,10 @@ class MetricsRecorder:
                 1 for c in self._candidates
                 if c.is_repair_attempt and c.accepted
             )
-            # An input is "exhausted" if it ended up in failed_rows AND repair was attempted
-            # at all. Recorder doesn't know per-input outcome directly; approximate as
-            # failed_rows when repair_attempts > 0.
-            repair_exhausted = self._failed_rows if repair_attempts > 0 else 0
             out["repair"] = {
                 "attempts": repair_attempts,
                 "accepted": repair_accepted,
-                "exhausted": repair_exhausted,
+                "exhausted": self._repair_exhausted,
             }
 
         return out
@@ -1134,14 +1160,14 @@ class MetricsRecorder:
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/test_metrics.py -v 2>&1 | tail -30
 ```
-Expected: all metrics tests pass (18 helpers + 12 recorder = 30 in `test_metrics.py`).
+Expected: all metrics tests pass (18 helpers + 13 recorder = 31 in `test_metrics.py`).
 
 - [ ] **Step 5: Full suite stays green**
 
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: `324 passed` (294 + 30).
+Expected: `325 passed` (294 + 31).
 
 - [ ] **Step 6: Do NOT commit.**
 
@@ -1225,7 +1251,7 @@ cd "C:/work/llm training" && rm data/distill/metrics.json
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: still `324 passed` (no test changes).
+Expected: still `325 passed` (no test changes).
 
 - [ ] **Step 7: Do NOT commit.**
 
@@ -1238,6 +1264,8 @@ Expected: still `324 passed` (no test changes).
 - Modify: `tests/test_real_providers.py` (or add small test file if cleaner — see Step 1)
 
 Spec reference: §5.1.
+
+**Semantics note:** usage is stashed AFTER a successful SDK response object is returned, just before `return resp.choices[0].message.content` (DeepSeek) / `return resp.text` (Gemini). If the SDK raises BEFORE returning a response object, `pop_last_usage` returns whatever was stashed by the previous successful call on the same thread — which is why each `pop_last_usage` immediately follows the `try/finally` in the orchestrator and resets the slot to `None`. Acceptable Slice 4 limitation: if our own response processing raises AFTER the SDK returns but before `_stash_usage` runs, metrics fall back to estimated tokens. We do not introduce a deeper try/finally inside `_call_api_*` for this — the cost is one mis-attributed call, the benefit isn't worth it.
 
 - [ ] **Step 1: Write failing tests for `pop_last_usage`**
 
@@ -1322,14 +1350,27 @@ def test_gemini_pop_last_usage_handles_missing_usage(monkeypatch, patch_sdk_clie
     assert p.pop_last_usage() is None
 
 
-def test_fake_provider_has_no_pop_last_usage_attribute():
+def test_fake_provider_instance_has_no_pop_last_usage(tmp_path):
     """FakeProvider deliberately does not expose pop_last_usage; orchestrator
-    uses getattr fallback."""
+    uses getattr fallback. Check on an INSTANCE so dynamic attrs are caught."""
     from llm_providers import FakeProvider
-    # FakeProvider construction args differ — construct minimally; if its
-    # init requires args, the assertion still holds: orchestrator-side
-    # getattr returns the default sentinel.
-    assert not hasattr(FakeProvider, "pop_last_usage")
+    # Construct with a minimal fixture (one line is enough for instantiation).
+    fixture = tmp_path / "fake_inputs.jsonl"
+    fixture.write_text('{"input":"hello"}\n', encoding="utf-8")
+    # FakeProvider's constructor signature varies between input/output use —
+    # use whichever form your test_fake_provider.py already exercises. The
+    # simplest hermetic construction:
+    try:
+        p = FakeProvider(name="fake", fixture_inputs=fixture)
+    except TypeError:
+        # If FakeProvider uses fixture_labels in this codebase variant,
+        # fall back to that.
+        fixture2 = tmp_path / "fake_labels.jsonl"
+        fixture2.write_text(
+            '{"input":"hello","output":{"transactions":[]}}\n', encoding="utf-8",
+        )
+        p = FakeProvider(name="fake", fixture_labels=fixture2)
+    assert not hasattr(p, "pop_last_usage")
 ```
 
 - [ ] **Step 2: Run the new tests — expect AttributeError**
@@ -1475,7 +1516,7 @@ Expected: `import llm_providers: still clean`.
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: `329 passed` (324 + 5).
+Expected: `330 passed` (325 + 5).
 
 - [ ] **Step 8: Do NOT commit.**
 
@@ -1660,6 +1701,8 @@ And the repair call:
     return (input_text, None, outcomes)
 ```
 
+**Note on recording semantics:** worker threads return `CandidateOutcome` objects via `_process_one_input`. The main thread (inside `phase_label_multi_provider`) records all candidate metrics after best selection, so exactly one outcome can be marked `accepted=True` and the valid-but-not-selected outcomes get `accepted=False, failure_reason=None`. This is the place `record_label_candidate` is called from — never from inside `_try_one_attempt` itself, which only records the provider call.
+
 - [ ] **Step 4: Add recorder parameter to `phase_label_multi_provider`, thread through, return int**
 
 Find `def phase_label_multi_provider(args: argparse.Namespace) -> None:` (around line 740). Change to:
@@ -1755,6 +1798,10 @@ Locate the block starting at `for fut in concurrent.futures.as_completed(futures
                 failure_reasons[top_reason] += 1
                 if recorder is not None:
                     recorder.record_output_row("failed")
+                    # Explicit repair-exhausted accounting: only count inputs
+                    # that actually entered the repair loop.
+                    if any(o.is_repair_attempt for o in all_outcomes):
+                        recorder.record_repair_exhausted()
             if (n_kept + n_failed) % cfg.rate_limits.write_flush_every == 0:
                 train_out.flush()
                 fail_out.flush()
@@ -1791,7 +1838,7 @@ Expected: same pass count as before (19 tests = 9 + 10).
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: `329 passed`.
+Expected: `330 passed`.
 
 - [ ] **Step 7: Do NOT commit.**
 
@@ -1949,6 +1996,8 @@ At the end of `phase_inputs_multi_provider`, after the closing `logging.info(...
     return accepted_total
 ```
 
+**Critical:** `accepted_total` is the count of unique rows written THIS RUN — not `pending`, not `ig.target_inputs`, not `len(existing_inputs)`. The E2E test in Task 10 asserts `input_rows_written == target_inputs` for a fresh run; if `accepted_total` drifts, the E2E will fail with a misleading off-by-one. Also confirm every `fout.write(...)` is followed by an `if recorder is not None: recorder.record_output_row("input")` call so the two counters (return value vs recorder counter) stay in lockstep.
+
 - [ ] **Step 3: Run all existing input-phase tests — expect all pass**
 
 ```bash
@@ -1961,7 +2010,7 @@ Expected: same count as before (whatever the current count is; recorder defaults
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: `329 passed`.
+Expected: `330 passed`.
 
 - [ ] **Step 5: Do NOT commit.**
 
@@ -2058,24 +2107,35 @@ print('parses cleanly')
 ```
 Expected: `parses cleanly`.
 
-- [ ] **Step 4: Quick smoke: run --phase label with FakeProvider against an empty tmpdir**
+- [ ] **Step 4: Quick smoke: run --phase label with seeded inputs**
+
+The label phase needs `inputs_raw.jsonl` to have something to process. Seed it from a fixture row so FakeProvider has a matching label.
 
 ```bash
-cd "C:/work/llm training" && rm -rf /tmp/s4_smoke && mkdir -p /tmp/s4_smoke && DISTILL_DIR_OVERRIDE=/tmp/s4_smoke python scripts/05_generate_distillation_data.py --phase label --provider-config configs/test_providers.json --multi-provider --limit 2 2>&1 | tail -20
+cd "C:/work/llm training" && rm -rf /tmp/s4_smoke && mkdir -p /tmp/s4_smoke && \
+  python -c "
+import json, pathlib
+fixture = pathlib.Path('tests/fixtures/fake_labels.jsonl').read_text(encoding='utf-8')
+row = json.loads(fixture.splitlines()[0])
+pathlib.Path('/tmp/s4_smoke/inputs_raw.jsonl').write_text(
+    json.dumps({'input': row['input']}) + '\n', encoding='utf-8',
+)
+" && \
+  DISTILL_DIR_OVERRIDE=/tmp/s4_smoke python scripts/05_generate_distillation_data.py --phase label --provider-config configs/test_providers.json --multi-provider --limit 2 2>&1 | tail -20
 ```
-Expected: completes with exit 0; logs show `Stage 5 metrics (phase=label, ...)`; `/tmp/s4_smoke/metrics.json` exists.
+Expected: completes with exit 0; logs show `=== Stage 5 metrics (phase=label, ...)`; `/tmp/s4_smoke/metrics.json` exists.
 
 ```bash
-ls /tmp/s4_smoke/ && head -30 /tmp/s4_smoke/metrics.json
+ls /tmp/s4_smoke/ && head -40 /tmp/s4_smoke/metrics.json
 ```
-Expected: `metrics.json` present; content includes `"run"`, `"totals"`, `"providers"` keys.
+Expected: `metrics.json` present; content includes `"run"`, `"totals"`, `"providers"`, `"failures"`, `"repair"` keys; at least one provider has `"calls" > 0`.
 
 - [ ] **Step 5: Full suite stays green**
 
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: `329 passed`.
+Expected: `330 passed`.
 
 - [ ] **Step 6: Do NOT commit.**
 
@@ -2164,7 +2224,7 @@ If FAIL with "module name starts with digit" — `import_module("05_generate_dis
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: `330 passed` (329 + 1).
+Expected: `331 passed` (330 + 1).
 
 - [ ] **Step 4: Do NOT commit.**
 
@@ -2239,7 +2299,7 @@ Expected: 2 passed.
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: `332 passed` (330 + 2).
+Expected: `333 passed` (331 + 2).
 
 - [ ] **Step 4: Do NOT commit.**
 
@@ -2325,7 +2385,7 @@ If it FAILS because the fixture path is wrong or helper names differ, inspect `t
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: `333 passed`.
+Expected: `334 passed` (333 + 1 from inputs E2E). Exact count may drift if Task 12 adds a coverage gap-filler test — treat as a smoke signal, not a hard blocker.
 
 - [ ] **Step 5: Do NOT commit.**
 
@@ -2430,7 +2490,7 @@ Expected: all four print `True`.
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: `333 passed`.
+Expected: `334 passed` (333 + 1 from inputs E2E). Exact count may drift if Task 12 adds a coverage gap-filler test — treat as a smoke signal, not a hard blocker.
 
 - [ ] **Step 6: Do NOT commit.**
 
@@ -2513,7 +2573,7 @@ Look at the list. These MUST NOT be staged:
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: `333 passed`.
+Expected: `334 passed` (333 + 1 from inputs E2E). Exact count may drift if Task 12 adds a coverage gap-filler test — treat as a smoke signal, not a hard blocker.
 
 - [ ] **Step 8: Coverage final check**
 
@@ -2622,7 +2682,7 @@ Expected: new commit on top of `f3cb4d9` (spec amendments) and `375e269` (spec).
 
 Surface to the user:
 - The new commit SHA.
-- Final test pass count (expect `333 passed`).
+- Final test pass count (~334 passed; a couple over is fine, regressions are not).
 - Coverage percentages for `metrics.py` and `llm_providers.py`.
 - Confirmation that all five smokes succeeded (input phase, label phase, dry-run, legacy phase, missing prices fallback).
 - Suggested next step: optional real-API smoke with `configs/smoke_real_providers.json` to measure actual DeepSeek + Gemini cost/latency (requires `DEEPSEEK_API_KEY` + `GOOGLE_API_KEY`), or move on to merging Slice 4 into `feat/multi-provider-generation`.
