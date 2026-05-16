@@ -82,16 +82,34 @@ Relative paths in `fixture_inputs` and `fixture_labels` resolve **relative to th
 
 ## What loads and runs
 
+Config loading and `--dry-run-quota` do not construct providers and do not require
+SDK/API/GPU availability. Actual execution constructs providers and requires the
+relevant SDKs, keys, or local model assets.
+
 **Slice 1 (configuration + dry-run):**
-- Any `type: fake` provider with proper fixture paths.
-- Any `type: deepseek` / `gemini` / `local_teacher` provider — these load without SDK imports. `--dry-run-quota` works for all of them.
+- Any `type: fake` provider with proper fixture paths loads and runs.
+- Any `type: deepseek` / `gemini` / `local_teacher` provider loads cleanly for
+  config parsing and `--dry-run-quota` (no provider construction at that stage).
 
 **Slice 2 (real input generation):**
-- `type: deepseek` and `type: gemini` providers run real API calls when invoked via
-  `--phase inputs --provider-config <path> --multi-provider`. Requires `DEEPSEEK_API_KEY`
-  and/or `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) env vars.
-- `type: local_teacher` remains `UnimplementedProvider` until Slice 3.
-- `--phase label` and `--phase all` exit via `parser.error` in Slice 2 (Slice 3 wires labeling).
+- `type: deepseek` and `type: gemini` providers run real API calls when invoked
+  via `--phase inputs --provider-config <path> --multi-provider`. Provider
+  construction imports the relevant SDK (`openai` / `google-genai`) and reads
+  `DEEPSEEK_API_KEY` / `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) env vars.
+
+**Slice 3 (real output labeling):**
+- `--phase label --provider-config <path> --multi-provider` runs the validator-
+  gated multi-provider labeling loop.
+- `type: local_teacher` providers require `model` (path to the adapter directory).
+  Construction is lazy: the fp16 backend is built on first `generate_label` call,
+  which imports `unsloth` + `torch` and loads model weights.
+- Gemini's `structured_output: true` activates response_schema + response_mime_type
+  for label generation only. Input generation ignores it.
+- `validation.retry_invalid_with_stricter_prompt: true` plus `max_repair_attempts: N`
+  enables the repair loop: when all initial attempts fail, re-prompt the highest-
+  priority provider with a stricter repair prompt up to N times.
+- `--phase eval` is legacy-only — omit `--multi-provider` for eval. `--phase all`
+  exits via `parser.error`.
 
 ## Example configs
 

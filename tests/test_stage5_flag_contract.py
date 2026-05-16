@@ -4,6 +4,7 @@ Uses subprocess.run rather than calling main() directly so the full
 argparse path is exercised end-to-end and parser.error semantics
 (exit code 2, message to stderr) are verified verbatim.
 """
+import json
 import os
 import subprocess
 import sys
@@ -71,13 +72,6 @@ def test_invalid_config_path_exits_2():
     assert "Invalid provider config" in result.stderr or "not found" in result.stderr.lower()
 
 
-def test_provider_config_with_multi_provider_and_phase_label_exits_2():
-    result = run_cli("--provider-config", str(CONFIG),
-                     "--multi-provider", "--phase", "label")
-    assert result.returncode == 2
-    assert "Slice 3" in result.stderr
-
-
 def test_provider_config_with_multi_provider_and_phase_all_exits_2():
     result = run_cli("--provider-config", str(CONFIG),
                      "--multi-provider", "--phase", "all")
@@ -113,3 +107,48 @@ def test_provider_config_with_multi_provider_and_phase_inputs_succeeds(tmp_path)
     # complete successfully and produce a file under tmp_path.
     assert result.returncode == 0, result.stderr
     assert (tmp_path / "inputs_raw.jsonl").exists()
+
+
+def test_provider_config_with_multi_provider_and_phase_label_succeeds(tmp_path):
+    """Headline Slice 3 capability: --phase label --multi-provider runs."""
+    fixture_path = REPO_ROOT / "tests" / "fixtures" / "fake_labels.jsonl"
+    assert fixture_path.exists()
+    # Use the first input from the fixture so the FakeProvider has a labeled match.
+    first_row = json.loads(fixture_path.read_text(encoding="utf-8").splitlines()[0])
+    input_text = first_row["input"]
+
+    cfg_data = {
+        "version": 1,
+        "input_generation": {"enabled": False, "providers": []},
+        "output_generation": {
+            "enabled": True,
+            "label_attempts_per_input": 1,
+            "providers": [
+                {"name": "fake_a", "type": "fake", "weight": 1, "threads": 1,
+                 "fixture_labels": str(fixture_path)},
+            ],
+        },
+        "validation": {"schema": True, "semantic_validator": True,
+                       "reject_invalid": True,
+                       "retry_invalid_with_stricter_prompt": False,
+                       "max_repair_attempts": 0},
+        "rate_limits": {"global_max_workers": 1, "write_flush_every": 5},
+    }
+    cfg_path = tmp_path / "label_test_providers.json"
+    cfg_path.write_text(json.dumps(cfg_data), encoding="utf-8")
+    (tmp_path / "inputs_raw.jsonl").write_text(
+        json.dumps({"input": input_text}) + "\n", encoding="utf-8",
+    )
+
+    result = run_cli(
+        "--provider-config", str(cfg_path),
+        "--multi-provider", "--phase", "label",
+        env={"DISTILL_DIR_OVERRIDE": str(tmp_path)},
+    )
+    assert result.returncode == 0, result.stderr
+    train_path = tmp_path / "train.jsonl"
+    assert train_path.exists()
+    rows = [json.loads(line) for line in train_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(rows) == 1
+    assert rows[0]["_source"] == "multi_provider_label"
+    assert rows[0]["_provider"] == "fake_a"

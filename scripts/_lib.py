@@ -298,6 +298,77 @@ def normalize_input(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Teacher fp16 backend builder (Slice 3). Used by:
+#   - scripts/llm_providers.py::LocalTeacherProvider (multi-provider labeling)
+#   - scripts/05_generate_distillation_data.py::_build_label_backend
+#     (legacy single-teacher labeling)
+#
+# Heavy imports (unsloth, torch) are INSIDE function bodies so that
+# `import _lib` stays light. Importing _lib must NOT pull in CUDA/Unsloth.
+# ---------------------------------------------------------------------------
+
+
+def build_teacher_fp16_backend(
+    *,
+    adapter_dir,
+    max_seq_length: int = 1024,
+):
+    """Build an fp16 transformers backend wrapping the Unsloth-trained
+    teacher LoRA adapter. Returns an _FP16Backend instance.
+
+    Heavy imports happen inside this function (unsloth + torch); do not
+    move them to module scope.
+    """
+    from unsloth import FastLanguageModel    # lazy
+
+    model, processor = FastLanguageModel.from_pretrained(
+        model_name=str(adapter_dir),
+        max_seq_length=max_seq_length,
+        dtype=None,
+        load_in_4bit=False,
+    )
+    FastLanguageModel.for_inference(model)
+    tokenizer = getattr(processor, "tokenizer", processor)
+    tokenizer.padding_side = "left"
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    return _FP16Backend(model=model, processor=processor, tokenizer=tokenizer)
+
+
+class _FP16Backend:
+    """Wraps the loaded model + tokenizer. NOT thread-safe;
+    LocalTeacherProvider owns the lock."""
+
+    def __init__(self, model, processor, tokenizer):
+        self.model = model
+        self.processor = processor
+        self.tokenizer = tokenizer
+
+    def generate_label(self, messages: list[dict], *, max_new_tokens: int) -> str:
+        import torch    # lazy
+
+        templater = (
+            self.processor if hasattr(self.processor, "apply_chat_template") else self.tokenizer
+        )
+        prompt = templater.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True,
+        )
+        enc = self.tokenizer(
+            [prompt], return_tensors="pt", padding=True, truncation=True,
+            max_length=self.tokenizer.model_max_length or 1024,
+        ).to(self.model.device)
+        with torch.inference_mode():
+            out = self.model.generate(
+                **enc,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
+                pad_token_id=self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
+            )
+        input_len = enc["input_ids"].shape[1]
+        return self.tokenizer.decode(out[0][input_len:], skip_special_tokens=True).strip()
+
+
+# ---------------------------------------------------------------------------
 # Re-exports — placed at the bottom of _lib.py so amount_parser/validator can
 # `from _lib import is_schema_valid, schema_errors` lazily without a circular
 # load. Existing imports of _lib symbols are untouched.

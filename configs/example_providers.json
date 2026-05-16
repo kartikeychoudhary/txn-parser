@@ -1,7 +1,7 @@
 {
   "version": 1,
   "input_generation": {
-    "enabled": false,
+    "enabled": true,
     "target_inputs": 10,
     "batch_size": 100,
     "dedupe": true,
@@ -15,7 +15,7 @@
     ]
   },
   "output_generation": {
-    "enabled": true,
+    "enabled": false,
     "label_attempts_per_input": 2,
     "selection_policy": "first_valid_then_score",
     "providers": [

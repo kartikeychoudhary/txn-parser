@@ -368,9 +368,32 @@ The generation loop is threaded per-provider (each provider's `threads` field in
 
 Quota is a soft scheduling hint — workers stop when the global accepted-unique total reaches `target_inputs`, not when a per-provider quota fills. Provider distribution may drift from configured weights based on latency and duplicate rate.
 
-`--phase label` and `--phase all` are reserved for Slice 3 (validator-gated output labeling).
-
 For tests and CI, set `DISTILL_DIR_OVERRIDE=<tmp_path>` to redirect writes away from `data/distill/`. This is a dev/test-only knob and is not surfaced in `--help`.
+
+### Multi-provider output labeling (Slice 3)
+
+Slice 3 makes `--phase label --provider-config <path> --multi-provider` actually run: real DeepSeek + Gemini label generation, a `LocalTeacherProvider` wrapping the fp16 Unsloth backend, validator-gated candidate scoring, and an optional repair-on-failure retry loop.
+
+```bash
+# Real API smoke (DeepSeek + Gemini)
+export DEEPSEEK_API_KEY=sk-...
+export GOOGLE_API_KEY=...     # or GEMINI_API_KEY
+python scripts/05_generate_distillation_data.py \
+    --phase label \
+    --provider-config configs/smoke_real_providers.json \
+    --multi-provider \
+    --limit 10
+```
+
+For each input the orchestrator generates `label_attempts_per_input` candidates across configured providers, hard-rejects any with validator errors, scores survivors (clean validator pass is base 80; +10 count match, +5 no warnings, +5 priority bonus; max 100), and picks the highest-scoring. If all candidates fail and repair is enabled (`validation.retry_invalid_with_stricter_prompt: true` plus `max_repair_attempts > 0`), the orchestrator re-prompts the highest-priority provider with a stricter repair prompt containing the parsed amount candidates and validator failure summary.
+
+Accepted rows in `data/distill/train.jsonl` carry `_source: "multi_provider_label"`, `_provider`, `_model`, `_validation_score`, `_attempts` metadata. Failed inputs land in `data/distill/failed.jsonl` with `reason ∈ {all_candidates_failed, repair_exhausted, provider_error}` and an `attempts[]` array of per-provider diagnostics.
+
+Resume-safe: re-running skips inputs already in `train.jsonl` and (unless `--retry-failed`) inputs already in `failed.jsonl`. Use `--retry-validation-failed` to re-attempt only rows whose attempts include a validator-class failure.
+
+`--phase eval` is legacy-only — omit `--multi-provider` for eval. `--phase all` exits via `parser.error`.
+
+For local-teacher labeling (requires GPU + trained adapter at `models/teacher/adapters`), use `configs/smoke_local_teacher_providers.json`.
 
 ## Stage 6 — Fine-tune the student (Gemma 3 270M)
 

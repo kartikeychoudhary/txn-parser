@@ -40,6 +40,7 @@ import shutil
 import sys
 import threading
 import time
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
@@ -50,12 +51,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
     BATCH_FOCUSES,
     build_messages,
+    build_teacher_fp16_backend,
     call_deepseek,
     clean_input_line,
     extract_json,
+    is_schema_valid,
     load_jsonl,
     normalize_input,        # NEW in Slice 2
     parse_amounts,
+    schema_errors,
     serialize_validation_result,
     validate_example,
 )
@@ -309,54 +313,20 @@ def _build_label_backend(args: argparse.Namespace):
         return batch_infer
 
     # Default: transformers / Unsloth fp16
-    from unsloth import FastLanguageModel
-    import torch
+    from _lib import build_teacher_fp16_backend
 
     logging.info("Loading teacher (fp16) from %s", TEACHER_ADAPTER_DIR)
-    model, processor = FastLanguageModel.from_pretrained(
-        model_name=str(TEACHER_ADAPTER_DIR),
+    backend = build_teacher_fp16_backend(
+        adapter_dir=TEACHER_ADAPTER_DIR,
         max_seq_length=args.max_seq_length,
-        dtype=None,
-        load_in_4bit=False,
     )
-    FastLanguageModel.for_inference(model)
-
-    # Gemma 3/4 are multimodal — Unsloth returns a Processor here, not a
-    # bare Tokenizer. Use the underlying text tokenizer so plain
-    # tokenizer(text) works without expecting image/video inputs.
-    templater = processor
-    tokenizer = getattr(processor, "tokenizer", processor)
-    pad_id = tokenizer.pad_token_id or tokenizer.eos_token_id
-    # Generation needs LEFT padding so the EOS isn't on the wrong side.
-    tokenizer.padding_side = "left"
-    if tokenizer.pad_token_id is None:
-        tokenizer.pad_token = tokenizer.eos_token
 
     def batch_infer(inputs: list[str]) -> list[str]:
-        prompts = [
-            templater.apply_chat_template(
-                build_messages(s), tokenize=False, add_generation_prompt=True,
-            )
-            for s in inputs
-        ]
-        enc = tokenizer(
-            prompts, return_tensors="pt", padding=True, truncation=True,
-            max_length=args.max_seq_length,
-        ).to(model.device)
-        with torch.inference_mode():
-            out = model.generate(
-                **enc,
-                max_new_tokens=args.max_new_tokens,
-                do_sample=False,
-                temperature=0.0,
-                top_p=1.0,
-                pad_token_id=pad_id,
-            )
-        input_len = enc["input_ids"].shape[1]
-        return [
-            tokenizer.decode(out[i][input_len:], skip_special_tokens=True).strip()
-            for i in range(out.shape[0])
-        ]
+        out: list[str] = []
+        for s in inputs:
+            msgs = build_messages(s)
+            out.append(backend.generate_label(msgs, max_new_tokens=args.max_new_tokens))
+        return out
 
     return batch_infer
 
@@ -479,6 +449,433 @@ def phase_label(args: argparse.Namespace) -> None:
                  n_kept, n_failed, keep_rate)
     if failure_reasons:
         logging.info("Failure reasons: %s", failure_reasons)
+
+
+# ---------------------------------------------------------------------------
+# Multi-provider OUTPUT labeling (Slice 3). Concurrency model:
+#   - Per-input worker via ThreadPoolExecutor; pool size =
+#     min(global_max_workers, len(pending)).
+#   - Per-provider semaphore enforces pcfg.threads.
+#   - Each worker: round-robin scheduler picks providers, calls generate_label,
+#     validates, scores. Workers never write to JSONL.
+#   - Main thread: as_completed loop reads worker results and writes rows to
+#     train.jsonl or failed.jsonl. Sole writer.
+#   - LocalTeacherProvider also serializes its own GPU calls via internal lock.
+# ---------------------------------------------------------------------------
+
+
+def _try_one_attempt(
+    input_text: str,
+    provider,
+    pcfg,
+    *,
+    is_repair: bool = False,
+    failure_summary: str = "",
+    parser_candidates: list[dict] | None = None,
+    provider_priority_rank: int | None = None,
+):
+    """Run one provider attempt; validate; score. Never raises."""
+    from label_selection import CandidateOutcome, score_candidate, build_repair_prompt
+
+    try:
+        if is_repair:
+            prompt = build_repair_prompt(
+                input_text,
+                candidates=parser_candidates,
+                failure_summary=failure_summary,
+            )
+            raw = provider.generate_label(prompt)
+        else:
+            raw = provider.generate_label(input_text)
+    except Exception as e:    # noqa: BLE001 — unify all provider failures
+        return CandidateOutcome(
+            provider=pcfg.name,
+            model=getattr(provider, "model", None),
+            raw_output="",
+            parsed_output=None,
+            validation=None,
+            failure_reason="provider_error",
+            score=0,
+            is_repair_attempt=is_repair,
+            provider_priority_rank=provider_priority_rank,
+            error=repr(e),
+        )
+
+    # Post-processing wrapped in a second try/except — a validator bug or
+    # malformed parser output must not crash the entire executor pool.
+    try:
+        parsed = extract_json(raw)
+        if parsed is None:
+            return CandidateOutcome(
+                provider=pcfg.name,
+                model=getattr(provider, "model", None),
+                raw_output=raw, parsed_output=None, validation=None,
+                failure_reason="json_parse_failed",
+                score=0, is_repair_attempt=is_repair,
+                provider_priority_rank=provider_priority_rank,
+            )
+
+        result = validate_example(input_text, parsed, mode="strict")
+        validation_dict = serialize_validation_result(result)
+
+        error_codes = {
+            e["code"] for e in validation_dict["errors"] if e["severity"] == "error"
+        }
+        if "SCHEMA_INVALID" in error_codes:
+            failure_reason = "schema_invalid"
+        elif "SUPERSEDED_AMOUNT_USED" in error_codes:
+            failure_reason = "superseded_amount_used"
+        elif "CURRENCY_MISMATCH" in error_codes:
+            failure_reason = "currency_mismatch"
+        elif "SUSPICIOUS_DUPLICATE" in error_codes:
+            failure_reason = "suspicious_duplicate"
+        elif error_codes:
+            failure_reason = "validation_failed"
+        else:
+            failure_reason = None
+
+        score = score_candidate(
+            parsed_output=parsed,
+            validation=validation_dict,
+            failure_reason=failure_reason,
+            provider_priority_rank=provider_priority_rank,
+        )
+        return CandidateOutcome(
+            provider=pcfg.name,
+            model=getattr(provider, "model", None),
+            raw_output=raw,
+            parsed_output=parsed,
+            validation=validation_dict,
+            failure_reason=failure_reason,
+            score=score,
+            is_repair_attempt=is_repair,
+            provider_priority_rank=provider_priority_rank,
+        )
+    except Exception as e:    # noqa: BLE001 — post-processing should never bubble
+        return CandidateOutcome(
+            provider=pcfg.name,
+            model=getattr(provider, "model", None),
+            raw_output=raw,
+            parsed_output=None,
+            validation=None,
+            failure_reason="validation_failed",
+            score=0,
+            is_repair_attempt=is_repair,
+            provider_priority_rank=provider_priority_rank,
+            error=repr(e),
+        )
+
+
+def _highest_priority_provider(cfg, providers_by_name: dict) -> str:
+    """First entry of provider_priority, falling back to first declared provider."""
+    if cfg.output_generation.provider_priority:
+        name = cfg.output_generation.provider_priority[0]
+    else:
+        name = cfg.output_generation.providers[0].name
+    if name not in providers_by_name:
+        raise ValueError(
+            f"_highest_priority_provider: {name!r} not in providers_by_name"
+        )
+    return name
+
+
+def _summarize_failures(outcomes) -> str:
+    """≤200-char summary of why all attempts failed."""
+    parts = []
+    for o in outcomes:
+        if o.failure_reason == "provider_error":
+            parts.append(f"{o.provider}: provider error")
+        elif o.validation:
+            codes = [e["code"] for e in o.validation["errors"] if e["severity"] == "error"]
+            parts.append(f"{o.provider}: " + ", ".join(codes[:3]))
+        elif o.failure_reason:
+            parts.append(f"{o.provider}: {o.failure_reason}")
+    return "; ".join(parts)[:200]
+
+
+def _process_one_input(
+    input_text: str,
+    *,
+    providers_by_name: dict,
+    pcfgs_by_name: dict,
+    scheduler,
+    priority_map: dict,
+    provider_limits: dict,           # name -> threading.Semaphore(pcfg.threads)
+    cfg,
+    parser_candidates: list[dict],
+):
+    """Process one input end-to-end. Returns (input_text, best_or_None, all_outcomes).
+
+    Per-provider concurrency caps are honored via provider_limits semaphores.
+    """
+    from label_selection import pick_best
+
+    outcomes = []
+
+    for _ in range(cfg.output_generation.label_attempts_per_input):
+        provider_name = scheduler.next_provider()
+        with provider_limits[provider_name]:
+            outcomes.append(_try_one_attempt(
+                input_text,
+                provider=providers_by_name[provider_name],
+                pcfg=pcfgs_by_name[provider_name],
+                provider_priority_rank=priority_map.get(provider_name),
+            ))
+
+    best = pick_best(outcomes)
+    if best is not None:
+        return (input_text, best, outcomes)
+
+    repair_enabled = (
+        cfg.validation.retry_invalid_with_stricter_prompt
+        and cfg.validation.max_repair_attempts > 0
+    )
+    if repair_enabled:
+        repair_provider_name = _highest_priority_provider(cfg, providers_by_name)
+        for _ in range(cfg.validation.max_repair_attempts):
+            with provider_limits[repair_provider_name]:
+                repair_outcome = _try_one_attempt(
+                    input_text,
+                    provider=providers_by_name[repair_provider_name],
+                    pcfg=pcfgs_by_name[repair_provider_name],
+                    is_repair=True,
+                    failure_summary=_summarize_failures(outcomes),
+                    parser_candidates=parser_candidates,
+                    provider_priority_rank=priority_map.get(repair_provider_name),
+                )
+            outcomes.append(repair_outcome)
+            if repair_outcome.failure_reason is None:
+                return (input_text, repair_outcome, outcomes)
+
+    return (input_text, None, outcomes)
+
+
+def _read_labeled_inputs(path) -> set:
+    """Set of inputs already present in train.jsonl. Tolerant of legacy rows."""
+    if not path.exists():
+        return set()
+    out = set()
+    with path.open(encoding="utf-8") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(obj, dict) and isinstance(obj.get("input"), str):
+                out.add(obj["input"])
+    return out
+
+
+def _row_has_validation_failure_attempt(obj: dict) -> bool:
+    validator_reasons = {
+        "validation_failed", "schema_invalid", "superseded_amount_used",
+        "currency_mismatch", "suspicious_duplicate",
+    }
+    for attempt in obj.get("attempts", []):
+        if attempt.get("failure_reason") in validator_reasons:
+            return True
+    return False
+
+
+def _read_failed_skip_set(path, args) -> set:
+    """Inputs to SKIP this run based on failed.jsonl + retry flags."""
+    if not path.exists():
+        return set()
+    if args.retry_failed:
+        return set()
+    out = set()
+    with path.open(encoding="utf-8") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(obj, dict) or not isinstance(obj.get("input"), str):
+                continue
+            reason = obj.get("reason")
+            if args.retry_validation_failed:
+                if reason == "validation_failed":
+                    continue
+                if reason in {"all_candidates_failed", "repair_exhausted"} \
+                        and _row_has_validation_failure_attempt(obj):
+                    continue
+            out.add(obj["input"])
+    return out
+
+
+def _build_priority_map(og) -> dict:
+    if og.provider_priority:
+        return {name: i for i, name in enumerate(og.provider_priority)}
+    return {p.name: i for i, p in enumerate(og.providers)}
+
+
+def _serialize_candidate(c) -> dict:
+    return {
+        "value": c.value, "raw": c.raw, "span": list(c.span),
+        "status": c.status, "source": c.source, "currency_hint": c.currency_hint,
+    }
+
+
+def _serialize_outcome(o) -> dict:
+    return {
+        "provider": o.provider,
+        "model": o.model,
+        "raw_output": o.raw_output,
+        "parsed_output": o.parsed_output,
+        "validation": o.validation,
+        "score": o.score,
+        "failure_reason": o.failure_reason,
+        "is_repair_attempt": o.is_repair_attempt,
+        "provider_priority_rank": o.provider_priority_rank,
+        "error": o.error,
+    }
+
+
+def phase_label_multi_provider(args: argparse.Namespace) -> None:
+    """Slice 3 validator-gated multi-provider label generation."""
+    from generation_config import load_generation_config
+    from generation_orchestrator import RoundRobinScheduler
+    from llm_providers import create_provider
+
+    cfg = load_generation_config(args.provider_config)
+    og = cfg.output_generation
+    if not og.enabled:
+        logging.info(
+            "Phase label (multi-provider): output_generation.enabled=False — nothing to do."
+        )
+        return
+
+    DISTILL_DIR.mkdir(parents=True, exist_ok=True)
+    all_inputs = read_inputs_jsonl(INPUTS_FILE)
+
+    # Normalize-dedupe in first-seen order.
+    seen_norm = set()
+    all_inputs_unique = []
+    for inp in all_inputs:
+        key = normalize_input(inp)
+        if key in seen_norm:
+            continue
+        seen_norm.add(key)
+        all_inputs_unique.append(inp)
+
+    labeled_keys = {normalize_input(s) for s in _read_labeled_inputs(TRAIN_FILE)}
+    failed_skip_keys = {normalize_input(s) for s in _read_failed_skip_set(FAILED_FILE, args)}
+    pending = [
+        inp for inp in all_inputs_unique
+        if normalize_input(inp) not in labeled_keys
+        and normalize_input(inp) not in failed_skip_keys
+    ]
+    if args.limit > 0:
+        pending = pending[:args.limit]
+    logging.info(
+        "Phase label (multi-provider): all_unique=%d labeled=%d failed_skip=%d pending=%d",
+        len(all_inputs_unique), len(labeled_keys), len(failed_skip_keys), len(pending),
+    )
+    if not pending:
+        return
+
+    providers_by_name = {p.name: create_provider(p) for p in og.providers}
+    pcfgs_by_name = {p.name: p for p in og.providers}
+    scheduler = RoundRobinScheduler(og.providers)
+    priority_map = _build_priority_map(og)
+    # Per-provider concurrency caps honor pcfg.threads.
+    provider_limits = {
+        p.name: threading.Semaphore(p.threads) for p in og.providers
+    }
+    pool_size = min(cfg.rate_limits.global_max_workers, max(1, len(pending)))
+
+    n_kept = 0
+    n_failed = 0
+    n_repaired = 0
+    failure_reasons = Counter()
+    attempt_failure_reasons = Counter()
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=pool_size) as pool, \
+         TRAIN_FILE.open("a", encoding="utf-8") as train_out, \
+         FAILED_FILE.open("a", encoding="utf-8") as fail_out, \
+         tqdm(total=len(pending), desc="multi-provider labels") as bar:
+
+        candidates_by_input = {
+            inp: [_serialize_candidate(c) for c in parse_amounts(inp)]
+            for inp in pending
+        }
+
+        futures = {
+            pool.submit(
+                _process_one_input,
+                inp,
+                providers_by_name=providers_by_name,
+                pcfgs_by_name=pcfgs_by_name,
+                scheduler=scheduler,
+                priority_map=priority_map,
+                provider_limits=provider_limits,
+                cfg=cfg,
+                parser_candidates=candidates_by_input[inp],
+            ): inp
+            for inp in pending
+        }
+
+        for fut in concurrent.futures.as_completed(futures):
+            input_text, best, all_outcomes = fut.result()
+            for o in all_outcomes:
+                if o.failure_reason:
+                    attempt_failure_reasons[o.failure_reason] += 1
+
+            if best is not None:
+                row = {
+                    "input": input_text,
+                    "output": best.parsed_output,
+                    "_source": "multi_provider_label",
+                    "_provider": best.provider,
+                    "_model": best.model,
+                    "_validation_score": best.score,
+                    "_attempts": len(all_outcomes),
+                }
+                train_out.write(json.dumps(row, ensure_ascii=False) + "\n")
+                n_kept += 1
+                if best.is_repair_attempt:
+                    n_repaired += 1
+            else:
+                repair_enabled = (
+                    cfg.validation.retry_invalid_with_stricter_prompt
+                    and cfg.validation.max_repair_attempts > 0
+                )
+                if all(o.failure_reason == "provider_error" for o in all_outcomes):
+                    top_reason = "provider_error"
+                else:
+                    top_reason = "repair_exhausted" if repair_enabled else "all_candidates_failed"
+                failed_row = {
+                    "input": input_text,
+                    "reason": top_reason,
+                    "candidates": candidates_by_input[input_text],
+                    "attempts": [_serialize_outcome(o) for o in all_outcomes],
+                }
+                fail_out.write(json.dumps(failed_row, ensure_ascii=False) + "\n")
+                n_failed += 1
+                failure_reasons[top_reason] += 1
+            if (n_kept + n_failed) % cfg.rate_limits.write_flush_every == 0:
+                train_out.flush()
+                fail_out.flush()
+            bar.update(1)
+
+        train_out.flush()
+        fail_out.flush()
+
+    keep_rate = (n_kept / max(1, n_kept + n_failed)) * 100
+    logging.info(
+        "Phase label (multi-provider) done. kept=%d (repair=%d) failed=%d keep_rate=%.1f%%",
+        n_kept, n_repaired, n_failed, keep_rate,
+    )
+    if failure_reasons:
+        logging.info("Top-level failure reasons: %s", dict(failure_reasons))
+    if attempt_failure_reasons:
+        logging.info("Attempt-level failure reasons: %s", dict(attempt_failure_reasons))
 
 
 # ---------------------------------------------------------------------------
@@ -779,15 +1176,17 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     p.add_argument("--provider-config", type=Path, default=None,
                    help="Path to a multi-provider generation config JSON. "
                         "Use with --dry-run-quota to inspect the config, or with "
-                        "--multi-provider --phase inputs (Slice 2) to run real "
-                        "input generation.")
+                        "--multi-provider --phase inputs or --phase label to run "
+                        "real generation.")
     p.add_argument("--dry-run-quota", action="store_true",
                    help="With --provider-config: parse + validate config, "
                         "print quota allocations and scheduler preview, exit 0. "
                         "No generation runs.")
     p.add_argument("--multi-provider", action="store_true",
-                   help="Run multi-provider execution. Slice 2 supports "
-                        "--phase inputs only; label and all exit via parser.error.")
+                   help="Run multi-provider execution. Supports --phase inputs "
+                        "(real input generation) and --phase label (validator-gated "
+                        "output labeling). --phase eval is legacy-only — omit "
+                        "--multi-provider for eval. --phase all exits via parser.error.")
     # Phase 2 / GGUF backend
     p.add_argument("--gguf-path",
                    help="Path to a .gguf file or directory (gguf backend). "
@@ -829,11 +1228,6 @@ def _enforce_flag_contract(
     # Multi-provider phase restrictions for Slice 2.
     # Dry-run wins: phase checks skipped when --dry-run-quota is present.
     if args.multi_provider and args.provider_config and not args.dry_run_quota:
-        if args.phase == "label":
-            parser.error(
-                "--multi-provider --phase label is reserved for Slice 3 "
-                "(validator-gated output labeling)."
-            )
         if args.phase == "eval":
             parser.error(
                 "--multi-provider --phase eval is not supported; "
@@ -879,10 +1273,12 @@ def main() -> int:
     logging.info("Stage 5: phase=%s args=%s", args.phase, vars(args))
 
     if args.multi_provider:
-        # Slice 2: only --phase inputs reaches here (others rejected by contract).
-        assert args.phase == "inputs"
+        assert args.phase in {"inputs", "label"}
         assert args.provider_config is not None
-        phase_inputs_multi_provider(args)
+        if args.phase == "inputs":
+            phase_inputs_multi_provider(args)
+        else:
+            phase_label_multi_provider(args)
         logging.info("Stage 5 done.")
         return 0
 

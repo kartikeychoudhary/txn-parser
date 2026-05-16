@@ -15,50 +15,9 @@ from llm_providers import (
 )
 
 
-# ---- SDK constructor stubs ------------------------------------------------
-# Reusable autouse fixtures keep test bodies focused on behavior, not on
-# SDK construction plumbing.
-
-
-class _StubChatCompletions:
-    def create(self, **kwargs):
-        raise AssertionError("real OpenAI client should not be called in tests")
-
-
-class _StubChat:
-    def __init__(self):
-        self.completions = _StubChatCompletions()
-
-
-class _StubOpenAIClient:
-    def __init__(self, **kwargs):
-        self.kwargs = kwargs
-        self.chat = _StubChat()
-
-
-class _StubGeminiModels:
-    def generate_content(self, **kwargs):
-        raise AssertionError("real Gemini client should not be called in tests")
-
-
-class _StubGeminiClient:
-    def __init__(self, **kwargs):
-        self.kwargs = kwargs
-        self.models = _StubGeminiModels()
-
-
-@pytest.fixture(autouse=True)
-def _patch_sdk_clients(monkeypatch):
-    """Patch the SDK Client classes so provider __init__ never makes network calls."""
-    import openai
-    monkeypatch.setattr(openai, "OpenAI", _StubOpenAIClient)
-    from google import genai
-    monkeypatch.setattr(genai, "Client", _StubGeminiClient)
-
-
 # ---- DeepSeek construction ------------------------------------------------
 
-def test_deepseek_constructs_with_env_key(monkeypatch):
+def test_deepseek_constructs_with_env_key(monkeypatch, patch_sdk_clients):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
     p = DeepSeekProvider(name="ds", model="deepseek-chat")
     assert p.name == "ds"
@@ -66,20 +25,20 @@ def test_deepseek_constructs_with_env_key(monkeypatch):
     assert p.model == "deepseek-chat"
 
 
-def test_deepseek_constructs_with_explicit_api_key(monkeypatch):
+def test_deepseek_constructs_with_explicit_api_key(monkeypatch, patch_sdk_clients):
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     p = DeepSeekProvider(name="ds", model="deepseek-chat", api_key="explicit-key")
     assert p.name == "ds"
 
 
-def test_deepseek_missing_key_raises_provider_error(monkeypatch):
+def test_deepseek_missing_key_raises_provider_error(monkeypatch, patch_sdk_clients):
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     with pytest.raises(ProviderError) as exc:
         DeepSeekProvider(name="ds", model="deepseek-chat")
     assert "DEEPSEEK_API_KEY" in str(exc.value)
 
 
-def test_deepseek_does_not_fall_back_to_openai_key(monkeypatch):
+def test_deepseek_does_not_fall_back_to_openai_key(monkeypatch, patch_sdk_clients):
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "should-not-be-used")
     with pytest.raises(ProviderError):
@@ -88,7 +47,7 @@ def test_deepseek_does_not_fall_back_to_openai_key(monkeypatch):
 
 # ---- DeepSeek generate_inputs ---------------------------------------------
 
-def test_deepseek_generate_inputs_returns_parsed_lines(monkeypatch):
+def test_deepseek_generate_inputs_returns_parsed_lines(monkeypatch, patch_sdk_clients):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
     p = DeepSeekProvider(name="ds", model="deepseek-chat")
     monkeypatch.setattr(p, "_call_api", lambda prompt: "500 beer\n200 chai\n100 samosa")
@@ -96,14 +55,14 @@ def test_deepseek_generate_inputs_returns_parsed_lines(monkeypatch):
     assert result == ["500 beer", "200 chai", "100 samosa"]
 
 
-def test_deepseek_generate_inputs_truncates_to_n(monkeypatch):
+def test_deepseek_generate_inputs_truncates_to_n(monkeypatch, patch_sdk_clients):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
     p = DeepSeekProvider(name="ds", model="deepseek-chat")
     monkeypatch.setattr(p, "_call_api", lambda prompt: "a x\nb y\nc z\nd q\ne r")
     assert len(p.generate_inputs("ignored", n=3)) == 3
 
 
-def test_deepseek_generate_inputs_zero_returns_empty(monkeypatch):
+def test_deepseek_generate_inputs_zero_returns_empty(monkeypatch, patch_sdk_clients):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
     p = DeepSeekProvider(name="ds", model="deepseek-chat")
     # _call_api should not even be invoked.
@@ -112,19 +71,11 @@ def test_deepseek_generate_inputs_zero_returns_empty(monkeypatch):
     assert p.generate_inputs("ignored", n=0) == []
 
 
-def test_deepseek_generate_inputs_negative_n_raises(monkeypatch):
+def test_deepseek_generate_inputs_negative_n_raises(monkeypatch, patch_sdk_clients):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
     p = DeepSeekProvider(name="ds", model="deepseek-chat")
     with pytest.raises(ProviderError):
         p.generate_inputs("ignored", n=-1)
-
-
-def test_deepseek_generate_label_raises_notimplemented(monkeypatch):
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
-    p = DeepSeekProvider(name="ds", model="deepseek-chat")
-    with pytest.raises(NotImplementedError) as exc:
-        p.generate_label("anything")
-    assert "Slice 3" in str(exc.value)
 
 
 # ---- DeepSeek retry behavior (using fake exception, NOT real SDK error) ---
@@ -133,7 +84,7 @@ class _FakeTransientError(Exception):
     pass
 
 
-def test_deepseek_retries_on_transient(monkeypatch):
+def test_deepseek_retries_on_transient(monkeypatch, patch_sdk_clients):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
     p = DeepSeekProvider(name="ds", model="deepseek-chat", max_retries=2)
     # Reassign retryable to our fake class so we don't depend on SDK exception constructor.
@@ -153,7 +104,7 @@ def test_deepseek_retries_on_transient(monkeypatch):
     assert result == ["ok line one"]
 
 
-def test_deepseek_max_retries_exhausted_raises(monkeypatch):
+def test_deepseek_max_retries_exhausted_raises(monkeypatch, patch_sdk_clients):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
     p = DeepSeekProvider(name="ds", model="deepseek-chat", max_retries=1)
     p._retryable_excs = (_FakeTransientError,)
@@ -170,7 +121,7 @@ def test_deepseek_max_retries_exhausted_raises(monkeypatch):
     assert state["calls"] == 2   # 1 try + 1 retry
 
 
-def test_deepseek_retryable_excs_is_populated_with_real_sdk_types(monkeypatch):
+def test_deepseek_retryable_excs_is_populated_with_real_sdk_types(monkeypatch, patch_sdk_clients):
     """Verify __init__ wires the real SDK exception classes (just shape, no call)."""
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
     p = DeepSeekProvider(name="ds", model="deepseek-chat")
@@ -194,7 +145,7 @@ class _FakeResp:
     choices = [_FakeChoice()]
 
 
-def test_deepseek_omits_temperature_and_max_tokens_when_none(monkeypatch):
+def test_deepseek_omits_temperature_and_max_tokens_when_none(monkeypatch, patch_sdk_clients):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
     captured = {}
     p = DeepSeekProvider(name="ds", model="deepseek-chat",
@@ -209,7 +160,7 @@ def test_deepseek_omits_temperature_and_max_tokens_when_none(monkeypatch):
     assert captured["model"] == "deepseek-chat"
 
 
-def test_deepseek_passes_temperature_and_max_tokens_when_set(monkeypatch):
+def test_deepseek_passes_temperature_and_max_tokens_when_set(monkeypatch, patch_sdk_clients):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
     captured = {}
     p = DeepSeekProvider(name="ds", model="deepseek-chat",
@@ -243,7 +194,7 @@ def test_parse_input_lines_local_dedupe_is_case_insensitive():
 
 # ---- Gemini construction --------------------------------------------------
 
-def test_gemini_constructs_with_google_api_key(monkeypatch):
+def test_gemini_constructs_with_google_api_key(monkeypatch, patch_sdk_clients):
     from llm_providers import GeminiProvider
     monkeypatch.setenv("GOOGLE_API_KEY", "fake-key")
     p = GeminiProvider(name="g", model="gemini-2.5-flash")
@@ -251,7 +202,7 @@ def test_gemini_constructs_with_google_api_key(monkeypatch):
     assert p.provider_type == "gemini"
 
 
-def test_gemini_falls_back_to_gemini_api_key_env(monkeypatch):
+def test_gemini_falls_back_to_gemini_api_key_env(monkeypatch, patch_sdk_clients):
     from llm_providers import GeminiProvider
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     monkeypatch.setenv("GEMINI_API_KEY", "fake-key")
@@ -259,7 +210,7 @@ def test_gemini_falls_back_to_gemini_api_key_env(monkeypatch):
     assert p.name == "g"
 
 
-def test_gemini_missing_key_raises(monkeypatch):
+def test_gemini_missing_key_raises(monkeypatch, patch_sdk_clients):
     from llm_providers import GeminiProvider
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
@@ -268,22 +219,13 @@ def test_gemini_missing_key_raises(monkeypatch):
     assert "GOOGLE_API_KEY" in str(exc.value) or "GEMINI_API_KEY" in str(exc.value)
 
 
-def test_gemini_generate_inputs_returns_parsed_lines(monkeypatch):
+def test_gemini_generate_inputs_returns_parsed_lines(monkeypatch, patch_sdk_clients):
     from llm_providers import GeminiProvider
     monkeypatch.setenv("GOOGLE_API_KEY", "fake-key")
     p = GeminiProvider(name="g", model="gemini-2.5-flash")
     monkeypatch.setattr(p, "_call_api", lambda prompt: "500 beer\n200 chai")
     result = p.generate_inputs("ignored", n=2)
     assert result == ["500 beer", "200 chai"]
-
-
-def test_gemini_generate_label_raises_notimplemented(monkeypatch):
-    from llm_providers import GeminiProvider
-    monkeypatch.setenv("GOOGLE_API_KEY", "fake-key")
-    p = GeminiProvider(name="g", model="gemini-2.5-flash")
-    with pytest.raises(NotImplementedError) as exc:
-        p.generate_label("anything")
-    assert "Slice 3" in str(exc.value)
 
 
 # ---- _is_retryable_gemini_error predicate ---------------------------------
@@ -332,7 +274,7 @@ def test_is_retryable_gemini_error_handles_no_status_attr():
 
 # ---- Gemini retry behavior (using fake exception class) -------------------
 
-def test_gemini_retries_on_429_then_succeeds(monkeypatch):
+def test_gemini_retries_on_429_then_succeeds(monkeypatch, patch_sdk_clients):
     from llm_providers import GeminiProvider
     monkeypatch.setenv("GOOGLE_API_KEY", "fake-key")
     p = GeminiProvider(name="g", model="gemini-2.5-flash", max_retries=2)
@@ -357,7 +299,7 @@ def test_gemini_retries_on_429_then_succeeds(monkeypatch):
     assert result == ["ok line"]
 
 
-def test_gemini_does_not_retry_400(monkeypatch):
+def test_gemini_does_not_retry_400(monkeypatch, patch_sdk_clients):
     from llm_providers import GeminiProvider
     monkeypatch.setenv("GOOGLE_API_KEY", "fake-key")
     p = GeminiProvider(name="g", model="gemini-2.5-flash", max_retries=5)
@@ -381,7 +323,7 @@ def test_gemini_does_not_retry_400(monkeypatch):
     assert state["calls"] == 1   # NOT retried — predicate filters 400 out
 
 
-def test_gemini_retryable_excs_is_populated_with_real_sdk_types(monkeypatch):
+def test_gemini_retryable_excs_is_populated_with_real_sdk_types(monkeypatch, patch_sdk_clients):
     """Verify __init__ wires the real SDK exception classes (just shape, no call)."""
     from llm_providers import GeminiProvider
     monkeypatch.setenv("GOOGLE_API_KEY", "fake-key")
