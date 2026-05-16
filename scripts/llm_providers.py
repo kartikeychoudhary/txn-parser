@@ -204,7 +204,7 @@ def create_provider(cfg) -> LLMProvider:
             name=cfg.name,
             inputs_path=Path(cfg.fixture_inputs) if cfg.fixture_inputs else None,
             labels_path=Path(cfg.fixture_labels) if cfg.fixture_labels else None,
-            seed=cfg.seed or 0,
+            seed=cfg.seed if cfg.seed is not None else 0,
         )
     if cfg.provider_type in {"deepseek", "gemini", "local_teacher"}:
         return UnimplementedProvider(
