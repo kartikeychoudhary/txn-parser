@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make `--phase label --provider-config <path> --multi-provider` actually run with validator-gated, multi-provider output labeling: DeepSeek + Gemini API calls plus a new `LocalTeacherProvider` wrapping the fp16 Unsloth backend; per-input candidate scoring; best-of-N selection; repair-on-failure retry. Legacy `--phase label` (no `--multi-provider`) stays byte-identical.
+**Goal:** Make `--phase label --provider-config <path> --multi-provider` actually run with validator-gated, multi-provider output labeling: DeepSeek + Gemini API calls plus a new `LocalTeacherProvider` wrapping the fp16 Unsloth backend; per-input candidate scoring; best-of-N selection; repair-on-failure retry. Legacy `--phase label` (no `--multi-provider`) output format stays unchanged; its fp16 backend construction is refactored into `_lib`, and the legacy path's per-call generation continues to use the shared `_FP16Backend.generate_label` (one call per input).
 
 **Architecture:** New pure-function module `scripts/label_selection.py` (scoring + best-pick + repair-prompt). Real `generate_label` implementations on `DeepSeekProvider` + `GeminiProvider` in `scripts/llm_providers.py`; new `LocalTeacherProvider` with lazy backend load + `threading.Lock`. New `_lib.build_teacher_fp16_backend` (additive, heavy imports inside the function only). New `phase_label_multi_provider` orchestrator in `scripts/05_generate_distillation_data.py` using `ThreadPoolExecutor` + `as_completed` with main-thread JSONL writes and a never-raises `_try_one_attempt` helper. The Slice 2 contract enforcer drops its `phase=="label"` block. Spec at `docs/superpowers/specs/2026-05-16-multi-provider-generation-slice3-design.md` is the source of truth.
 
@@ -647,36 +647,28 @@ def patch_sdk_clients(monkeypatch):
     monkeypatch.setattr(genai, "Client", _StubGeminiClient)
 ```
 
-- [ ] **Step 3: Update `tests/test_real_providers.py` to use the shared fixture**
+- [ ] **Step 3: Update `tests/test_real_providers.py` to use the shared fixture (only where needed)**
 
 Open `tests/test_real_providers.py`. Find the existing `_patch_sdk_clients` autouse fixture and the stub classes — DELETE them (they now live in `conftest.py`).
 
-Find every test in the file that depends on the SDK stubs. They are currently autouse, so the test functions don't take the fixture as a parameter. Add `patch_sdk_clients` as a parameter to each test that uses provider construction. Concrete pattern:
+**Rule**: add `patch_sdk_clients` ONLY to tests that construct `DeepSeekProvider` or `GeminiProvider`. Do NOT add it to:
+- Tests that verify lazy SDK imports (e.g., a test that asserts `import llm_providers` doesn't pull in `openai`).
+- `_parse_input_lines` pure-function tests.
+- Tests that monkeypatch SDK Client constructors themselves.
+- Tests on `UnimplementedProvider` (which never imports SDKs).
+- Tests on `FakeProvider`.
 
-Tests that previously looked like:
-```python
-def test_deepseek_constructs_with_env_key(monkeypatch):
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
-    p = DeepSeekProvider(name="ds", model="deepseek-chat")
-    ...
-```
-
-become:
-```python
-def test_deepseek_constructs_with_env_key(monkeypatch, patch_sdk_clients):
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
-    p = DeepSeekProvider(name="ds", model="deepseek-chat")
-    ...
-```
-
-Every test in `test_real_providers.py` needs the fixture; add `patch_sdk_clients` to each signature.
-
-Quick search to find them all:
+Quick search:
 ```bash
 cd "C:/work/llm training" && grep -n "^def test_" tests/test_real_providers.py
 ```
 
-For each `def test_...(monkeypatch)`, change to `def test_...(monkeypatch, patch_sdk_clients)`. For each `def test_...()` (no params), change to `def test_...(patch_sdk_clients)`.
+For each test, decide:
+- Does it call `DeepSeekProvider(...)` or `GeminiProvider(...)` directly? → Add `patch_sdk_clients` parameter.
+- Does it test pure functions (`_parse_input_lines`, `_is_retryable_gemini_error`, `_label_schema_for_gemini`)? → No fixture.
+- Does it test `UnimplementedProvider` or `FakeProvider`? → No fixture.
+
+When the fixture was previously autouse and every test passed, the safe migration is: re-add the fixture to every test that constructs real providers, leave others untouched, and confirm via Step 4 that all tests still pass.
 
 - [ ] **Step 4: Run Slice 2 tests to confirm still green**
 
@@ -1314,22 +1306,38 @@ cd "C:/work/llm training" && pytest tests/test_label_providers.py -v
 ```
 Expected: 16 passed (4 DeepSeek + 5 Gemini + 7 LocalTeacher).
 
-- [ ] **Step 7: Verify Slice 1 SDK-leak guard test still passes**
+- [ ] **Step 7: Update the obsolete UnimplementedProvider factory test**
 
-```bash
-cd "C:/work/llm training" && pytest tests/test_fake_provider.py -v 2>&1 | tail -5
-```
-Expected: all Slice 1 fake_provider tests pass. The leak-guard test on `UnimplementedProvider` stays valid because `local_teacher` no longer routes through `UnimplementedProvider`.
-
-NOTE: The Slice 1 test `test_create_provider_returns_unimplemented_for_real_types` may now fail because `local_teacher` no longer returns `UnimplementedProvider`. Edit that test if so:
+After this task, no provider type routes through `UnimplementedProvider` via `create_provider`: `deepseek`/`gemini` went real in Slice 2, `local_teacher` goes real now, and `fake` was always real. The Slice 1 test `test_create_provider_returns_unimplemented_for_real_types` is now stale.
 
 ```bash
 cd "C:/work/llm training" && grep -n "test_create_provider_returns_unimplemented_for_real_types" tests/test_fake_provider.py
 ```
 
-If the test still references `local_teacher` in the loop, update it to only check types that still route through UnimplementedProvider. Since after this task NO types route through UnimplementedProvider (deepseek/gemini went real in Slice 2, local_teacher goes real now), the test should be DELETED or replaced with a comment that UnimplementedProvider is no longer reached by `create_provider` for any real type — only `fake` and explicit `UnimplementedProvider(...)` construction remain.
+Open `tests/test_fake_provider.py`. Find `test_create_provider_returns_unimplemented_for_real_types` and REPLACE it entirely with:
 
-Pragmatic edit: delete the test. Or rename and have it assert `create_provider("unknown_type")` raises ValueError, which was already covered by `test_create_provider_raises_on_unknown_type`.
+```python
+def test_unimplemented_provider_can_be_constructed_directly():
+    """UnimplementedProvider remains constructible directly for any provider
+    type and raises NotImplementedError on calls. This preserves the
+    class as a forward-compatible placeholder even though create_provider
+    no longer returns it for any production provider type."""
+    p = UnimplementedProvider(name="x", provider_type="future_type", model=None)
+    assert p.name == "x"
+    assert p.provider_type == "future_type"
+    with pytest.raises(NotImplementedError):
+        p.generate_inputs("prompt", n=1)
+    with pytest.raises(NotImplementedError):
+        p.generate_label("500 beer")
+```
+
+Run the test to confirm it passes:
+
+```bash
+cd "C:/work/llm training" && pytest tests/test_fake_provider.py::test_unimplemented_provider_can_be_constructed_directly -v
+```
+
+The leak-guard test `test_unimplemented_provider_has_no_sdk_imports` stays unchanged (it constructs `UnimplementedProvider` directly, which still imports no SDK).
 
 - [ ] **Step 8: Full suite stays green**
 
@@ -1494,53 +1502,69 @@ def _try_one_attempt(
             error=repr(e),
         )
 
-    parsed = extract_json(raw)
-    if parsed is None:
+    # Post-processing wrapped in a second try/except — a validator bug or
+    # malformed parser output must not crash the entire executor pool.
+    try:
+        parsed = extract_json(raw)
+        if parsed is None:
+            return CandidateOutcome(
+                provider=pcfg.name,
+                model=getattr(provider, "model", None),
+                raw_output=raw, parsed_output=None, validation=None,
+                failure_reason="json_parse_failed",
+                score=0, is_repair_attempt=is_repair,
+                provider_priority_rank=provider_priority_rank,
+            )
+
+        result = validate_example(input_text, parsed, mode="strict")
+        validation_dict = serialize_validation_result(result)
+
+        error_codes = {
+            e["code"] for e in validation_dict["errors"] if e["severity"] == "error"
+        }
+        if "SCHEMA_INVALID" in error_codes:
+            failure_reason = "schema_invalid"
+        elif "SUPERSEDED_AMOUNT_USED" in error_codes:
+            failure_reason = "superseded_amount_used"
+        elif "CURRENCY_MISMATCH" in error_codes:
+            failure_reason = "currency_mismatch"
+        elif "SUSPICIOUS_DUPLICATE" in error_codes:
+            failure_reason = "suspicious_duplicate"
+        elif error_codes:
+            failure_reason = "validation_failed"   # AMOUNT_NOT_IN_INPUT, NO_AMOUNT_IN_INPUT, etc.
+        else:
+            failure_reason = None
+
+        score = score_candidate(
+            parsed_output=parsed,
+            validation=validation_dict,
+            failure_reason=failure_reason,
+            provider_priority_rank=provider_priority_rank,
+        )
         return CandidateOutcome(
             provider=pcfg.name,
             model=getattr(provider, "model", None),
-            raw_output=raw, parsed_output=None, validation=None,
-            failure_reason="json_parse_failed",
-            score=0, is_repair_attempt=is_repair,
+            raw_output=raw,
+            parsed_output=parsed,
+            validation=validation_dict,
+            failure_reason=failure_reason,
+            score=score,
+            is_repair_attempt=is_repair,
             provider_priority_rank=provider_priority_rank,
         )
-
-    result = validate_example(input_text, parsed, mode="strict")
-    validation_dict = serialize_validation_result(result)
-
-    error_codes = {
-        e["code"] for e in validation_dict["errors"] if e["severity"] == "error"
-    }
-    if "SCHEMA_INVALID" in error_codes:
-        failure_reason = "schema_invalid"
-    elif "SUPERSEDED_AMOUNT_USED" in error_codes:
-        failure_reason = "superseded_amount_used"
-    elif "CURRENCY_MISMATCH" in error_codes:
-        failure_reason = "currency_mismatch"
-    elif "SUSPICIOUS_DUPLICATE" in error_codes:
-        failure_reason = "suspicious_duplicate"
-    elif error_codes:
-        failure_reason = "validation_failed"   # AMOUNT_NOT_IN_INPUT, NO_AMOUNT_IN_INPUT, etc.
-    else:
-        failure_reason = None
-
-    score = score_candidate(
-        parsed_output=parsed,
-        validation=validation_dict,
-        failure_reason=failure_reason,
-        provider_priority_rank=provider_priority_rank,
-    )
-    return CandidateOutcome(
-        provider=pcfg.name,
-        model=getattr(provider, "model", None),
-        raw_output=raw,
-        parsed_output=parsed,
-        validation=validation_dict,
-        failure_reason=failure_reason,
-        score=score,
-        is_repair_attempt=is_repair,
-        provider_priority_rank=provider_priority_rank,
-    )
+    except Exception as e:    # noqa: BLE001 — post-processing should never bubble
+        return CandidateOutcome(
+            provider=pcfg.name,
+            model=getattr(provider, "model", None),
+            raw_output=raw,
+            parsed_output=None,
+            validation=None,
+            failure_reason="validation_failed",
+            score=0,
+            is_repair_attempt=is_repair,
+            provider_priority_rank=provider_priority_rank,
+            error=repr(e),
+        )
 
 
 def _highest_priority_provider(cfg, providers_by_name: dict) -> str:
@@ -1578,22 +1602,29 @@ def _process_one_input(
     pcfgs_by_name: dict,
     scheduler,
     priority_map: dict,
+    provider_limits: dict,           # name -> threading.Semaphore(pcfg.threads)
     cfg,
     parser_candidates: list[dict],
 ):
-    """Process one input end-to-end. Returns (input_text, best_or_None, all_outcomes)."""
+    """Process one input end-to-end. Returns (input_text, best_or_None, all_outcomes).
+
+    Per-provider concurrency caps are honored via the `provider_limits` semaphores
+    keyed by provider name. Each provider call holds its semaphore for the
+    duration of the _try_one_attempt invocation.
+    """
     from label_selection import pick_best
 
     outcomes = []
 
     for _ in range(cfg.output_generation.label_attempts_per_input):
         provider_name = scheduler.next_provider()
-        outcomes.append(_try_one_attempt(
-            input_text,
-            provider=providers_by_name[provider_name],
-            pcfg=pcfgs_by_name[provider_name],
-            provider_priority_rank=priority_map.get(provider_name),
-        ))
+        with provider_limits[provider_name]:
+            outcomes.append(_try_one_attempt(
+                input_text,
+                provider=providers_by_name[provider_name],
+                pcfg=pcfgs_by_name[provider_name],
+                provider_priority_rank=priority_map.get(provider_name),
+            ))
 
     best = pick_best(outcomes)
     if best is not None:
@@ -1606,15 +1637,16 @@ def _process_one_input(
     if repair_enabled:
         repair_provider_name = _highest_priority_provider(cfg, providers_by_name)
         for _ in range(cfg.validation.max_repair_attempts):
-            repair_outcome = _try_one_attempt(
-                input_text,
-                provider=providers_by_name[repair_provider_name],
-                pcfg=pcfgs_by_name[repair_provider_name],
-                is_repair=True,
-                failure_summary=_summarize_failures(outcomes),
-                parser_candidates=parser_candidates,
-                provider_priority_rank=priority_map.get(repair_provider_name),
-            )
+            with provider_limits[repair_provider_name]:
+                repair_outcome = _try_one_attempt(
+                    input_text,
+                    provider=providers_by_name[repair_provider_name],
+                    pcfg=pcfgs_by_name[repair_provider_name],
+                    is_repair=True,
+                    failure_summary=_summarize_failures(outcomes),
+                    parser_candidates=parser_candidates,
+                    provider_priority_rank=priority_map.get(repair_provider_name),
+                )
             outcomes.append(repair_outcome)
             if repair_outcome.failure_reason is None:
                 return (input_text, repair_outcome, outcomes)
@@ -1756,6 +1788,12 @@ def phase_label_multi_provider(args: argparse.Namespace) -> None:
     pcfgs_by_name = {p.name: p for p in og.providers}
     scheduler = RoundRobinScheduler(og.providers)
     priority_map = _build_priority_map(og)
+    # Per-provider concurrency caps honor pcfg.threads. A semaphore per provider
+    # forces concurrent worker tasks to queue when they want to call the same
+    # rate-limited provider.
+    provider_limits = {
+        p.name: threading.Semaphore(p.threads) for p in og.providers
+    }
     pool_size = min(cfg.rate_limits.global_max_workers, max(1, len(pending)))
 
     n_kept = 0
@@ -1782,6 +1820,7 @@ def phase_label_multi_provider(args: argparse.Namespace) -> None:
                 pcfgs_by_name=pcfgs_by_name,
                 scheduler=scheduler,
                 priority_map=priority_map,
+                provider_limits=provider_limits,
                 cfg=cfg,
                 parser_candidates=candidates_by_input[inp],
             ): inp
@@ -2148,6 +2187,7 @@ def test_process_one_input_picks_best_of_two():
         pcfgs_by_name=pcfgs,
         scheduler=scheduler,
         priority_map={"succ": 0, "rais": 1},
+        provider_limits={"succ": __import__("threading").Semaphore(1), "rais": __import__("threading").Semaphore(1)},
         cfg=cfg,
         parser_candidates=[],
     )
@@ -2173,6 +2213,7 @@ def test_process_one_input_returns_none_when_all_fail():
         pcfgs_by_name=pcfgs,
         scheduler=scheduler,
         priority_map={"bad1": 0, "bad2": 1},
+        provider_limits={"bad1": __import__("threading").Semaphore(1), "bad2": __import__("threading").Semaphore(1)},
         cfg=cfg,
         parser_candidates=[],
     )
@@ -2224,6 +2265,7 @@ def test_process_one_input_repair_succeeds():
         pcfgs_by_name=pcfgs,
         scheduler=scheduler,
         priority_map={"flaky": 0},
+        provider_limits={"flaky": __import__("threading").Semaphore(1)},
         cfg=cfg,
         parser_candidates=[],
     )
@@ -2567,6 +2609,103 @@ def test_label_phase_limit_truncates(tmp_path):
     train = tmp_path / "train.jsonl"
     rows_out = [json.loads(line) for line in train.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert len(rows_out) == 1
+
+
+def test_label_phase_two_providers_pick_higher_score(tmp_path):
+    """Two providers with different fixture qualities; the better one's
+    label ends up in train.jsonl."""
+    fixture = REPO_ROOT / "tests" / "fixtures" / "fake_labels.jsonl"
+    failures = REPO_ROOT / "tests" / "fixtures" / "fake_labels_with_failures.jsonl"
+    # Use an input present in fake_labels.jsonl (clean label exists).
+    first_input = json.loads(fixture.read_text(encoding="utf-8").splitlines()[0])["input"]
+    _seed_inputs(tmp_path, [first_input])
+
+    providers = [
+        # provider_a returns the clean label for first_input (from fake_labels.jsonl)
+        {"name": "fake_good", "type": "fake", "weight": 1, "threads": 1,
+         "fixture_labels": str(fixture)},
+        # provider_b returns malformed/wrong labels (from failures fixture)
+        {"name": "fake_bad", "type": "fake", "weight": 1, "threads": 1,
+         "fixture_labels": str(failures)},
+    ]
+    cfg = _make_label_config(tmp_path, label_attempts=2, providers=providers)
+    result = _run_label(cfg, tmp_path)
+    assert result.returncode == 0, result.stderr
+    train = tmp_path / "train.jsonl"
+    if train.exists():
+        rows_out = [json.loads(line) for line in train.read_text(encoding="utf-8").splitlines() if line.strip()]
+        if rows_out:
+            # The clean provider wins if its label passes validation.
+            assert rows_out[0]["_provider"] == "fake_good"
+
+
+def test_label_phase_repair_exhausted_writes_failed_jsonl(tmp_path):
+    """All initial + repair attempts fail; failed.jsonl row has
+    reason='repair_exhausted' with attempts[] including repair attempts."""
+    fixture = REPO_ROOT / "tests" / "fixtures" / "fake_labels.jsonl"
+    _seed_inputs(tmp_path, ["completely_unmatched_input_xyz"])
+    providers = [
+        {"name": "fake_a", "type": "fake", "weight": 1, "threads": 1,
+         "fixture_labels": str(fixture)},
+    ]
+    cfg = _make_label_config(
+        tmp_path,
+        label_attempts=2,
+        providers=providers,
+        repair_enabled=True,
+        max_repair=2,
+    )
+    result = _run_label(cfg, tmp_path)
+    assert result.returncode == 0, result.stderr
+    failed = tmp_path / "failed.jsonl"
+    assert failed.exists()
+    rows = [json.loads(line) for line in failed.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(rows) == 1
+    assert rows[0]["reason"] == "repair_exhausted"
+    # 2 initial attempts + up to 2 repair attempts = 3 or 4 total
+    assert len(rows[0]["attempts"]) >= 3
+    repair_attempts = [a for a in rows[0]["attempts"] if a["is_repair_attempt"]]
+    assert len(repair_attempts) >= 1
+
+
+def test_label_phase_retry_validation_failed_re_attempts(tmp_path):
+    """Pre-populate failed.jsonl with a row whose attempts include
+    validation_failed. With --retry-validation-failed, that input gets
+    re-attempted."""
+    fixture = REPO_ROOT / "tests" / "fixtures" / "fake_labels.jsonl"
+    first_input = json.loads(fixture.read_text(encoding="utf-8").splitlines()[0])["input"]
+    _seed_inputs(tmp_path, [first_input])
+
+    # Seed failed.jsonl with a Slice 3 aggregate row containing a validation_failed attempt.
+    (tmp_path / "failed.jsonl").write_text(
+        json.dumps({
+            "input": first_input,
+            "reason": "all_candidates_failed",
+            "candidates": [],
+            "attempts": [
+                {"provider": "fake_a", "failure_reason": "validation_failed"},
+            ],
+        }) + "\n",
+        encoding="utf-8",
+    )
+
+    cfg = _make_label_config(tmp_path)
+    # WITHOUT --retry-validation-failed: input is skipped (no train.jsonl row).
+    result = _run_label(cfg, tmp_path)
+    assert result.returncode == 0, result.stderr
+    train = tmp_path / "train.jsonl"
+    train_rows = []
+    if train.exists():
+        train_rows = [json.loads(line) for line in train.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(train_rows) == 0   # input was skipped due to failed.jsonl entry
+
+    # WITH --retry-validation-failed: input is re-attempted; clean label exists in fixture.
+    result = _run_label(cfg, tmp_path, "--retry-validation-failed")
+    assert result.returncode == 0, result.stderr
+    if train.exists():
+        train_rows = [json.loads(line) for line in train.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(train_rows) == 1
+    assert train_rows[0]["_provider"] == "fake_a"
 ```
 
 - [ ] **Step 2: Run the new tests**
@@ -2574,7 +2713,7 @@ def test_label_phase_limit_truncates(tmp_path):
 ```bash
 cd "C:/work/llm training" && pytest tests/test_multi_provider_labels.py -v
 ```
-Expected: 6 passed. Subprocess tests, ~5-15s each.
+Expected: 9 passed. Subprocess tests, ~5-30s each (repair-exhausted and retry-validation tests are slower because they exercise multiple attempts).
 
 - [ ] **Step 3: Full suite stays green**
 
@@ -2686,19 +2825,27 @@ If you see `"enabled": true`, flip it to `false`.
 Open `docs/provider_config.md`. Find the section titled `## What loads and runs` (Slice 2 added this heading). REPLACE the body (everything under `## What loads and runs` until the next `## ...` heading) with:
 
 ```markdown
+Config loading and `--dry-run-quota` do not construct providers and do not require
+SDK/API/GPU availability. Actual execution constructs providers and requires the
+relevant SDKs, keys, or local model assets.
+
 **Slice 1 (configuration + dry-run):**
-- Any `type: fake` provider with proper fixture paths.
-- Any `type: deepseek` / `gemini` / `local_teacher` provider — these load without SDK imports. `--dry-run-quota` works for all of them.
+- Any `type: fake` provider with proper fixture paths loads and runs.
+- Any `type: deepseek` / `gemini` / `local_teacher` provider loads cleanly for
+  config parsing and `--dry-run-quota` (no provider construction at that stage).
 
 **Slice 2 (real input generation):**
-- `type: deepseek` and `type: gemini` providers run real API calls when invoked via
-  `--phase inputs --provider-config <path> --multi-provider`. Requires `DEEPSEEK_API_KEY`
-  and/or `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) env vars.
+- `type: deepseek` and `type: gemini` providers run real API calls when invoked
+  via `--phase inputs --provider-config <path> --multi-provider`. Provider
+  construction imports the relevant SDK (`openai` / `google-genai`) and reads
+  `DEEPSEEK_API_KEY` / `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) env vars.
 
 **Slice 3 (real output labeling):**
-- `--phase label --provider-config <path> --multi-provider` runs the validator-gated
-  multi-provider labeling loop.
+- `--phase label --provider-config <path> --multi-provider` runs the validator-
+  gated multi-provider labeling loop.
 - `type: local_teacher` providers require `model` (path to the adapter directory).
+  Construction is lazy: the fp16 backend is built on first `generate_label` call,
+  which imports `unsloth` + `torch` and loads model weights.
 - Gemini's `structured_output: true` activates response_schema + response_mime_type
   for label generation only. Input generation ignores it.
 - `validation.retry_invalid_with_stricter_prompt: true` plus `max_repair_attempts: N`
