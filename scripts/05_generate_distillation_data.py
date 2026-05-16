@@ -480,7 +480,7 @@ def phase_eval(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     p = argparse.ArgumentParser(description="Generate distillation data (inputs + teacher labels).")
     p.add_argument("--phase", choices=["all", "inputs", "label", "eval"], default="all",
                    help="Which phase(s) to run. Default 'all' runs inputs->label->eval.")
@@ -518,6 +518,17 @@ def parse_args() -> argparse.Namespace:
                    help="Phase 2: re-attempt rows in failed.jsonl where "
                         "reason == 'validation_failed'. Analogous to --retry-failed "
                         "but scoped to semantic-validation failures.")
+    # Slice 1: multi-provider scaffolding. Real execution lands in Slice 2/3.
+    p.add_argument("--provider-config", type=Path, default=None,
+                   help="Path to a multi-provider generation config JSON. "
+                        "Slice 1: only --dry-run-quota is supported.")
+    p.add_argument("--dry-run-quota", action="store_true",
+                   help="With --provider-config: parse + validate config, "
+                        "print quota allocations and scheduler preview, exit 0. "
+                        "No generation runs.")
+    p.add_argument("--multi-provider", action="store_true",
+                   help="Reserved for Slice 2; in Slice 1 every combination "
+                        "involving this flag exits via parser.error.")
     # Phase 2 / GGUF backend
     p.add_argument("--gguf-path",
                    help="Path to a .gguf file or directory (gguf backend). "
@@ -535,13 +546,60 @@ def parse_args() -> argparse.Namespace:
     # Phase 3
     p.add_argument("--force-eval-copy", action="store_true",
                    help="Phase 3: copy eval.jsonl even if the destination is already up to date.")
-    return p.parse_args()
+    return p, p.parse_args()
+
+
+def _enforce_slice1_flag_contract(
+    args: argparse.Namespace, parser: argparse.ArgumentParser,
+) -> None:
+    """Slice 1 contract — see spec §7.3.
+    Every error path uses parser.error which exits with code 2."""
+    if args.multi_provider and not args.provider_config:
+        parser.error("--multi-provider requires --provider-config.")
+    if args.provider_config and args.multi_provider:
+        parser.error(
+            "Multi-provider execution lands in Slice 2; see "
+            "docs/superpowers/specs/2026-05-16-multi-provider-generation-slice1-design.md. "
+            "Slice 1 supports --provider-config only with --dry-run-quota; "
+            "do not combine with --multi-provider."
+        )
+    if args.provider_config and not args.dry_run_quota:
+        parser.error(
+            "Slice 1: --provider-config requires --dry-run-quota. "
+            "Real multi-provider execution lands in Slice 2."
+        )
+    if args.dry_run_quota and not args.provider_config:
+        parser.error("--dry-run-quota requires --provider-config.")
+
+
+def _run_dry_run(config_path: Path) -> int:
+    """Load config + print render_dry_run output. Exit 0 on success, 2 on bad config."""
+    from generation_config import ConfigError, load_generation_config
+    from generation_orchestrator import render_dry_run
+
+    try:
+        cfg = load_generation_config(config_path)
+    except ConfigError as e:
+        logging.error("Invalid provider config: %s", e)
+        print(f"Invalid provider config: {e}", file=sys.stderr)
+        return 2
+
+    logging.info("Loaded config from %s (version %d)", config_path, cfg.version)
+    print(render_dry_run(cfg))
+    return 0
 
 
 def main() -> int:
-    args = parse_args()
+    parser, args = parse_args()
+    _enforce_slice1_flag_contract(args, parser)   # may parser.error and exit 2
+
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     setup_logging(LOGS_DIR / f"05_generate_distillation_data_{ts}.log")
+
+    if args.dry_run_quota:
+        assert args.provider_config is not None
+        return _run_dry_run(args.provider_config)
+
     DISTILL_DIR.mkdir(parents=True, exist_ok=True)
     logging.info("Stage 5: phase=%s args=%s", args.phase, vars(args))
 

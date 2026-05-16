@@ -1,0 +1,13 @@
+{"input": "500 rs on beer 50 rs on candy", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}, {"amount": 50, "currency": "INR", "item": "candy", "category": "Food", "type": "expense"}]}}
+{"input": "do sau rupay ka chai", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}}
+{"input": "got 5000 salary today", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "salary", "category": "Income", "type": "income"}]}}
+{"input": "1.5k for shoes from myntra", "output": {"transactions": [{"amount": 1500, "currency": "INR", "item": "shoes", "category": "Shopping", "type": "expense"}]}}
+{"input": "300 lunch 50 chai 200 uber back home", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "lunch", "category": "Food", "type": "expense"}, {"amount": 50, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}, {"amount": 200, "currency": "INR", "item": "uber ride", "category": "Transport", "type": "expense"}]}}
+{"input": "500 on beer wait no 600 on beer", "output": {"transactions": [{"amount": 600, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}]}}
+{"input": "umm paid 300 for that thing yesterday", "output": {"transactions": [{"amount": 300, "currency": "INR", "item": "unspecified", "category": "Other", "type": "expense"}]}}
+{"input": "paanch hazaar rent and 200 chai", "output": {"transactions": [{"amount": 5000, "currency": "INR", "item": "rent", "category": "Bills", "type": "expense"}, {"amount": 200, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}}
+{"input": "fifty thousand for laptop", "output": {"transactions": [{"amount": 50000, "currency": "INR", "item": "laptop", "category": "Shopping", "type": "expense"}]}}
+{"input": "$50 coffee at starbucks", "output": {"transactions": [{"amount": 50, "currency": "USD", "item": "coffee", "category": "Drinks", "type": "expense"}]}}
+{"input": "bad json case", "raw_output": "{not json at all"}
+{"input": "schema fail case", "raw_output": "{\"transactions\": [{\"amount\": 100}]}"}
+{"input": "validator fail case", "raw_output": "{\"transactions\":[{\"amount\":999,\"currency\":\"INR\",\"item\":\"made up\",\"category\":\"Other\",\"type\":\"expense\"}]}"}

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "input_generation": {
+    "enabled": true,
+    "target_inputs": 10,
+    "batch_size": 5,
+    "dedupe": true,
+    "providers": [
+      {"name": "fake_a", "type": "fake", "weight": 60, "threads": 1,
+       "fixture_inputs": "../tests/fixtures/fake_inputs.jsonl"},
+      {"name": "fake_b", "type": "fake", "weight": 40, "threads": 1,
+       "fixture_inputs": "../tests/fixtures/fake_inputs.jsonl"}
+    ]
+  },
+  "output_generation": {
+    "enabled": true,
+    "label_attempts_per_input": 1,
+    "providers": [
+      {"name": "fake_a", "type": "fake", "weight": 50, "threads": 1,
+       "fixture_labels": "../tests/fixtures/fake_labels.jsonl"},
+      {"name": "fake_b", "type": "fake", "weight": 50, "threads": 1,
+       "fixture_labels": "../tests/fixtures/fake_labels.jsonl"}
+    ]
+  },
+  "validation": {"schema": true, "semantic_validator": true,
+                 "reject_invalid": true,
+                 "retry_invalid_with_stricter_prompt": false,
+                 "max_repair_attempts": 0},
+  "rate_limits": {"global_max_workers": 4, "write_flush_every": 10}
+}

@@ -324,6 +324,33 @@ machine-readable codes. The `failed.jsonl` shape changed in this release — del
 or archive the old file before re-running. Re-attempt only semantic-validation
 failures with `--retry-validation-failed`.
 
+### Multi-provider scaffolding (Slice 1)
+
+Stage 5 has a new optional path for multi-provider input/label generation, gated behind `--provider-config`. Slice 1 only supports dry-run config validation; real multi-provider execution lands in Slice 2/3.
+
+```bash
+# Validate a provider config and see quota allocations
+python scripts/05_generate_distillation_data.py \
+    --provider-config configs/test_providers.json \
+    --dry-run-quota
+```
+
+The full config schema is documented in `docs/provider_config.md`. Two example configs ship:
+- `configs/test_providers.json` — fake-only, used by smoke tests.
+- `configs/example_providers.json` — realistic shape with DeepSeek / Gemini / local-teacher providers.
+
+A standalone validator probe lets you inspect any JSONL of `(input, output)` pairs against the semantic validator:
+
+```bash
+python scripts/probe_validator.py \
+    --input data/distill/train.jsonl \
+    --output reports/validator_probe.jsonl
+```
+
+The probe reports per-code failure counts (e.g., AMOUNT_NOT_IN_INPUT, SUSPICIOUS_DUPLICATE) and writes an inspectable per-row report.
+
+Without `--provider-config`, Stage 5 behaves exactly as before.
+
 ## Stage 6 — Fine-tune the student (Gemma 3 270M)
 
 ```powershell
