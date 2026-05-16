@@ -13,7 +13,9 @@ in Slice 2 (input generation) and Slice 3 (output labeling).
 from __future__ import annotations
 
 import json
+import os
 import threading
+import time
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
@@ -206,10 +208,220 @@ def create_provider(cfg) -> LLMProvider:
             labels_path=Path(cfg.fixture_labels) if cfg.fixture_labels else None,
             seed=cfg.seed if cfg.seed is not None else 0,
         )
-    if cfg.provider_type in {"deepseek", "gemini", "local_teacher"}:
+    if cfg.provider_type == "deepseek":
+        return DeepSeekProvider(
+            name=cfg.name,
+            model=cfg.model,
+            temperature=cfg.temperature,
+            max_tokens=cfg.max_tokens,
+            max_retries=cfg.max_retries,
+        )
+    if cfg.provider_type == "gemini":
+        return GeminiProvider(
+            name=cfg.name,
+            model=cfg.model,
+            temperature=cfg.temperature,
+            max_tokens=cfg.max_tokens,
+            max_retries=cfg.max_retries,
+            structured_output=cfg.structured_output,
+        )
+    if cfg.provider_type == "local_teacher":
         return UnimplementedProvider(
-            name=cfg.name, provider_type=cfg.provider_type, model=cfg.model,
+            name=cfg.name, provider_type="local_teacher", model=cfg.model,
         )
     raise ValueError(
         f"Unknown provider type {cfg.provider_type!r} for provider {cfg.name!r}"
     )
+
+
+def _parse_input_lines(text: str, *, expected: int) -> list[str]:
+    """Provider output → cleaned, locally-deduped input strings.
+
+    Local dedupe catches the common case of one API call returning the
+    same line twice. Global dedupe (against existing inputs_raw.jsonl +
+    this run's accepted set) happens in the orchestrator.
+    """
+    from _lib import clean_input_line, normalize_input
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in text.splitlines():
+        cleaned = clean_input_line(raw)
+        if cleaned is None:
+            continue
+        key = normalize_input(cleaned)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(cleaned)
+        if len(out) >= expected:
+            break
+    return out
+
+
+class DeepSeekProvider:
+    """Real DeepSeek provider via the openai SDK (OpenAI-compatible endpoint).
+
+    Lazy SDK import: `openai` is imported inside __init__, NOT at module
+    load, so `import llm_providers` stays SDK-free for tests/dry-run.
+    """
+
+    provider_type = "deepseek"
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        model: str,
+        api_key: str | None = None,
+        base_url: str = "https://api.deepseek.com",
+        temperature: float | None = 1.0,
+        max_tokens: int | None = 8000,
+        max_retries: int = 3,
+        timeout: int = 300,
+    ) -> None:
+        self.name = name
+        self.model = model
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.max_retries = max_retries
+        self.timeout = timeout
+        self._sleep = time.sleep   # test hook
+
+        from openai import OpenAI                                       # lazy
+        from openai import APITimeoutError, RateLimitError, APIConnectionError
+
+        # Intentionally do not read OPENAI_API_KEY; DeepSeek has its own key.
+        key = api_key or os.environ.get("DEEPSEEK_API_KEY")
+        if not key:
+            raise ProviderError(
+                f"DeepSeekProvider {name!r}: DEEPSEEK_API_KEY not set"
+            )
+        self._client = OpenAI(api_key=key, base_url=base_url)
+        self._retryable_excs = (APITimeoutError, RateLimitError, APIConnectionError)
+
+    def generate_inputs(self, prompt: str, n: int) -> list[str]:
+        if n < 0:
+            raise ProviderError(f"generate_inputs: n must be >= 0, got {n}")
+        if n == 0:
+            return []
+        text = self._call_with_retry(prompt)
+        return _parse_input_lines(text, expected=n)
+
+    def generate_label(self, input_text: str) -> str:
+        raise NotImplementedError(
+            f"deepseek provider {self.name!r}: output labeling lands in Slice 3"
+        )
+
+    def _call_with_retry(self, prompt: str) -> str:
+        from _retry import retry_with_backoff
+        return retry_with_backoff(
+            lambda: self._call_api(prompt),
+            retryable=self._retryable_excs,
+            max_retries=self.max_retries,
+            logger_name=f"deepseek.{self.name}",
+            sleep=self._sleep,
+        )
+
+    def _call_api(self, prompt: str) -> str:
+        kwargs = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "timeout": self.timeout,
+        }
+        if self.temperature is not None:
+            kwargs["temperature"] = self.temperature
+        if self.max_tokens is not None:
+            kwargs["max_tokens"] = self.max_tokens
+        resp = self._client.chat.completions.create(**kwargs)
+        return resp.choices[0].message.content or ""
+
+
+def _is_retryable_gemini_error(exc: BaseException) -> bool:
+    """Defensive against SDK variation: some versions expose status as int,
+    others as string. Coerce to int; on failure, do not retry."""
+    status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+    try:
+        status_int = int(status)
+    except (TypeError, ValueError):
+        return False
+    return status_int in {429, 500, 502, 503, 504}
+
+
+class GeminiProvider:
+    """Real Gemini provider via the google-genai SDK.
+
+    Lazy SDK import: `google.genai` is imported inside __init__, NOT at
+    module load, so `import llm_providers` stays SDK-free.
+    """
+
+    provider_type = "gemini"
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        model: str,
+        api_key: str | None = None,
+        temperature: float | None = 1.0,
+        max_tokens: int | None = 8000,
+        max_retries: int = 3,
+        structured_output: bool = False,   # ignored in Slice 2; Slice 3 wires it
+    ) -> None:
+        self.name = name
+        self.model = model
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.max_retries = max_retries
+        self.structured_output = structured_output
+        self._sleep = time.sleep
+
+        from google import genai                                          # lazy
+        from google.genai import errors as genai_errors
+
+        key = api_key or os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+        if not key:
+            raise ProviderError(
+                f"GeminiProvider {name!r}: GOOGLE_API_KEY (or GEMINI_API_KEY) not set"
+            )
+        self._client = genai.Client(api_key=key)
+        # Tuple is broad on purpose; the is_retryable predicate filters by status.
+        self._retryable_excs = (genai_errors.APIError, genai_errors.ClientError)
+
+    def generate_inputs(self, prompt: str, n: int) -> list[str]:
+        if n < 0:
+            raise ProviderError(f"generate_inputs: n must be >= 0, got {n}")
+        if n == 0:
+            return []
+        text = self._call_with_retry(prompt)
+        return _parse_input_lines(text, expected=n)
+
+    def generate_label(self, input_text: str) -> str:
+        raise NotImplementedError(
+            f"gemini provider {self.name!r}: output labeling lands in Slice 3"
+        )
+
+    def _call_with_retry(self, prompt: str) -> str:
+        from _retry import retry_with_backoff
+        return retry_with_backoff(
+            lambda: self._call_api(prompt),
+            retryable=self._retryable_excs,
+            is_retryable=_is_retryable_gemini_error,
+            max_retries=self.max_retries,
+            logger_name=f"gemini.{self.name}",
+            sleep=self._sleep,
+        )
+
+    def _call_api(self, prompt: str) -> str:
+        from google.genai import types
+        cfg_kwargs = {}
+        if self.temperature is not None:
+            cfg_kwargs["temperature"] = self.temperature
+        if self.max_tokens is not None:
+            cfg_kwargs["max_output_tokens"] = self.max_tokens
+        config = types.GenerateContentConfig(**cfg_kwargs) if cfg_kwargs else None
+        resp = self._client.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config=config,
+        )
+        return resp.text or ""

@@ -1,15 +1,15 @@
 {
   "version": 1,
   "input_generation": {
-    "enabled": true,
-    "target_inputs": 10000,
+    "enabled": false,
+    "target_inputs": 10,
     "batch_size": 100,
     "dedupe": true,
     "providers": [
-      {"name": "deepseek_v4_pro", "type": "deepseek", "model": "CONFIGURE_EXACT_MODEL_ID",
+      {"name": "deepseek_v4_pro", "type": "deepseek", "model": "deepseek-chat",
        "weight": 50, "threads": 4, "max_retries": 3,
        "temperature": 1.0, "max_tokens": 8000},
-      {"name": "gemini_flash", "type": "gemini", "model": "CONFIGURE_EXACT_MODEL_ID",
+      {"name": "gemini_flash", "type": "gemini", "model": "gemini-2.5-flash",
        "weight": 50, "threads": 4, "max_retries": 3,
        "temperature": 1.0, "max_tokens": 8000}
     ]
@@ -21,9 +21,9 @@
     "providers": [
       {"name": "local_teacher", "type": "local_teacher",
        "weight": 50, "threads": 1},
-      {"name": "deepseek_v4_pro", "type": "deepseek", "model": "CONFIGURE_EXACT_MODEL_ID",
+      {"name": "deepseek_v4_pro", "type": "deepseek", "model": "deepseek-chat",
        "weight": 30, "threads": 4, "temperature": 0.0, "max_tokens": 512},
-      {"name": "gemini_flash", "type": "gemini", "model": "CONFIGURE_EXACT_MODEL_ID",
+      {"name": "gemini_flash", "type": "gemini", "model": "gemini-2.5-flash",
        "weight": 20, "threads": 4, "temperature": 0.0, "max_tokens": 512,
        "structured_output": true}
     ],

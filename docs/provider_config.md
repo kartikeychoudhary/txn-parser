@@ -80,10 +80,18 @@ Controls how teacher labels are produced for each input.
 
 Relative paths in `fixture_inputs` and `fixture_labels` resolve **relative to the directory containing the config file**. Absolute paths are used as-is. The loader validates the resolved path exists at load time.
 
-## What loads successfully in Slice 1
+## What loads and runs
 
-- Any valid `type: fake` provider with proper fixture paths.
-- Any `type: deepseek` / `gemini` / `local_teacher` provider — these become `UnimplementedProvider` and any actual generation call raises `NotImplementedError`. Dry-run-quota still works.
+**Slice 1 (configuration + dry-run):**
+- Any `type: fake` provider with proper fixture paths.
+- Any `type: deepseek` / `gemini` / `local_teacher` provider — these load without SDK imports. `--dry-run-quota` works for all of them.
+
+**Slice 2 (real input generation):**
+- `type: deepseek` and `type: gemini` providers run real API calls when invoked via
+  `--phase inputs --provider-config <path> --multi-provider`. Requires `DEEPSEEK_API_KEY`
+  and/or `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) env vars.
+- `type: local_teacher` remains `UnimplementedProvider` until Slice 3.
+- `--phase label` and `--phase all` exit via `parser.error` in Slice 2 (Slice 3 wires labeling).
 
 ## Example configs
 

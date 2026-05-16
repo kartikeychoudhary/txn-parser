@@ -164,7 +164,9 @@ def test_create_provider_returns_unimplemented_for_real_types():
     from llm_providers import UnimplementedProvider, create_provider
     from generation_config import ProviderConfig
 
-    for t in ("deepseek", "gemini", "local_teacher"):
+    # deepseek now returns DeepSeekProvider (Task 4); gemini now returns
+    # GeminiProvider (Task 5); only local_teacher remains as UnimplementedProvider.
+    for t in ("local_teacher",):
         cfg = ProviderConfig(name=f"x_{t}", provider_type=t, model="m")
         p = create_provider(cfg)
         assert isinstance(p, UnimplementedProvider)

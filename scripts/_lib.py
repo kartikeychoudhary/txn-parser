@@ -253,6 +253,51 @@ def extract_json(text: str) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
+# Input-line cleaning helpers (shared between legacy phase_inputs and the
+# multi-provider _parse_input_lines). Migrated here in Slice 2 so both
+# call sites use the same fixed regex.
+# ---------------------------------------------------------------------------
+
+# Strips leading bullets ("- ", "* ") and numbering ("1. ", "2) ").
+# Deliberately narrow: must NOT match digit-led natural content like "500 beer".
+# The previous regex r"^[\s\-\*\d]+[.)\s]+" had this bug.
+_LINE_PREFIX_RE = re.compile(r"^\s*(?:[-*]\s+|\d+[.)]\s+)")
+
+
+def clean_input_line(line: str) -> str | None:
+    """Strip leading bullets/numbering and surrounding whitespace.
+
+    Strips:
+      "- 500 beer"   -> "500 beer"
+      "* 500 beer"   -> "500 beer"
+      "1. 500 beer"  -> "500 beer"
+      "2) 500 beer"  -> "500 beer"
+
+    Does NOT strip digit-led natural content:
+      "500 beer"     -> "500 beer"
+      "1 lakh rent"  -> "1 lakh rent"
+
+    Returns None for blank, fenced, or out-of-range inputs.
+    """
+    s = line.strip()
+    if not s:
+        return None
+    if s.startswith("```") or s.lower().startswith("output:") or s.lower().startswith("example"):
+        return None
+    s = _LINE_PREFIX_RE.sub("", s).strip()
+    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+        s = s[1:-1].strip()
+    if len(s) < 3 or len(s) > 300:
+        return None
+    return s
+
+
+def normalize_input(text: str) -> str:
+    """Canonical dedupe key. Lower-cased, whitespace-collapsed."""
+    return " ".join(text.lower().split())
+
+
+# ---------------------------------------------------------------------------
 # Re-exports — placed at the bottom of _lib.py so amount_parser/validator can
 # `from _lib import is_schema_valid, schema_errors` lazily without a circular
 # load. Existing imports of _lib symbols are untouched.

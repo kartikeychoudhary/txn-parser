@@ -29,12 +29,16 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
 import logging
+import math
 import os
+import queue
 import re
 import shutil
 import sys
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -47,8 +51,10 @@ from _lib import (  # noqa: E402
     BATCH_FOCUSES,
     build_messages,
     call_deepseek,
+    clean_input_line,
     extract_json,
     load_jsonl,
+    normalize_input,        # NEW in Slice 2
     parse_amounts,
     serialize_validation_result,
     validate_example,
@@ -56,7 +62,10 @@ from _lib import (  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CLEAN_EVAL = REPO_ROOT / "data" / "clean" / "eval.jsonl"
-DISTILL_DIR = REPO_ROOT / "data" / "distill"
+
+# DISTILL_DIR can be overridden by tests via env var. ALL derived paths
+# (INPUTS_FILE, TRAIN_FILE, ...) must be computed AFTER this assignment.
+DISTILL_DIR = Path(os.environ.get("DISTILL_DIR_OVERRIDE", REPO_ROOT / "data" / "distill"))
 INPUTS_FILE = DISTILL_DIR / "inputs_raw.jsonl"
 TRAIN_FILE = DISTILL_DIR / "train.jsonl"
 DISTILL_EVAL_FILE = DISTILL_DIR / "eval.jsonl"
@@ -64,6 +73,11 @@ FAILED_FILE = DISTILL_DIR / "failed.jsonl"
 LOGS_DIR = REPO_ROOT / "logs"
 TEACHER_ADAPTER_DIR = REPO_ROOT / "models" / "teacher" / "adapters"
 TEACHER_GGUF_DIR = REPO_ROOT / "models" / "teacher" / "gguf"
+
+# Slice 2: multi-provider input generation tunables.
+MAX_CONSECUTIVE_EMPTY_BATCHES = 3
+MAX_CONSECUTIVE_PROVIDER_ERRORS = 3
+MAX_CONSECUTIVE_DUPLICATES_BEFORE_GIVEUP = 200
 
 
 INPUT_GEN_PROMPT = """You are generating diverse voice-transcribed transaction descriptions for an Indian expense-tracking dataset.
@@ -114,39 +128,49 @@ def setup_logging(log_path: Path) -> None:
     )
 
 
-_LINE_PREFIX_RE = re.compile(r"^[\s\-\*\d]+[.)\s]+")
-
-
-def clean_input_line(line: str) -> str | None:
-    """Strip leading numbering/bullets and trailing whitespace; reject junk."""
-    s = line.strip()
-    if not s:
-        return None
-    if s.startswith("```") or s.lower().startswith("output:") or s.lower().startswith("example"):
-        return None
-    # Strip "1. ", "- ", "* ", "1) " style prefixes the model occasionally adds.
-    s = _LINE_PREFIX_RE.sub("", s).strip()
-    # Strip surrounding quotes.
-    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
-        s = s[1:-1].strip()
-    if len(s) < 3 or len(s) > 300:
-        return None
-    return s
-
-
 def read_inputs_jsonl(path: Path) -> list[str]:
+    """Load existing input strings from a JSONL file.
+
+    Malformed rows are skipped with a warning (per spec §6.1):
+      - Bad JSON → bad_json counter
+      - Non-object rows → bad_shape counter
+      - Missing or non-string 'input' field → bad_shape counter
+    """
     if not path.exists():
         return []
     out: list[str] = []
+    bad_json = 0
+    bad_shape = 0
     with path.open(encoding="utf-8") as f:
-        for raw in f:
+        for line_no, raw in enumerate(f, start=1):
             line = raw.strip()
             if not line:
                 continue
             try:
-                out.append(json.loads(line)["input"])
-            except (json.JSONDecodeError, KeyError):
+                obj = json.loads(line)
+            except json.JSONDecodeError as e:
+                logging.warning("read_inputs_jsonl: %s:%d invalid JSON: %s",
+                                path.name, line_no, e)
+                bad_json += 1
                 continue
+            if not isinstance(obj, dict):
+                logging.warning("read_inputs_jsonl: %s:%d row is not an object, skipping",
+                                path.name, line_no)
+                bad_shape += 1
+                continue
+            if "input" not in obj or not isinstance(obj["input"], str):
+                logging.warning(
+                    "read_inputs_jsonl: %s:%d missing or non-string 'input' field, skipping",
+                    path.name, line_no,
+                )
+                bad_shape += 1
+                continue
+            out.append(obj["input"])
+    if bad_json or bad_shape:
+        logging.info(
+            "read_inputs_jsonl: loaded %d inputs from %s; skipped bad_json=%d bad_shape=%d",
+            len(out), path, bad_json, bad_shape,
+        )
     return out
 
 
@@ -476,6 +500,239 @@ def phase_eval(args: argparse.Namespace) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Multi-provider input generation (Slice 2). Concurrency model:
+#   - One shared ThreadPoolExecutor, sized to min(sum(threads), global_max).
+#   - For each provider with quota > 0, submit min(threads, max(1, ceil(quota/batch_size)))
+#     worker tasks.
+#   - Workers produce (input_text, provider_name, model_id) tuples to a
+#     BOUNDED queue (prevents racing far ahead of the writer and wasting
+#     API calls when writer has reached target). queue.put uses timeout +
+#     stop_event re-check so executor shutdown cannot hang.
+#   - Main thread is the SOLE writer to inputs_raw.jsonl.
+#   - Completion: main sets stop_event when accepted_total >= pending.
+#
+# Quota is a soft scheduling hint, not a strict per-provider cap. See
+# spec §5.2 for the rationale.
+#
+# Duplicate-stall guard is GLOBAL: a flood of duplicates from any one
+# provider can stop the whole run. Slice 4 metrics may add per-provider
+# health tracking; for Slice 2, global guard is acceptable.
+# ---------------------------------------------------------------------------
+
+_focus_counters: dict[str, int] = {}
+_focus_lock = threading.Lock()
+
+
+def _next_focus(provider_name: str) -> str:
+    """Deterministic round-robin over BATCH_FOCUSES, keyed per provider."""
+    with _focus_lock:
+        i = _focus_counters.get(provider_name, 0)
+        _focus_counters[provider_name] = i + 1
+    return BATCH_FOCUSES[i % len(BATCH_FOCUSES)]
+
+
+def _build_input_prompt(n: int, batch_focus: str) -> str:
+    """Format the existing INPUT_GEN_PROMPT with the requested count + focus."""
+    return INPUT_GEN_PROMPT.format(n=n, focus=batch_focus)
+
+
+def _provider_worker(
+    *,
+    provider,                             # LLMProvider
+    pcfg,                                 # ProviderConfig
+    batch_size: int,
+    results_queue: "queue.Queue",
+    stop_event: threading.Event,
+) -> None:
+    """Run one provider's batches until stop_event is set or local caps hit.
+
+    Maintains separate failure streaks:
+      - empty_response_streak: parser returned 0 cleaned lines
+      - provider_error_streak: exception bubbled through retries
+    """
+    empty_streak = 0
+    error_streak = 0
+    while not stop_event.is_set():
+        if empty_streak >= MAX_CONSECUTIVE_EMPTY_BATCHES:
+            logging.warning(
+                "Provider %s: %d empty batches in a row, worker exiting early.",
+                pcfg.name, empty_streak,
+            )
+            return
+        if error_streak >= MAX_CONSECUTIVE_PROVIDER_ERRORS:
+            logging.warning(
+                "Provider %s: %d API errors in a row, worker exiting early.",
+                pcfg.name, error_streak,
+            )
+            return
+        prompt = _build_input_prompt(batch_size, batch_focus=_next_focus(pcfg.name))
+        try:
+            lines = provider.generate_inputs(prompt, batch_size)
+        except Exception as e:    # noqa: BLE001 — surface any provider failure as an error streak
+            logging.error("Provider %s batch failed: %s", pcfg.name, e)
+            error_streak += 1
+            continue
+        if not lines:
+            empty_streak += 1
+            continue
+        empty_streak = 0
+        error_streak = 0
+        model_id = getattr(provider, "model", None)
+        for line in lines:
+            if stop_event.is_set():
+                return
+            # Bounded queue: if writer is behind, wait briefly and retry,
+            # but always re-check stop_event so executor shutdown can't hang.
+            while not stop_event.is_set():
+                try:
+                    results_queue.put((line, provider.name, model_id), timeout=0.5)
+                    break
+                except queue.Full:
+                    continue
+
+
+def phase_inputs_multi_provider(args: argparse.Namespace) -> None:
+    """Slice 2 multi-provider input-generation loop.
+
+    Reads cfg.input_generation.{target_inputs, batch_size, providers}.
+    On resume, dedupes against existing inputs_raw.jsonl and only
+    generates the remaining `pending` inputs.
+    """
+    from generation_config import load_generation_config
+    from generation_orchestrator import allocate_quota
+    from llm_providers import create_provider
+
+    cfg = load_generation_config(args.provider_config)
+    ig = cfg.input_generation
+    if not ig.enabled:
+        logging.info("Phase inputs (multi-provider): input_generation.enabled=False — nothing to do.")
+        return
+
+    DISTILL_DIR.mkdir(parents=True, exist_ok=True)
+    existing_inputs = read_inputs_jsonl(INPUTS_FILE)
+    existing_normalized = {normalize_input(s) for s in existing_inputs}
+    existing_unique = len(existing_normalized)
+    pending = max(0, ig.target_inputs - existing_unique)
+    logging.info(
+        "Phase inputs (multi-provider): existing_unique=%d target=%d pending=%d",
+        existing_unique, ig.target_inputs, pending,
+    )
+    if pending == 0:
+        logging.info("Already at target. Multi-provider phase complete.")
+        return
+
+    # Only warn if the user explicitly passed --n-inputs (i.e. it appears in
+    # sys.argv). Comparing args.n_inputs against the default would fire the
+    # warning on every normal invocation when target_inputs != default.
+    user_set_n_inputs = any(
+        a == "--n-inputs" or a.startswith("--n-inputs=") for a in sys.argv[1:]
+    )
+    if user_set_n_inputs and args.n_inputs != ig.target_inputs:
+        logging.warning(
+            "--n-inputs=%d ignored in multi-provider mode; "
+            "cfg.input_generation.target_inputs=%d is the source of truth.",
+            args.n_inputs, ig.target_inputs,
+        )
+
+    providers = {p.name: create_provider(p) for p in ig.providers}
+    quota = allocate_quota(pending, ig.providers)
+    batch_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    stop_event = threading.Event()
+    futures: list[concurrent.futures.Future] = []
+
+    # Worker count per provider: min(threads, max(1, ceil(quota/batch_size))).
+    # Providers with zero quota get zero workers (no calls made).
+    total_workers = 0
+    for pcfg in ig.providers:
+        q = quota[pcfg.name]
+        if q <= 0:
+            continue
+        n_workers = min(pcfg.threads, max(1, math.ceil(q / ig.batch_size)))
+        total_workers += n_workers
+    pool_size = min(total_workers, cfg.rate_limits.global_max_workers) if total_workers else 1
+
+    # Bounded queue: prevents workers racing far ahead of the writer and
+    # making wasted API calls when the writer has already reached target.
+    # Size = batch_size * total_workers * 2 gives one full batch of slack
+    # per worker before put() blocks.
+    queue_max = max(1, ig.batch_size * max(1, total_workers) * 2)
+    results_queue: "queue.Queue[tuple[str, str, object]]" = queue.Queue(maxsize=queue_max)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=pool_size) as pool, \
+         INPUTS_FILE.open("a", encoding="utf-8") as fout, \
+         tqdm(total=pending, initial=0, desc="multi-provider inputs") as bar:
+
+        for pcfg in ig.providers:
+            q = quota[pcfg.name]
+            if q <= 0:
+                continue
+            n_workers = min(pcfg.threads, max(1, math.ceil(q / ig.batch_size)))
+            for _ in range(n_workers):
+                futures.append(pool.submit(
+                    _provider_worker,
+                    provider=providers[pcfg.name],
+                    pcfg=pcfg,
+                    batch_size=ig.batch_size,
+                    results_queue=results_queue,
+                    stop_event=stop_event,
+                ))
+
+        accepted_total = 0
+        consecutive_dupes = 0
+        while accepted_total < pending:
+            # Exit if all workers finished AND no more queued results.
+            if all(f.done() for f in futures) and results_queue.empty():
+                logging.warning(
+                    "Multi-provider input loop: providers exhausted before "
+                    "reaching target (accepted=%d, pending=%d).",
+                    accepted_total, pending,
+                )
+                break
+            try:
+                input_text, provider_name, model_id = results_queue.get(timeout=1.0)
+            except queue.Empty:
+                # Timeout — workers may still be in flight. Do NOT increment
+                # the dupe counter; just loop.
+                continue
+            normalized = normalize_input(input_text)
+            if normalized in existing_normalized:
+                consecutive_dupes += 1
+                if consecutive_dupes >= MAX_CONSECUTIVE_DUPLICATES_BEFORE_GIVEUP:
+                    logging.warning(
+                        "Multi-provider input loop saw %d consecutive duplicates "
+                        "without accepting a new input — providers exhausted unique "
+                        "supply. Stopping with partial progress (accepted=%d / pending=%d).",
+                        consecutive_dupes, accepted_total, pending,
+                    )
+                    stop_event.set()
+                    break
+                continue
+            consecutive_dupes = 0
+            existing_normalized.add(normalized)
+            row = {
+                "input": input_text,
+                "_source": "synthetic_input",
+                "_provider": provider_name,
+                "_model": model_id,    # may be None for FakeProvider
+                "_batch_id": batch_id,
+            }
+            fout.write(json.dumps(row, ensure_ascii=False) + "\n")
+            accepted_total += 1
+            if accepted_total % cfg.rate_limits.write_flush_every == 0:
+                fout.flush()
+            bar.update(1)
+
+        stop_event.set()
+        fout.flush()
+
+    logging.info(
+        "Phase inputs (multi-provider) done. accepted=%d existing_unique=%d target=%d",
+        accepted_total, existing_unique + accepted_total, ig.target_inputs,
+    )
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -521,14 +778,16 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     # Slice 1: multi-provider scaffolding. Real execution lands in Slice 2/3.
     p.add_argument("--provider-config", type=Path, default=None,
                    help="Path to a multi-provider generation config JSON. "
-                        "Slice 1: only --dry-run-quota is supported.")
+                        "Use with --dry-run-quota to inspect the config, or with "
+                        "--multi-provider --phase inputs (Slice 2) to run real "
+                        "input generation.")
     p.add_argument("--dry-run-quota", action="store_true",
                    help="With --provider-config: parse + validate config, "
                         "print quota allocations and scheduler preview, exit 0. "
                         "No generation runs.")
     p.add_argument("--multi-provider", action="store_true",
-                   help="Reserved for Slice 2; in Slice 1 every combination "
-                        "involving this flag exits via parser.error.")
+                   help="Run multi-provider execution. Slice 2 supports "
+                        "--phase inputs only; label and all exit via parser.error.")
     # Phase 2 / GGUF backend
     p.add_argument("--gguf-path",
                    help="Path to a .gguf file or directory (gguf backend). "
@@ -549,27 +808,43 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     return p, p.parse_args()
 
 
-def _enforce_slice1_flag_contract(
+def _enforce_flag_contract(
     args: argparse.Namespace, parser: argparse.ArgumentParser,
 ) -> None:
-    """Slice 1 contract — see spec §7.3.
-    Every error path uses parser.error which exits with code 2."""
+    """Multi-provider CLI contract — see spec §7.
+
+    Every error path uses parser.error which exits with code 2.
+    Dry-run wins: phase restrictions are skipped when --dry-run-quota is present.
+    """
+    # Standalone-flag errors.
     if args.multi_provider and not args.provider_config:
         parser.error("--multi-provider requires --provider-config.")
-    if args.provider_config and args.multi_provider:
-        parser.error(
-            "Multi-provider execution lands in Slice 2; see "
-            "docs/superpowers/specs/2026-05-16-multi-provider-generation-slice1-design.md. "
-            "Slice 1 supports --provider-config only with --dry-run-quota; "
-            "do not combine with --multi-provider."
-        )
-    if args.provider_config and not args.dry_run_quota:
-        parser.error(
-            "Slice 1: --provider-config requires --dry-run-quota. "
-            "Real multi-provider execution lands in Slice 2."
-        )
     if args.dry_run_quota and not args.provider_config:
         parser.error("--dry-run-quota requires --provider-config.")
+    # --provider-config requires SOMETHING (either dry-run or multi-provider).
+    if args.provider_config and not (args.dry_run_quota or args.multi_provider):
+        parser.error(
+            "--provider-config requires --dry-run-quota or --multi-provider."
+        )
+    # Multi-provider phase restrictions for Slice 2.
+    # Dry-run wins: phase checks skipped when --dry-run-quota is present.
+    if args.multi_provider and args.provider_config and not args.dry_run_quota:
+        if args.phase == "label":
+            parser.error(
+                "--multi-provider --phase label is reserved for Slice 3 "
+                "(validator-gated output labeling)."
+            )
+        if args.phase == "eval":
+            parser.error(
+                "--multi-provider --phase eval is not supported; "
+                "use legacy mode (no --multi-provider) for eval."
+            )
+        if args.phase == "all":
+            parser.error(
+                "--multi-provider does not support --phase all in Slice 2; "
+                "specify --phase inputs, or use legacy mode (no --multi-provider)."
+            )
+        # --phase inputs is the only allowed combo; falls through to main().
 
 
 def _run_dry_run(config_path: Path) -> int:
@@ -591,7 +866,7 @@ def _run_dry_run(config_path: Path) -> int:
 
 def main() -> int:
     parser, args = parse_args()
-    _enforce_slice1_flag_contract(args, parser)   # may parser.error and exit 2
+    _enforce_flag_contract(args, parser)
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     setup_logging(LOGS_DIR / f"05_generate_distillation_data_{ts}.log")
@@ -603,6 +878,15 @@ def main() -> int:
     DISTILL_DIR.mkdir(parents=True, exist_ok=True)
     logging.info("Stage 5: phase=%s args=%s", args.phase, vars(args))
 
+    if args.multi_provider:
+        # Slice 2: only --phase inputs reaches here (others rejected by contract).
+        assert args.phase == "inputs"
+        assert args.provider_config is not None
+        phase_inputs_multi_provider(args)
+        logging.info("Stage 5 done.")
+        return 0
+
+    # Legacy path — unchanged.
     if args.phase in ("all", "inputs"):
         phase_inputs(args)
     if args.phase in ("all", "label"):

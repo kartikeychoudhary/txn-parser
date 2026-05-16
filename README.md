@@ -351,6 +351,27 @@ The probe reports per-code failure counts (e.g., AMOUNT_NOT_IN_INPUT, SUSPICIOUS
 
 Without `--provider-config`, Stage 5 behaves exactly as before.
 
+### Multi-provider input generation (Slice 2)
+
+Slice 2 makes `--phase inputs --provider-config <path> --multi-provider` actually run with real DeepSeek + Gemini API calls. Set the API keys, point at a config, and run:
+
+```bash
+export DEEPSEEK_API_KEY=sk-...
+export GOOGLE_API_KEY=...     # or GEMINI_API_KEY
+python scripts/05_generate_distillation_data.py \
+    --phase inputs \
+    --provider-config configs/smoke_real_providers.json \
+    --multi-provider
+```
+
+The generation loop is threaded per-provider (each provider's `threads` field in the config), with global dedupe against the existing `data/distill/inputs_raw.jsonl` and resume safety (re-running picks up at the unique-input count and only generates the remaining `target_inputs`). New rows include provider metadata: `_provider`, `_model`, `_batch_id`.
+
+Quota is a soft scheduling hint — workers stop when the global accepted-unique total reaches `target_inputs`, not when a per-provider quota fills. Provider distribution may drift from configured weights based on latency and duplicate rate.
+
+`--phase label` and `--phase all` are reserved for Slice 3 (validator-gated output labeling).
+
+For tests and CI, set `DISTILL_DIR_OVERRIDE=<tmp_path>` to redirect writes away from `data/distill/`. This is a dev/test-only knob and is not surfaced in `--help`.
+
 ## Stage 6 — Fine-tune the student (Gemma 3 270M)
 
 ```powershell
