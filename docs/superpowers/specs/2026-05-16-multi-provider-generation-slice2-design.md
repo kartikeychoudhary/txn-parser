@@ -235,7 +235,13 @@ class GeminiProvider:
 
 
 def _is_retryable_gemini_error(exc: BaseException) -> bool:
+    """Defensive against SDK variation: some SDK versions expose status as
+    int, others as string. Coerce to int; on failure, do not retry."""
     status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+    try:
+        status = int(status)
+    except (TypeError, ValueError):
+        return False
     return status in {429, 500, 502, 503, 504}
 ```
 
@@ -345,7 +351,7 @@ Tests inject `sleep=lambda _: None` to avoid real delays. Providers pass `sleep=
 Lives in `scripts/05_generate_distillation_data.py`. Concurrency model:
 
 - One shared `ThreadPoolExecutor` sized to `min(sum(p.threads for p in providers), cfg.rate_limits.global_max_workers)`.
-- For each provider, submit `worker_count = min(p.threads, max(1, ceil(provider_quota / batch_size)))` worker tasks.
+- For each provider with `quota[p.name] > 0`, submit `worker_count = min(p.threads, max(1, ceil(provider_quota / batch_size)))` worker tasks. Providers with zero quota (which can happen on small `pending` values) are skipped entirely — no workers spawned for them.
 - Each worker generates batches and submits results to a shared `queue.Queue`. Workers never write to disk.
 - The **main thread** is the sole writer to `inputs_raw.jsonl`. It consumes the queue, dedupes by `normalize_input`, writes accepted rows, advances the progress bar.
 - Main thread sets `stop_event` when `accepted_total >= pending`. Workers stop on next iteration.
@@ -359,6 +365,11 @@ Lives in `scripts/05_generate_distillation_data.py`. Concurrency model:
    - `provider_error_streak >= MAX_CONSECUTIVE_PROVIDER_ERRORS (=3)` — provider raised through retries.
    - Workers log and exit; main thread continues until conditions 1 or 2 hit.
 4. **Duplicate-stall guard**: `consecutive_dupes_since_last_accept >= MAX_CONSECUTIVE_DUPLICATES_BEFORE_GIVEUP (=200)` → log warning, `stop_event.set()`, break. Protects against targets that exceed provider unique supply.
+
+**Counter semantics**:
+- Incremented when a queued line is rejected as duplicate.
+- Reset to `0` only when a row is accepted and written.
+- NOT incremented on `queue.Empty` timeouts — temporary provider slowness must not trigger the stall guard.
 
 ### 5.2 Quota as soft scheduling hint
 
@@ -524,6 +535,8 @@ FAILED_FILE = DISTILL_DIR / "failed.jsonl"
 
 All derived paths read `DISTILL_DIR` **after** env resolution. Tests using subprocess pass `env={**os.environ, "DISTILL_DIR_OVERRIDE": str(tmp_path)}`.
 
+`DISTILL_DIR_OVERRIDE` is documented in the README as a **test/dev-only** knob. CLI users should rely on the default `data/distill/`; the env var is not surfaced in `--help`.
+
 ---
 
 ## 7. Stage 5 CLI updates
@@ -668,6 +681,8 @@ Replace the Slice 1 version's `target_inputs: 10000` and `enabled: true` with a 
 
 Even with valid API keys, running `--multi-provider --phase inputs` against this config does nothing (enabled=false). Documented in `docs/provider_config.md` as "example only, not for real runs."
 
+**Note on `enabled=false`**: The config loader's strict-type and field validation still runs over the provider entries (model names, weights, types, etc.) — `enabled=false` only short-circuits *execution* and *quota allocation*, not validation. So `example_providers.json` still needs valid-looking model names like `"deepseek-chat"` even though it never sends requests.
+
 ### 9.2 `configs/smoke_real_providers.json` — opt-in real smoke
 
 New file. Same shape as `example_providers.json` but:
@@ -695,9 +710,10 @@ google-genai
 ```bash
 pip install google-genai
 python -c "from google import genai; from google.genai import types, errors; print('ok')"
+python -c "import importlib.metadata as m; print(m.version('google-genai'))"
 ```
 
-After verifying the SDK surface, pin the floor version based on `pip show google-genai`.
+The third command prints the installed version; pin that as the floor in `requirements-train.txt` (e.g., `google-genai>=0.4.0` if the installed version is `0.4.x`).
 
 ---
 
@@ -766,8 +782,9 @@ _retry.py
 
 llm_providers.py
   ├─ stdlib (json, os, threading, pathlib, typing)
+  ├─ defines _parse_input_lines
+  ├─ _parse_input_lines lazily imports clean_input_line and normalize_input from _lib
   ├─ lazy SDK imports inside DeepSeekProvider/GeminiProvider __init__
-  ├─ imports _parse_input_lines locally inside provider methods
   └─ no top-level SDK imports — `import llm_providers` stays SDK-free
 
 generation_config.py    (unchanged from Slice 1)
