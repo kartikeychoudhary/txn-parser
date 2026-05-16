@@ -621,7 +621,13 @@ def phase_inputs_multi_provider(args: argparse.Namespace) -> None:
         logging.info("Already at target. Multi-provider phase complete.")
         return
 
-    if args.n_inputs and args.n_inputs != ig.target_inputs:
+    # Only warn if the user explicitly passed --n-inputs (i.e. it appears in
+    # sys.argv). Comparing args.n_inputs against the default would fire the
+    # warning on every normal invocation when target_inputs != default.
+    user_set_n_inputs = any(
+        a == "--n-inputs" or a.startswith("--n-inputs=") for a in sys.argv[1:]
+    )
+    if user_set_n_inputs and args.n_inputs != ig.target_inputs:
         logging.warning(
             "--n-inputs=%d ignored in multi-provider mode; "
             "cfg.input_generation.target_inputs=%d is the source of truth.",

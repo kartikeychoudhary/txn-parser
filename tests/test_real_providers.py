@@ -379,3 +379,13 @@ def test_gemini_does_not_retry_400(monkeypatch):
     with pytest.raises(FakeRetryable):
         p.generate_inputs("prompt", n=1)
     assert state["calls"] == 1   # NOT retried — predicate filters 400 out
+
+
+def test_gemini_retryable_excs_is_populated_with_real_sdk_types(monkeypatch):
+    """Verify __init__ wires the real SDK exception classes (just shape, no call)."""
+    from llm_providers import GeminiProvider
+    monkeypatch.setenv("GOOGLE_API_KEY", "fake-key")
+    p = GeminiProvider(name="g", model="gemini-2.5-flash")
+    from google.genai import errors as genai_errors
+    assert genai_errors.APIError in p._retryable_excs
+    assert genai_errors.ClientError in p._retryable_excs
