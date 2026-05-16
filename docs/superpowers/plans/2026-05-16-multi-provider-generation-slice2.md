@@ -374,7 +374,7 @@ Expected: `ImportError: cannot import name 'clean_input_line' from '_lib'`.
 
 - [ ] **Step 3: Add helpers to `scripts/_lib.py`**
 
-Open `scripts/_lib.py`. Confirm `import re` is already at the top (it is — used by `extract_json`). Append the following AT THE END of the file (after all existing function definitions and after the re-export block that Slice 1 added):
+Open `scripts/_lib.py`. Confirm `import re` is already at the top (it is — used by `extract_json`). Locate the Slice 1 re-export block at the bottom of the file (the comment line `# Re-exports — placed at the bottom of _lib.py so amount_parser/validator can`...). Insert the new helpers IMMEDIATELY BEFORE that re-export block — the re-export block must remain the last block in the file to avoid circular-import issues:
 
 ```python
 
@@ -607,8 +607,10 @@ Spec reference: §3.3, §3.5, §3.6.
 """Tests for real provider implementations (DeepSeek + Gemini).
 
 Strategy: SDK imports happen inside provider __init__, so the imports
-are exercised by construction. But network I/O is avoided by patching
-the provider's _call_api method (or _retryable_excs for retry tests).
+are exercised by construction. SDK Client constructors are patched
+(see _stub_openai_client / _stub_gemini_client fixtures) so no real
+network I/O happens during construction. Behavior tests then patch
+provider._call_api directly to control responses.
 """
 import pytest
 
@@ -617,6 +619,47 @@ from llm_providers import (
     ProviderError,
     _parse_input_lines,
 )
+
+
+# ---- SDK constructor stubs ------------------------------------------------
+# Reusable autouse fixtures keep test bodies focused on behavior, not on
+# SDK construction plumbing.
+
+
+class _StubChatCompletions:
+    def create(self, **kwargs):
+        raise AssertionError("real OpenAI client should not be called in tests")
+
+
+class _StubChat:
+    def __init__(self):
+        self.completions = _StubChatCompletions()
+
+
+class _StubOpenAIClient:
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        self.chat = _StubChat()
+
+
+class _StubGeminiModels:
+    def generate_content(self, **kwargs):
+        raise AssertionError("real Gemini client should not be called in tests")
+
+
+class _StubGeminiClient:
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        self.models = _StubGeminiModels()
+
+
+@pytest.fixture(autouse=True)
+def _patch_sdk_clients(monkeypatch):
+    """Patch the SDK Client classes so provider __init__ never makes network calls."""
+    import openai
+    monkeypatch.setattr(openai, "OpenAI", _StubOpenAIClient)
+    from google import genai
+    monkeypatch.setattr(genai, "Client", _StubGeminiClient)
 
 
 # ---- DeepSeek construction ------------------------------------------------
@@ -965,12 +1008,12 @@ Replace the `if cfg.provider_type in {"deepseek", "gemini", "local_teacher"}` br
 
 Keep the final `raise ValueError(...)` for unknown types.
 
-- [ ] **Step 5: Run DeepSeek tests, expect all 16 passed**
+- [ ] **Step 5: Run DeepSeek tests, expect all 17 passed**
 
 ```bash
 cd "C:/work/llm training" && pytest tests/test_real_providers.py -v
 ```
-Expected: 16 passed (13 DeepSeek tests + 3 _parse_input_lines tests).
+Expected: 17 passed. (4 construction + 5 generate_inputs/label + 3 retry-behavior + 2 omit-None kwargs + 3 _parse_input_lines = 17.)
 
 - [ ] **Step 6: Verify Slice 1 SDK-leak guard test still passes**
 
@@ -984,7 +1027,7 @@ Expected: 1 passed. (UnimplementedProvider construction must not import openai.)
 ```bash
 cd "C:/work/llm training" && pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: prior count + 16. No regressions.
+Expected: prior count + 17. No regressions.
 
 - [ ] **Step 8: Do NOT commit.**
 
@@ -1421,12 +1464,19 @@ MAX_CONSECUTIVE_DUPLICATES_BEFORE_GIVEUP = 200
 #   - One shared ThreadPoolExecutor, sized to min(sum(threads), global_max).
 #   - For each provider with quota > 0, submit min(threads, max(1, ceil(quota/batch_size)))
 #     worker tasks.
-#   - Workers produce (input_text, provider_name, model_id) tuples to a queue.
+#   - Workers produce (input_text, provider_name, model_id) tuples to a
+#     BOUNDED queue (prevents racing far ahead of the writer and wasting
+#     API calls when writer has reached target). queue.put uses timeout +
+#     stop_event re-check so executor shutdown cannot hang.
 #   - Main thread is the SOLE writer to inputs_raw.jsonl.
 #   - Completion: main sets stop_event when accepted_total >= pending.
 #
 # Quota is a soft scheduling hint, not a strict per-provider cap. See
 # spec §5.2 for the rationale.
+#
+# Duplicate-stall guard is GLOBAL: a flood of duplicates from any one
+# provider can stop the whole run. Slice 4 metrics may add per-provider
+# health tracking; for Slice 2, global guard is acceptable.
 # ---------------------------------------------------------------------------
 
 _focus_counters: dict[str, int] = {}
@@ -1491,7 +1541,14 @@ def _provider_worker(
         for line in lines:
             if stop_event.is_set():
                 return
-            results_queue.put((line, provider.name, model_id))
+            # Bounded queue: if writer is behind, wait briefly and retry,
+            # but always re-check stop_event so executor shutdown can't hang.
+            while not stop_event.is_set():
+                try:
+                    results_queue.put((line, provider.name, model_id), timeout=0.5)
+                    break
+                except queue.Full:
+                    continue
 
 
 def phase_inputs_multi_provider(args: argparse.Namespace) -> None:
@@ -1535,7 +1592,6 @@ def phase_inputs_multi_provider(args: argparse.Namespace) -> None:
     quota = allocate_quota(pending, ig.providers)
     batch_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    results_queue: "queue.Queue[tuple[str, str, object]]" = queue.Queue()
     stop_event = threading.Event()
     futures: list[concurrent.futures.Future] = []
 
@@ -1549,6 +1605,13 @@ def phase_inputs_multi_provider(args: argparse.Namespace) -> None:
         n_workers = min(pcfg.threads, max(1, math.ceil(q / ig.batch_size)))
         total_workers += n_workers
     pool_size = min(total_workers, cfg.rate_limits.global_max_workers) if total_workers else 1
+
+    # Bounded queue: prevents workers racing far ahead of the writer and
+    # making wasted API calls when the writer has already reached target.
+    # Size = batch_size * total_workers * 2 gives one full batch of slack
+    # per worker before put() blocks.
+    queue_max = max(1, ig.batch_size * max(1, total_workers) * 2)
+    results_queue: "queue.Queue[tuple[str, str, object]]" = queue.Queue(maxsize=queue_max)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=pool_size) as pool, \
          INPUTS_FILE.open("a", encoding="utf-8") as fout, \
@@ -2014,6 +2077,27 @@ def test_multi_provider_n_inputs_is_ignored_in_multi_mode(tmp_path):
     assert len({r["input"] for r in rows}) == 5
 
 
+def test_multi_provider_stops_when_fixture_unique_supply_exhausted(tmp_path):
+    """When target_inputs > unique fixture supply, the duplicate-stall guard
+    must trigger and exit cleanly with partial progress — must not hang."""
+    cfg = _make_test_config(tmp_path, target=999)   # fixture has 20 unique rows
+    result = _run_multi_provider(cfg, tmp_path)
+    assert result.returncode == 0, result.stderr
+    out_file = tmp_path / "inputs_raw.jsonl"
+    rows = [json.loads(line) for line in out_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+    inputs = {r["input"] for r in rows}
+    # Fixture has 20 unique rows; we should get all of them, not the requested 999.
+    assert len(inputs) <= 20
+    # Either the per-worker streak guard or the global duplicate-stall guard
+    # should have logged a warning.
+    stderr_lower = result.stderr.lower()
+    assert (
+        "empty batches" in stderr_lower
+        or "duplicate" in stderr_lower
+        or "providers exhausted" in stderr_lower
+    )
+
+
 def test_multi_provider_disabled_input_generation_does_nothing(tmp_path):
     """enabled=false short-circuits without writing anything."""
     fixtures_src = REPO_ROOT / "tests" / "fixtures" / "fake_inputs.jsonl"
@@ -2042,19 +2126,19 @@ def test_multi_provider_disabled_input_generation_does_nothing(tmp_path):
     assert not out_file.exists() or out_file.read_text(encoding="utf-8") == ""
 ```
 
-- [ ] **Step 2: Run the new tests, expect 6 passed**
+- [ ] **Step 2: Run the new tests, expect 7 passed**
 
 ```bash
 cd "C:/work/llm training" && pytest tests/test_multi_provider_inputs.py -v
 ```
-Expected: 6 passed. (These are subprocess tests, so they'll be slower — ~5-30s each.)
+Expected: 7 passed. (These are subprocess tests, so they'll be slower — ~5-30s each. The exhaustion test in particular may take ~15s because workers hit their empty-batch streak.)
 
 - [ ] **Step 3: Full suite green**
 
 ```bash
 cd "C:/work/llm training" && pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: prior count + 6.
+Expected: prior count + 7.
 
 - [ ] **Step 4: Do NOT commit.**
 
@@ -2258,7 +2342,7 @@ Spec reference: §11, §12.
 ```bash
 cd "C:/work/llm training" && pytest tests/ -v
 ```
-Expected: prior count (177 baseline) + new tests from Tasks 1–9. Net adds: 6 (retry) + 22 (clean_input_line) + 28 (real_providers DeepSeek+Gemini+predicate+_parse_input_lines) + 6 (multi-provider e2e) + 3 net flag-contract = ~65 new tests. All pass.
+Expected: prior count (177 baseline) + new tests from Tasks 1–9. Net adds: 6 (retry) + 22 (clean_input_line) + ~29 (real_providers DeepSeek+Gemini+predicate+_parse_input_lines) + 7 (multi-provider e2e) + 3 net flag-contract = ~67 new tests. All pass.
 
 - [ ] **Step 2: Coverage check**
 
