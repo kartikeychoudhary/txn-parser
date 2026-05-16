@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "input_generation": {
+    "enabled": true,
+    "target_inputs": 100,
+    "batch_size": 25,
+    "dedupe": true,
+    "providers": [
+      {"name": "deepseek_v4_pro", "type": "deepseek", "model": "deepseek-chat",
+       "weight": 50, "threads": 4, "max_retries": 3,
+       "temperature": 1.0, "max_tokens": 4000},
+      {"name": "gemini_flash", "type": "gemini", "model": "gemini-2.5-flash",
+       "weight": 50, "threads": 4, "max_retries": 3,
+       "temperature": 1.0, "max_tokens": 4000}
+    ]
+  },
+  "output_generation": {"enabled": false, "providers": []},
+  "validation": {"schema": true, "semantic_validator": true,
+                 "reject_invalid": true,
+                 "retry_invalid_with_stricter_prompt": false,
+                 "max_repair_attempts": 0},
+  "rate_limits": {"global_max_workers": 8, "write_flush_every": 25}
+}
