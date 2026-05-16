@@ -240,14 +240,14 @@ Written to `<distill_dir>/metrics.json` (honors `DISTILL_DIR_OVERRIDE`). Overwri
 | `totals.calls` | Total provider invocations across all phases this run. |
 | `totals.calls_failed` | Provider invocations that raised. |
 | `totals.candidates_accepted` | Label candidates selected into `train.jsonl`. Always 0 for input phase. |
-| `totals.candidates_rejected` | Label candidates returned by a provider but rejected by JSON/schema/validator/scoring. Always 0 for input phase. |
+| `totals.candidates_rejected` | Label candidates not selected into `train.jsonl`. Includes both validation/parse failures (`failure_reason != None`) and valid lower-scoring candidates that lost to a better sibling (`failure_reason == None, score > 0`). Always 0 for input phase. |
 | `totals.failed_rows_written` | Rows that ended in `failed.jsonl`. Distinct from `candidates_rejected` (one input may have many candidates). |
 | `totals.has_estimated_tokens` | True iff any `ProviderCallMetric.estimated_tokens` was True. |
 | `providers.<name>.call_failure_rate` | `failed_calls / calls`; 0 if calls is 0. |
 | `providers.<name>.acceptance_rate` | `candidates_accepted / (candidates_accepted + candidates_rejected)`. Present only for label phase. |
 | `providers.<name>.estimated_cost_usd` | `(prompt_tokens/1e6 * input_price) + (completion_tokens/1e6 * output_price)`, rounded to 4 decimals. |
 | `providers.<name>.has_estimated_tokens` | True iff any call for that provider used token estimation. |
-| `failures` | Counts of terminal `failure_reason` across both `record_call` (provider_error) and `record_label_candidate` (everything else). No double-count: a provider exception never produces a candidate metric. |
+| `failures` | Counts of terminal `failure_reason` across both `record_call` (provider_error) and `record_label_candidate` (everything else). **Only non-null `failure_reason` values are counted** — valid lower-scoring candidates (`failure_reason == None`) do not appear here. No double-count: a provider exception never produces a candidate metric. |
 | `repair.attempts` | Number of repair provider calls (i.e., `record_call(attempt_type="repair", ...)` events). |
 | `repair.accepted` | Number of inputs whose accepted candidate came from a repair attempt. |
 | `repair.exhausted` | Number of inputs whose repair loop finished without accepting any candidate. |
@@ -265,6 +265,8 @@ Emitted via `logging.info` (multi-line) at the end of each multi-provider run. S
 === Stage 5 metrics (phase=label, 100 inputs, 2m41s) ===
 Calls: 213 (198 ok, 15 failed)  Accepted: 87  Failed rows: 13
 Estimated cost: $0.0342 (rates from configs/prices.json)
+# When configs/prices.json is missing, the cost line reads:
+#   Estimated cost: $0.0000 (rates from default zero pricing)
 
 Provider          Calls  Ok    Fail%   Acc   Cost      p50    p95    Top failure
 gemini_flash      108    105   2.78%   52    $0.0283   812    1421   validation_failed (7)
@@ -381,6 +383,8 @@ After a successful provider call, downstream parsing/validation may still reject
 - accepted by parser but validator-rejected → `accepted=False, failure_reason="validation_failed"` (or specific code)
 - parser-rejected → `accepted=False, failure_reason="json_parse_failed"` / `"schema_invalid"`
 - scored but lost to a higher-scoring sibling → `accepted=False, failure_reason=None, score=<score>`
+
+The last category (valid lower-scoring candidates) increments `candidates_rejected` at finalize time but does NOT increment any bucket in `failures` — `failures` aggregates only non-null `failure_reason` values.
 
 `record_label_candidate` is NEVER called on the provider-exception path. That's the cornerstone of the no-double-count invariant.
 
@@ -517,10 +521,14 @@ Single line. Other `data/distill/*.jsonl` artifacts remain in the existing ignor
 - `render_stdout` contains every provider name, contains `$` with 4-decimal cost, contains the top-failure reason for each provider.
 - `render_stdout` for `phase="inputs"` omits `Acc` and `Top failure` columns.
 
-**Direct orchestrator helper test (in `test_metrics.py`):**
-- `RaisingFakeProvider` that always raises → orchestrator wraps the call, recorder receives `record_call(success=False, failure_reason="provider_error")`, no `record_label_candidate` call. (May import a small helper from the orchestrator or duplicate the §5.2 pattern.)
+`test_metrics.py` covers `metrics.py` only. The provider-error instrumentation path is covered in `tests/test_label_orchestrator.py` (see §8.2 below).
 
-### 8.2 E2E additions
+### 8.2 Orchestrator additions
+
+**`tests/test_label_orchestrator.py` (+1):**
+- `test_provider_error_records_call_failure_only`: a `RaisingFakeProvider` that always raises is passed through `_try_one_attempt` (or the §5.2 wrap pattern); recorder receives exactly one `record_call(success=False, failure_reason="provider_error")` and zero `record_label_candidate` calls. This is the keystone test of the no-double-count invariant.
+
+### 8.3 E2E additions
 
 **`tests/test_multi_provider_labels.py` (+2):**
 - `test_label_phase_writes_metrics_json`: after a successful run with FakeProvider hitting `fake_labels.jsonl`, `metrics.json` exists, contains `run`/`totals`/`providers`/`failures`/`repair` keys, `train_rows_written` matches `train.jsonl` line count, `phase == "label"`.
@@ -529,7 +537,7 @@ Single line. Other `data/distill/*.jsonl` artifacts remain in the existing ignor
 **`tests/test_multi_provider_inputs.py` (+1):**
 - `test_inputs_phase_writes_metrics_json`: after a successful input-phase run, `metrics.json` exists with `phase == "inputs"`, `input_rows_written == target_inputs`, no `repair` key, no `acceptance_rate` in any `providers.<name>`.
 
-### 8.3 Suite size check
+### 8.4 Suite size check
 
 Pre-Slice 4: 294 tests. Estimate: +~25 unit + 3 E2E ≈ +28. Target: ~322 passing at end of Slice 4. Coverage targets: `metrics.py` ≥ 95%, `llm_providers.py` ≥ 85% (currently 89%).
 
