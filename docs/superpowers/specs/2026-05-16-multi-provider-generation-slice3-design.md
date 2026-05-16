@@ -1266,7 +1266,7 @@ python scripts/05_generate_distillation_data.py \
     --phase label \
     --provider-config configs/smoke_real_providers.json \
     --multi-provider --limit 10
-# Cost: ~20 API calls. Cents.
+# Cost: small smoke run; includes real input-generation calls plus up to ~20 label calls. Cents.
 
 # Smoke 5 (GPU): local teacher labeling
 # Requires smoke_local_teacher_providers.json model path to point to an existing adapter directory.
@@ -1302,4 +1302,4 @@ For Smoke 2 (fake fixture), expected pass/fail is fixture-determined; tests asse
 - `scripts/04_eval.py`, `scripts/probe_validator.py` — no edits.
 - `scripts/03_train_teacher.py`, `06_train_student.py`, `_training.py` — no edits.
 - Slices 1+2 tests must stay green throughout (prior baseline at time of writing: ~244 tests).
-- Legacy `phase_inputs`, `phase_label`, `phase_eval` bodies unchanged (the `_build_label_backend` refactor inside `phase_label` is byte-equivalent — it calls the new `_lib.build_teacher_fp16_backend` instead of constructing the backend inline).
+- Legacy `phase_inputs` and `phase_eval` bodies unchanged. Legacy `phase_label` behavior is unchanged; its fp16 backend construction is refactored to call `_lib.build_teacher_fp16_backend` instead of constructing the backend inline.
