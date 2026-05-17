@@ -68,7 +68,10 @@ class GgufBackend:
     doesn't natively batch chat completions, so batch_size only controls
     progress-bar granularity here."""
 
-    def __init__(self, gguf_path: Path, *, n_ctx: int, n_gpu_layers: int) -> None:
+    def __init__(
+        self, gguf_path: Path, *, n_ctx: int, n_gpu_layers: int,
+        use_grammar: bool = True,
+    ) -> None:
         from llama_cpp import Llama  # imported lazily so missing dep doesn't break --help
 
         self.gguf_path = gguf_path
@@ -100,16 +103,24 @@ class GgufBackend:
             logits_all=False,
         )
 
+        self._grammar = None
+        if use_grammar:
+            from grammar import load_label_grammar
+            self._grammar = load_label_grammar()
+
     def batch_infer(self, inputs: list[str], max_tokens: int) -> list[tuple[str, float]]:
         out = []
         for s in inputs:
             t0 = time.perf_counter()
-            resp = self.llm.create_chat_completion(
+            kwargs = dict(
                 messages=build_messages(s),
                 temperature=0.0,
                 top_p=1.0,
                 max_tokens=max_tokens,
             )
+            if self._grammar is not None:
+                kwargs["grammar"] = self._grammar
+            resp = self.llm.create_chat_completion(**kwargs)
             latency_ms = (time.perf_counter() - t0) * 1000.0
             text = resp["choices"][0]["message"]["content"] or ""
             out.append((text, latency_ms))
@@ -184,7 +195,10 @@ class TransformersBackend:
 
 def resolve_backend(path: Path, args: argparse.Namespace) -> Backend:
     if path.is_file() and path.suffix == ".gguf":
-        return GgufBackend(path, n_ctx=args.n_ctx, n_gpu_layers=args.n_gpu_layers)
+        return GgufBackend(
+            path, n_ctx=args.n_ctx, n_gpu_layers=args.n_gpu_layers,
+            use_grammar=not args.no_grammar,
+        )
     if path.is_dir():
         # Skip multimodal projector sidecars — they're for vision input,
         # not standalone LLM weights, and llama.cpp can't load them as a model.
@@ -192,7 +206,10 @@ def resolve_backend(path: Path, args: argparse.Namespace) -> Backend:
             p for p in path.glob("*.gguf") if "mmproj" not in p.name.lower()
         )
         if ggufs:
-            return GgufBackend(ggufs[0], n_ctx=args.n_ctx, n_gpu_layers=args.n_gpu_layers)
+            return GgufBackend(
+                ggufs[0], n_ctx=args.n_ctx, n_gpu_layers=args.n_gpu_layers,
+                use_grammar=not args.no_grammar,
+            )
         if (path / "adapter_config.json").exists():
             return TransformersBackend(path, max_seq_length=args.n_ctx)
     raise SystemExit(
@@ -399,6 +416,9 @@ def parse_args() -> argparse.Namespace:
                    help="(transformers backend) examples per forward pass. "
                         "On A100 80GB try 32-64; on 5060 Ti 16GB try 8-16. "
                         "GGUF backend ignores this — llama.cpp runs sequentially.")
+    p.add_argument("--no-grammar", action="store_true",
+                   help="Disable GBNF grammar-constrained decoding for GGUF inference. "
+                        "TransformersBackend ignores this flag (no grammar surface).")
     return p.parse_args()
 
 
@@ -418,6 +438,9 @@ def main() -> int:
     backend = resolve_backend(args.model, args)
     model_name = args.name or backend.name
     logging.info("Evaluating %s on %s", model_name, args.eval_file)
+    if isinstance(backend, GgufBackend):
+        logging.info("Grammar (GGUF backend): %s",
+                     "enabled" if not args.no_grammar else "disabled")
 
     eval_records = load_jsonl(args.eval_file)
     for r in eval_records:
@@ -496,6 +519,7 @@ def main() -> int:
                         "exact_match": scored["exact_match"],
                         "schema_errors": scored["schema_errors"],
                         "latency_ms": round(latency_ms, 2),
+                        "_grammar": isinstance(backend, GgufBackend) and not args.no_grammar,
                         **val_fields,
                     }
                     fout.write(json.dumps(row, ensure_ascii=False) + "\n")

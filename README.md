@@ -274,6 +274,17 @@ Useful flags:
 - `--max-tokens N` — generation cap per example (default 512).
 - `--n-gpu-layers N` / `--ngl` — GGUF only; `-1` = all (default), `0` = CPU.
 - `--n-ctx N` — context window (default 2048).
+- `--no-grammar` — GGUF only; disable GBNF grammar-constrained decoding for baseline comparisons (see below).
+
+### GBNF grammar (default-on for GGUF inference)
+
+By default, every GGUF-based inference path (Stage 4 eval, Stage 7
+playground, and `scripts/predict_one.py`) constrains output via a GBNF
+grammar derived from the validator's enum constants
+(`_lib.CATEGORIES`/`TYPES`/`CURRENCIES`). Pass `--no-grammar` to disable
+for baseline comparisons. The grammar is rebuilt from `_lib` at every
+process start, so adding a category never drifts. See `scripts/grammar.py`
+and the design at `docs/superpowers/specs/2026-05-17-grammar-constrained-decoding-design.md`.
 
 ## Stage 5 — Teacher generates distillation data
 

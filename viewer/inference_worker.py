@@ -40,6 +40,8 @@ def main() -> int:
     parser.add_argument("--n-ctx", type=int, default=2048)
     parser.add_argument("--n-gpu-layers", type=int, default=-1,
                         help="-1 offloads everything to GPU; 0 forces CPU.")
+    parser.add_argument("--no-grammar", action="store_true",
+                        help="Disable GBNF grammar-constrained decoding.")
     args = parser.parse_args()
 
     model_path = Path(args.model)
@@ -63,6 +65,12 @@ def main() -> int:
         logits_all=False,
     )
     log(f"loaded in {time.perf_counter() - t0:.1f}s")
+
+    grammar_obj = None
+    if not args.no_grammar:
+        from grammar import load_label_grammar
+        grammar_obj = load_label_grammar()
+    log(f"grammar: {'enabled' if grammar_obj is not None else 'disabled'}")
     send({"ready": True, "model": model_path.name})
 
     for raw in sys.stdin:
@@ -85,12 +93,15 @@ def main() -> int:
 
         try:
             t_start = time.perf_counter()
-            resp = llm.create_chat_completion(
+            kwargs = dict(
                 messages=build_messages(input_text),
                 temperature=0.0,
                 top_p=1.0,
                 max_tokens=max_tokens,
             )
+            if grammar_obj is not None:
+                kwargs["grammar"] = grammar_obj
+            resp = llm.create_chat_completion(**kwargs)
             latency_ms = (time.perf_counter() - t_start) * 1000.0
             choice = resp["choices"][0]
             output_text = choice["message"]["content"] or ""

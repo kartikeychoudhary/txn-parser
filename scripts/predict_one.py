@@ -23,6 +23,8 @@ def main() -> int:
     p.add_argument("--n-ctx", type=int, default=2048)
     p.add_argument("--n-gpu-layers", type=int, default=-1,
                    help="-1 = all on GPU, 0 = CPU only.")
+    p.add_argument("--no-grammar", action="store_true",
+                   help="Disable GBNF grammar-constrained decoding.")
     p.add_argument("input", help="The transcribed transaction string to parse.")
     args = p.parse_args()
 
@@ -34,14 +36,19 @@ def main() -> int:
         verbose=False,
         seed=42,
     )
-    resp = llm.create_chat_completion(
+    kwargs = dict(
         messages=build_messages(args.input),
         temperature=0.0, top_p=1.0,
         max_tokens=args.max_tokens,
     )
+    if not args.no_grammar:
+        from grammar import load_label_grammar
+        kwargs["grammar"] = load_label_grammar()
+    resp = llm.create_chat_completion(**kwargs)
     raw = resp["choices"][0]["message"]["content"] or ""
     parsed = extract_json(raw)
 
+    print(f"GRAMMAR: {'off' if args.no_grammar else 'on'}")
     print(f"MODEL  : {args.model}")
     print(f"INPUT  : {args.input}")
     print(f"RAW    : {raw}")
