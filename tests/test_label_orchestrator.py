@@ -317,3 +317,58 @@ def test_process_one_input_repair_succeeds():
     assert best is not None
     assert best.is_repair_attempt is True
     assert len(all_outcomes) == 3   # 2 initial + 1 repair
+
+
+def test_provider_error_records_call_failure_only():
+    """The provider-error path records record_call(success=False) and does
+    NOT call record_label_candidate. Keystone of the no-double-count invariant.
+    """
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+
+    from datetime import datetime, timezone
+    from metrics import MetricsRecorder
+    from llm_providers import ProviderError
+
+    # Spying recorder.
+    class _SpyRecorder(MetricsRecorder):
+        def __init__(self):
+            super().__init__(
+                prices={"default": {"input_per_million": 0.0, "output_per_million": 0.0}},
+                started_at=datetime(2026, 5, 17, tzinfo=timezone.utc),
+                prices_source=None,
+            )
+            self.call_log = []
+            self.candidate_log = []
+        def record_call(self, **kw):
+            self.call_log.append(kw)
+            super().record_call(**kw)
+        def record_label_candidate(self, **kw):
+            self.candidate_log.append(kw)
+            super().record_label_candidate(**kw)
+
+    class _RaisingProvider:
+        name = "boom"
+        model = "m"
+        def generate_label(self, _):
+            raise ProviderError("simulated failure")
+
+    class _Pcfg:
+        name = "boom"
+        provider_type = "fake"
+
+    orch = _orchestrator()
+    rec = _SpyRecorder()
+    outcome = orch._try_one_attempt(
+        "input text",
+        provider=_RaisingProvider(),
+        pcfg=_Pcfg(),
+        recorder=rec,
+        provider_type="fake",
+    )
+    assert outcome.failure_reason == "provider_error"
+    assert len(rec.call_log) == 1
+    assert rec.call_log[0]["success"] is False
+    assert rec.call_log[0]["failure_reason"] == "provider_error"
+    assert len(rec.candidate_log) == 0

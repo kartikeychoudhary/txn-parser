@@ -345,6 +345,7 @@ class DeepSeekProvider:
         self.max_retries = max_retries
         self.timeout = timeout
         self._sleep = time.sleep   # test hook
+        self._tls = threading.local()
 
         from openai import OpenAI                                       # lazy
         from openai import APITimeoutError, RateLimitError, APIConnectionError
@@ -357,6 +358,20 @@ class DeepSeekProvider:
             )
         self._client = OpenAI(api_key=key, base_url=base_url)
         self._retryable_excs = (APITimeoutError, RateLimitError, APIConnectionError)
+
+    def pop_last_usage(self) -> dict | None:
+        u = getattr(self._tls, "usage", None)
+        self._tls.usage = None
+        return u
+
+    def _stash_usage(self, prompt_tokens=None, completion_tokens=None) -> None:
+        if prompt_tokens is None and completion_tokens is None:
+            self._tls.usage = None
+        else:
+            self._tls.usage = {
+                "prompt_tokens": int(prompt_tokens or 0),
+                "completion_tokens": int(completion_tokens or 0),
+            }
 
     def generate_inputs(self, prompt: str, n: int) -> list[str]:
         if n < 0:
@@ -394,6 +409,11 @@ class DeepSeekProvider:
         if self.max_tokens is not None:
             kwargs["max_tokens"] = self.max_tokens
         resp = self._client.chat.completions.create(**kwargs)
+        usage = getattr(resp, "usage", None)
+        self._stash_usage(
+            getattr(usage, "prompt_tokens", None),
+            getattr(usage, "completion_tokens", None),
+        )
         return resp.choices[0].message.content or ""
 
     def _call_with_retry(self, prompt: str) -> str:
@@ -417,6 +437,11 @@ class DeepSeekProvider:
         if self.max_tokens is not None:
             kwargs["max_tokens"] = self.max_tokens
         resp = self._client.chat.completions.create(**kwargs)
+        usage = getattr(resp, "usage", None)
+        self._stash_usage(
+            getattr(usage, "prompt_tokens", None),
+            getattr(usage, "completion_tokens", None),
+        )
         return resp.choices[0].message.content or ""
 
 
@@ -484,6 +509,7 @@ class GeminiProvider:
         self.max_retries = max_retries
         self.structured_output = structured_output
         self._sleep = time.sleep
+        self._tls = threading.local()
 
         from google import genai                                          # lazy
         from google.genai import errors as genai_errors
@@ -496,6 +522,20 @@ class GeminiProvider:
         self._client = genai.Client(api_key=key)
         # Tuple is broad on purpose; the is_retryable predicate filters by status.
         self._retryable_excs = (genai_errors.APIError, genai_errors.ClientError)
+
+    def pop_last_usage(self) -> dict | None:
+        u = getattr(self._tls, "usage", None)
+        self._tls.usage = None
+        return u
+
+    def _stash_usage(self, prompt_tokens=None, completion_tokens=None) -> None:
+        if prompt_tokens is None and completion_tokens is None:
+            self._tls.usage = None
+        else:
+            self._tls.usage = {
+                "prompt_tokens": int(prompt_tokens or 0),
+                "completion_tokens": int(completion_tokens or 0),
+            }
 
     def generate_inputs(self, prompt: str, n: int) -> list[str]:
         if n < 0:
@@ -537,6 +577,11 @@ class GeminiProvider:
             contents=input_text,
             config=config,
         )
+        usage = getattr(resp, "usage_metadata", None)
+        self._stash_usage(
+            getattr(usage, "prompt_token_count", None),
+            getattr(usage, "candidates_token_count", None),
+        )
         return resp.text or ""
 
     def _call_with_retry(self, prompt: str) -> str:
@@ -562,5 +607,10 @@ class GeminiProvider:
             model=self.model,
             contents=prompt,
             config=config,
+        )
+        usage = getattr(resp, "usage_metadata", None)
+        self._stash_usage(
+            getattr(usage, "prompt_token_count", None),
+            getattr(usage, "candidates_token_count", None),
         )
         return resp.text or ""

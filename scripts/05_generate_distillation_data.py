@@ -41,7 +41,7 @@ import sys
 import threading
 import time
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
@@ -473,21 +473,52 @@ def _try_one_attempt(
     failure_summary: str = "",
     parser_candidates: list[dict] | None = None,
     provider_priority_rank: int | None = None,
+    recorder=None,
+    provider_type: str = "",
 ):
     """Run one provider attempt; validate; score. Never raises."""
     from label_selection import CandidateOutcome, score_candidate, build_repair_prompt
+    from metrics import estimate_tokens
+    import time
 
+    start = time.perf_counter()
+    if is_repair:
+        prompt_text = build_repair_prompt(
+            input_text,
+            candidates=parser_candidates,
+            failure_summary=failure_summary,
+        )
+    else:
+        prompt_text = input_text
     try:
         if is_repair:
-            prompt = build_repair_prompt(
-                input_text,
-                candidates=parser_candidates,
-                failure_summary=failure_summary,
-            )
-            raw = provider.generate_label(prompt)
+            raw = provider.generate_label(prompt_text)
         else:
             raw = provider.generate_label(input_text)
     except Exception as e:    # noqa: BLE001 — unify all provider failures
+        latency_ms = (time.perf_counter() - start) * 1000.0
+        pop = getattr(provider, "pop_last_usage", None)
+        usage = pop() if pop else None
+        if recorder is not None:
+            if usage:
+                pt, ct, est = usage["prompt_tokens"], usage["completion_tokens"], False
+            else:
+                pt = estimate_tokens(prompt_text)
+                ct = 0
+                est = True
+            recorder.record_call(
+                provider=pcfg.name,
+                provider_type=provider_type,
+                model=getattr(provider, "model", None),
+                phase="label",
+                attempt_type="repair" if is_repair else "initial",
+                latency_ms=latency_ms,
+                prompt_tokens=pt,
+                completion_tokens=ct,
+                estimated_tokens=est,
+                success=False,
+                failure_reason="provider_error",
+            )
         return CandidateOutcome(
             provider=pcfg.name,
             model=getattr(provider, "model", None),
@@ -499,6 +530,29 @@ def _try_one_attempt(
             is_repair_attempt=is_repair,
             provider_priority_rank=provider_priority_rank,
             error=repr(e),
+        )
+    latency_ms = (time.perf_counter() - start) * 1000.0
+    pop = getattr(provider, "pop_last_usage", None)
+    usage = pop() if pop else None
+    if recorder is not None:
+        if usage:
+            pt, ct, est = usage["prompt_tokens"], usage["completion_tokens"], False
+        else:
+            pt = estimate_tokens(prompt_text)
+            ct = estimate_tokens(raw)
+            est = True
+        recorder.record_call(
+            provider=pcfg.name,
+            provider_type=provider_type,
+            model=getattr(provider, "model", None),
+            phase="label",
+            attempt_type="repair" if is_repair else "initial",
+            latency_ms=latency_ms,
+            prompt_tokens=pt,
+            completion_tokens=ct,
+            estimated_tokens=est,
+            success=True,
+            failure_reason=None,
         )
 
     # Post-processing wrapped in a second try/except — a validator bug or
@@ -603,6 +657,7 @@ def _process_one_input(
     provider_limits: dict,           # name -> threading.Semaphore(pcfg.threads)
     cfg,
     parser_candidates: list[dict],
+    recorder=None,
 ):
     """Process one input end-to-end. Returns (input_text, best_or_None, all_outcomes).
 
@@ -620,6 +675,8 @@ def _process_one_input(
                 provider=providers_by_name[provider_name],
                 pcfg=pcfgs_by_name[provider_name],
                 provider_priority_rank=priority_map.get(provider_name),
+                recorder=recorder,
+                provider_type=getattr(pcfgs_by_name[provider_name], "provider_type", ""),
             ))
 
     best = pick_best(outcomes)
@@ -642,6 +699,8 @@ def _process_one_input(
                     failure_summary=_summarize_failures(outcomes),
                     parser_candidates=parser_candidates,
                     provider_priority_rank=priority_map.get(repair_provider_name),
+                    recorder=recorder,
+                    provider_type=getattr(pcfgs_by_name[repair_provider_name], "provider_type", ""),
                 )
             outcomes.append(repair_outcome)
             if repair_outcome.failure_reason is None:
@@ -737,7 +796,7 @@ def _serialize_outcome(o) -> dict:
     }
 
 
-def phase_label_multi_provider(args: argparse.Namespace) -> None:
+def phase_label_multi_provider(args: argparse.Namespace, recorder=None) -> int:
     """Slice 3 validator-gated multi-provider label generation."""
     from generation_config import load_generation_config
     from generation_orchestrator import RoundRobinScheduler
@@ -749,7 +808,7 @@ def phase_label_multi_provider(args: argparse.Namespace) -> None:
         logging.info(
             "Phase label (multi-provider): output_generation.enabled=False — nothing to do."
         )
-        return
+        return 0
 
     DISTILL_DIR.mkdir(parents=True, exist_ok=True)
     all_inputs = read_inputs_jsonl(INPUTS_FILE)
@@ -778,7 +837,7 @@ def phase_label_multi_provider(args: argparse.Namespace) -> None:
         len(all_inputs_unique), len(labeled_keys), len(failed_skip_keys), len(pending),
     )
     if not pending:
-        return
+        return 0
 
     providers_by_name = {p.name: create_provider(p) for p in og.providers}
     pcfgs_by_name = {p.name: p for p in og.providers}
@@ -817,6 +876,7 @@ def phase_label_multi_provider(args: argparse.Namespace) -> None:
                 provider_limits=provider_limits,
                 cfg=cfg,
                 parser_candidates=candidates_by_input[inp],
+                recorder=recorder,
             ): inp
             for inp in pending
         }
@@ -826,6 +886,21 @@ def phase_label_multi_provider(args: argparse.Namespace) -> None:
             for o in all_outcomes:
                 if o.failure_reason:
                     attempt_failure_reasons[o.failure_reason] += 1
+
+            # Emit label-candidate metrics for every outcome EXCEPT provider_error
+            # (provider_error is already accounted for via record_call).
+            if recorder is not None:
+                for o in all_outcomes:
+                    if o.failure_reason == "provider_error":
+                        continue
+                    recorder.record_label_candidate(
+                        provider=o.provider,
+                        model=o.model,
+                        score=o.score,
+                        accepted=(best is not None and o is best),
+                        failure_reason=o.failure_reason,
+                        is_repair_attempt=o.is_repair_attempt,
+                    )
 
             if best is not None:
                 row = {
@@ -841,6 +916,8 @@ def phase_label_multi_provider(args: argparse.Namespace) -> None:
                 n_kept += 1
                 if best.is_repair_attempt:
                     n_repaired += 1
+                if recorder is not None:
+                    recorder.record_output_row("train")
             else:
                 repair_enabled = (
                     cfg.validation.retry_invalid_with_stricter_prompt
@@ -859,6 +936,12 @@ def phase_label_multi_provider(args: argparse.Namespace) -> None:
                 fail_out.write(json.dumps(failed_row, ensure_ascii=False) + "\n")
                 n_failed += 1
                 failure_reasons[top_reason] += 1
+                if recorder is not None:
+                    recorder.record_output_row("failed")
+                    # Explicit repair-exhausted accounting: only count inputs
+                    # that actually entered the repair loop.
+                    if any(o.is_repair_attempt for o in all_outcomes):
+                        recorder.record_repair_exhausted()
             if (n_kept + n_failed) % cfg.rate_limits.write_flush_every == 0:
                 train_out.flush()
                 fail_out.flush()
@@ -876,6 +959,7 @@ def phase_label_multi_provider(args: argparse.Namespace) -> None:
         logging.info("Top-level failure reasons: %s", dict(failure_reasons))
     if attempt_failure_reasons:
         logging.info("Attempt-level failure reasons: %s", dict(attempt_failure_reasons))
+    return n_kept + n_failed
 
 
 # ---------------------------------------------------------------------------
@@ -940,6 +1024,8 @@ def _provider_worker(
     batch_size: int,
     results_queue: "queue.Queue",
     stop_event: threading.Event,
+    recorder=None,
+    provider_type: str = "",
 ) -> None:
     """Run one provider's batches until stop_event is set or local caps hit.
 
@@ -947,6 +1033,8 @@ def _provider_worker(
       - empty_response_streak: parser returned 0 cleaned lines
       - provider_error_streak: exception bubbled through retries
     """
+    import time
+    from metrics import estimate_tokens as _est
     empty_streak = 0
     error_streak = 0
     while not stop_event.is_set():
@@ -963,12 +1051,63 @@ def _provider_worker(
             )
             return
         prompt = _build_input_prompt(batch_size, batch_focus=_next_focus(pcfg.name))
+        start = time.perf_counter()
         try:
             lines = provider.generate_inputs(prompt, batch_size)
         except Exception as e:    # noqa: BLE001 — surface any provider failure as an error streak
+            latency_ms = (time.perf_counter() - start) * 1000.0
+            pop = getattr(provider, "pop_last_usage", None)
+            usage = pop() if pop else None
+            if recorder is not None:
+                if usage:
+                    pt = usage["prompt_tokens"]
+                    ct = usage["completion_tokens"]
+                    est = False
+                else:
+                    pt = _est(prompt)
+                    ct = 0
+                    est = True
+                recorder.record_call(
+                    provider=pcfg.name,
+                    provider_type=provider_type,
+                    model=getattr(provider, "model", None),
+                    phase="inputs",
+                    attempt_type="input_batch",
+                    latency_ms=latency_ms,
+                    prompt_tokens=pt,
+                    completion_tokens=ct,
+                    estimated_tokens=est,
+                    success=False,
+                    failure_reason="provider_error",
+                )
             logging.error("Provider %s batch failed: %s", pcfg.name, e)
             error_streak += 1
             continue
+        latency_ms = (time.perf_counter() - start) * 1000.0
+        pop = getattr(provider, "pop_last_usage", None)
+        usage = pop() if pop else None
+        if recorder is not None:
+            if usage:
+                pt = usage["prompt_tokens"]
+                ct = usage["completion_tokens"]
+                est = False
+            else:
+                pt = _est(prompt)
+                ct = _est("\n".join(lines))
+                est = True
+            recorder.record_call(
+                provider=pcfg.name,
+                provider_type=provider_type,
+                model=getattr(provider, "model", None),
+                phase="inputs",
+                attempt_type="input_batch",
+                latency_ms=latency_ms,
+                prompt_tokens=pt,
+                completion_tokens=ct,
+                estimated_tokens=est,
+                success=True,
+                failure_reason=None,
+            )
         if not lines:
             empty_streak += 1
             continue
@@ -988,7 +1127,7 @@ def _provider_worker(
                     continue
 
 
-def phase_inputs_multi_provider(args: argparse.Namespace) -> None:
+def phase_inputs_multi_provider(args: argparse.Namespace, recorder=None) -> int:
     """Slice 2 multi-provider input-generation loop.
 
     Reads cfg.input_generation.{target_inputs, batch_size, providers}.
@@ -1003,7 +1142,7 @@ def phase_inputs_multi_provider(args: argparse.Namespace) -> None:
     ig = cfg.input_generation
     if not ig.enabled:
         logging.info("Phase inputs (multi-provider): input_generation.enabled=False — nothing to do.")
-        return
+        return 0
 
     DISTILL_DIR.mkdir(parents=True, exist_ok=True)
     existing_inputs = read_inputs_jsonl(INPUTS_FILE)
@@ -1016,7 +1155,7 @@ def phase_inputs_multi_provider(args: argparse.Namespace) -> None:
     )
     if pending == 0:
         logging.info("Already at target. Multi-provider phase complete.")
-        return
+        return 0
 
     # Only warn if the user explicitly passed --n-inputs (i.e. it appears in
     # sys.argv). Comparing args.n_inputs against the default would fire the
@@ -1073,6 +1212,8 @@ def phase_inputs_multi_provider(args: argparse.Namespace) -> None:
                     batch_size=ig.batch_size,
                     results_queue=results_queue,
                     stop_event=stop_event,
+                    recorder=recorder,
+                    provider_type=getattr(pcfg, "provider_type", ""),
                 ))
 
         accepted_total = 0
@@ -1116,6 +1257,8 @@ def phase_inputs_multi_provider(args: argparse.Namespace) -> None:
             }
             fout.write(json.dumps(row, ensure_ascii=False) + "\n")
             accepted_total += 1
+            if recorder is not None:
+                recorder.record_output_row("input")
             if accepted_total % cfg.rate_limits.write_flush_every == 0:
                 fout.flush()
             bar.update(1)
@@ -1127,6 +1270,7 @@ def phase_inputs_multi_provider(args: argparse.Namespace) -> None:
         "Phase inputs (multi-provider) done. accepted=%d existing_unique=%d target=%d",
         accepted_total, existing_unique + accepted_total, ig.target_inputs,
     )
+    return accepted_total
 
 
 # ---------------------------------------------------------------------------
@@ -1275,10 +1419,31 @@ def main() -> int:
     if args.multi_provider:
         assert args.phase in {"inputs", "label"}
         assert args.provider_config is not None
+        from metrics import MetricsRecorder, load_prices
+        prices_path = REPO_ROOT / "configs" / "prices.json"
+        prices = load_prices(prices_path)
+        recorder = MetricsRecorder(
+            prices=prices,
+            started_at=datetime.now(timezone.utc),
+            prices_source=str(prices_path.relative_to(REPO_ROOT))
+                          if prices_path.exists() else None,
+        )
         if args.phase == "inputs":
-            phase_inputs_multi_provider(args)
+            processed = phase_inputs_multi_provider(args, recorder=recorder)
         else:
-            phase_label_multi_provider(args)
+            processed = phase_label_multi_provider(args, recorder=recorder)
+        summary = recorder.finalize(
+            phase=args.phase,
+            inputs_processed=processed,
+            finished_at=datetime.now(timezone.utc),
+        )
+        metrics_path = DISTILL_DIR / "metrics.json"
+        metrics_path.write_text(
+            json.dumps(summary, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        for line in recorder.render_stdout(summary).splitlines():
+            logging.info(line)
         logging.info("Stage 5 done.")
         return 0
 

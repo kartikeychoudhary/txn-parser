@@ -331,3 +331,91 @@ def test_gemini_retryable_excs_is_populated_with_real_sdk_types(monkeypatch, pat
     from google.genai import errors as genai_errors
     assert genai_errors.APIError in p._retryable_excs
     assert genai_errors.ClientError in p._retryable_excs
+
+
+def test_deepseek_pop_last_usage_returns_sdk_usage(monkeypatch, patch_sdk_clients):
+    """DeepSeek stashes usage from resp.usage and pop_last_usage returns it."""
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "x")
+
+    class _FakeUsage:
+        prompt_tokens = 123
+        completion_tokens = 45
+
+    class _FakeChoice:
+        class message:
+            content = '{"transactions": []}'
+
+    class _FakeResp:
+        usage = _FakeUsage()
+        choices = [_FakeChoice()]
+
+    from llm_providers import DeepSeekProvider
+    p = DeepSeekProvider(name="ds", model="deepseek-chat")
+    p._client.chat.completions.create = lambda **kw: _FakeResp()  # type: ignore[attr-defined]
+    _ = p.generate_label("foo")
+    assert p.pop_last_usage() == {"prompt_tokens": 123, "completion_tokens": 45}
+    # Second pop returns None.
+    assert p.pop_last_usage() is None
+
+
+def test_deepseek_pop_last_usage_handles_missing_usage(monkeypatch, patch_sdk_clients):
+    """If SDK response lacks usage, pop_last_usage returns None."""
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "x")
+
+    class _FakeChoice:
+        class message:
+            content = '{"transactions": []}'
+
+    class _FakeResp:
+        choices = [_FakeChoice()]
+        # No `usage` attribute.
+
+    from llm_providers import DeepSeekProvider
+    p = DeepSeekProvider(name="ds", model="deepseek-chat")
+    p._client.chat.completions.create = lambda **kw: _FakeResp()  # type: ignore[attr-defined]
+    _ = p.generate_label("foo")
+    assert p.pop_last_usage() is None
+
+
+def test_gemini_pop_last_usage_returns_sdk_usage(monkeypatch, patch_sdk_clients):
+    """Gemini stashes usage from resp.usage_metadata."""
+    monkeypatch.setenv("GOOGLE_API_KEY", "x")
+
+    class _FakeMeta:
+        prompt_token_count = 80
+        candidates_token_count = 20
+
+    class _FakeResp:
+        usage_metadata = _FakeMeta()
+        text = '{"transactions": []}'
+
+    from llm_providers import GeminiProvider
+    p = GeminiProvider(name="g", model="gemini-2.5-flash")
+    p._client.models.generate_content = lambda **kw: _FakeResp()  # type: ignore[attr-defined]
+    _ = p.generate_label("foo")
+    assert p.pop_last_usage() == {"prompt_tokens": 80, "completion_tokens": 20}
+
+
+def test_gemini_pop_last_usage_handles_missing_usage(monkeypatch, patch_sdk_clients):
+    """If Gemini SDK response lacks usage_metadata, pop_last_usage returns None."""
+    monkeypatch.setenv("GOOGLE_API_KEY", "x")
+
+    class _FakeResp:
+        text = '{"transactions": []}'
+        # No usage_metadata attribute.
+
+    from llm_providers import GeminiProvider
+    p = GeminiProvider(name="g", model="gemini-2.5-flash")
+    p._client.models.generate_content = lambda **kw: _FakeResp()  # type: ignore[attr-defined]
+    _ = p.generate_label("foo")
+    assert p.pop_last_usage() is None
+
+
+def test_fake_provider_instance_has_no_pop_last_usage(tmp_path):
+    """FakeProvider deliberately does not expose pop_last_usage; orchestrator
+    uses getattr fallback. Check on an INSTANCE so dynamic attrs are caught."""
+    from llm_providers import FakeProvider
+    fixture = tmp_path / "fake_inputs.jsonl"
+    fixture.write_text('{"input":"hello"}\n', encoding="utf-8")
+    p = FakeProvider(name="fake", inputs_path=fixture)
+    assert not hasattr(p, "pop_last_usage")

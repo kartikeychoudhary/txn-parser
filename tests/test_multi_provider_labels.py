@@ -255,3 +255,48 @@ def test_label_phase_retry_validation_failed_re_attempts(tmp_path):
         train_rows = [json.loads(line) for line in train.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert len(train_rows) == 1
     assert train_rows[0]["_provider"] == "fake_a"
+
+
+def test_label_phase_writes_metrics_json(tmp_path):
+    """End-to-end: a successful label run writes data/distill/metrics.json
+    with the documented shape."""
+    fixture = REPO_ROOT / "tests" / "fixtures" / "fake_labels.jsonl"
+    first_input = json.loads(fixture.read_text(encoding="utf-8").splitlines()[0])["input"]
+    _seed_inputs(tmp_path, [first_input])
+    cfg = _make_label_config(tmp_path)
+    result = _run_label(cfg, tmp_path)
+    assert result.returncode == 0, result.stderr
+
+    metrics_path = tmp_path / "metrics.json"
+    assert metrics_path.exists(), "metrics.json should be written"
+    metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+
+    # Required top-level keys.
+    assert {"run", "totals", "providers", "failures", "repair"} <= set(metrics)
+
+    # Run block.
+    assert metrics["run"]["phase"] == "label"
+    assert metrics["run"]["inputs_processed"] == 1
+
+    # Totals match output files.
+    train = (tmp_path / "train.jsonl").read_text(encoding="utf-8").splitlines()
+    assert metrics["totals"]["train_rows_written"] == len(train) == 1
+
+    # Provider-error invariant.
+    assert metrics["failures"].get("provider_error", 0) == metrics["totals"]["calls_failed"]
+
+
+def test_label_phase_metrics_records_json_parse_failures(tmp_path):
+    """FakeProvider miss returns empty/malformed payload -> json_parse_failed.
+    Asserts: calls_failed == 0, candidates_rejected > 0, failures.json_parse_failed > 0."""
+    _seed_inputs(tmp_path, ["completely_unmatched_input_string_xyz"])
+    cfg = _make_label_config(tmp_path, label_attempts=2)
+    result = _run_label(cfg, tmp_path)
+    assert result.returncode == 0, result.stderr
+
+    metrics = json.loads((tmp_path / "metrics.json").read_text(encoding="utf-8"))
+    assert metrics["totals"]["calls_failed"] == 0
+    assert metrics["totals"]["candidates_rejected"] > 0
+    assert metrics["failures"].get("json_parse_failed", 0) > 0
+    # Invariant still holds (provider_error and calls_failed both 0 here).
+    assert metrics["failures"].get("provider_error", 0) == metrics["totals"]["calls_failed"]

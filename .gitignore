@@ -31,3 +31,4 @@ Thumbs.db
 .vscode/
 .claude/
 *.swp
+data/distill/metrics.json

@@ -115,3 +115,25 @@ relevant SDKs, keys, or local model assets.
 
 - `configs/test_providers.json` — fake-only, 10-input target, used by smoke tests.
 - `configs/example_providers.json` — realistic shape with deepseek/gemini/local_teacher providers. Loads cleanly; cannot run in Slice 1.
+
+## Metrics (Slice 4)
+
+Multi-provider runs (`--multi-provider --phase {inputs,label}`) emit
+`data/distill/metrics.json` and log a compact stdout summary.
+
+Per-model USD prices come from `configs/prices.json`. The lookup order is:
+
+1. `<provider_type>:<model>` (e.g., `gemini:gemini-2.5-flash`)
+2. `<model>` (e.g., `gemini-2.5-flash`)
+3. `<provider_type>` (e.g., `gemini`)
+4. `default`
+
+Each entry has the shape:
+
+```json
+{"input_per_million": 0.30, "output_per_million": 2.50}
+```
+
+If `configs/prices.json` is missing, the run continues with $0.00 cost and a
+warning log line. Costs are estimates — the script never contacts a live
+pricing API.
