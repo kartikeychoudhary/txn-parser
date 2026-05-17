@@ -167,3 +167,48 @@ def test_multi_provider_disabled_input_generation_does_nothing(tmp_path):
     assert result.returncode == 0, result.stderr
     out_file = tmp_path / "inputs_raw.jsonl"
     assert not out_file.exists() or out_file.read_text(encoding="utf-8") == ""
+
+
+def test_inputs_phase_writes_metrics_json(tmp_path):
+    """End-to-end: inputs phase writes metrics.json with phase='inputs'."""
+    fixture = REPO_ROOT / "tests" / "fixtures" / "fake_inputs.jsonl"
+    target = 5
+    cfg_data = {
+        "version": 1,
+        "input_generation": {
+            "enabled": True,
+            "target_inputs": target,
+            "batch_size": 5,
+            "dedupe": True,
+            "providers": [
+                {"name": "fake_a", "type": "fake", "weight": 1, "threads": 1,
+                 "fixture_inputs": str(fixture)},
+            ],
+        },
+        "output_generation": {"enabled": False, "providers": []},
+        "validation": {"schema": True, "semantic_validator": True,
+                       "reject_invalid": True,
+                       "retry_invalid_with_stricter_prompt": False,
+                       "max_repair_attempts": 0},
+        "rate_limits": {"global_max_workers": 1, "write_flush_every": 5},
+    }
+    cfg_path = tmp_path / "providers.json"
+    cfg_path.write_text(json.dumps(cfg_data), encoding="utf-8")
+    env = {**os.environ, "DISTILL_DIR_OVERRIDE": str(tmp_path)}
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT),
+         "--phase", "inputs",
+         "--provider-config", str(cfg_path),
+         "--multi-provider"],
+        capture_output=True, text=True, cwd=str(REPO_ROOT), env=env,
+    )
+    assert result.returncode == 0, result.stderr
+
+    metrics = json.loads((tmp_path / "metrics.json").read_text(encoding="utf-8"))
+    assert metrics["run"]["phase"] == "inputs"
+    assert metrics["totals"]["input_rows_written"] == target
+    assert "repair" not in metrics
+    # acceptance_rate must NOT appear in any provider block.
+    for pname, pblock in metrics["providers"].items():
+        assert "acceptance_rate" not in pblock, \
+            f"acceptance_rate must be absent in input phase, found in {pname}"

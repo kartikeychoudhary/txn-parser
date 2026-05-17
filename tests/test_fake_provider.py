@@ -160,17 +160,19 @@ def test_create_provider_returns_fake_for_fake_type():
     assert p.name == "x"
 
 
-def test_create_provider_returns_unimplemented_for_real_types():
-    from llm_providers import UnimplementedProvider, create_provider
-    from generation_config import ProviderConfig
-
-    # deepseek now returns DeepSeekProvider (Task 4); gemini now returns
-    # GeminiProvider (Task 5); only local_teacher remains as UnimplementedProvider.
-    for t in ("local_teacher",):
-        cfg = ProviderConfig(name=f"x_{t}", provider_type=t, model="m")
-        p = create_provider(cfg)
-        assert isinstance(p, UnimplementedProvider)
-        assert p.provider_type == t
+def test_unimplemented_provider_can_be_constructed_directly():
+    """UnimplementedProvider remains constructible directly for any provider
+    type and raises NotImplementedError on calls. This preserves the
+    class as a forward-compatible placeholder even though create_provider
+    no longer returns it for any production provider type."""
+    from llm_providers import UnimplementedProvider
+    p = UnimplementedProvider(name="x", provider_type="future_type", model=None)
+    assert p.name == "x"
+    assert p.provider_type == "future_type"
+    with pytest.raises(NotImplementedError):
+        p.generate_inputs("prompt", n=1)
+    with pytest.raises(NotImplementedError):
+        p.generate_label("500 beer")
 
 
 def test_create_provider_raises_on_unknown_type():

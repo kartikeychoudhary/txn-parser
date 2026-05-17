@@ -192,6 +192,56 @@ class UnimplementedProvider:
         )
 
 
+class LocalTeacherProvider:
+    """Real local teacher via Unsloth + transformers fp16 backend.
+
+    Lazy backend load: __init__ stashes config; the first generate_label
+    call builds the backend. A threading.Lock protects both init and
+    inference (single GPU is not safely concurrent).
+    """
+
+    provider_type = "local_teacher"
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        adapter_dir,
+        max_seq_length: int = 1024,
+        max_new_tokens: int = 384,
+    ) -> None:
+        self.name = name
+        self.model = None   # populated lazily after backend load
+        self.adapter_dir = adapter_dir
+        self.max_seq_length = max_seq_length
+        self.max_new_tokens = max_new_tokens
+        self._backend = None
+        self._lock = threading.Lock()
+
+    def generate_inputs(self, prompt: str, n: int) -> list[str]:
+        raise NotImplementedError(
+            f"local_teacher provider {self.name!r}: input generation is not "
+            f"supported — local_teacher is label-only."
+        )
+
+    def generate_label(self, input_text: str) -> str:
+        with self._lock:
+            if self._backend is None:
+                from _lib import build_teacher_fp16_backend
+                if self.adapter_dir is None or not self.adapter_dir.exists():
+                    raise ProviderError(
+                        f"LocalTeacherProvider {self.name!r}: adapter dir not found at {self.adapter_dir}"
+                    )
+                self._backend = build_teacher_fp16_backend(
+                    adapter_dir=self.adapter_dir,
+                    max_seq_length=self.max_seq_length,
+                )
+                self.model = self.adapter_dir.name
+            from _lib import build_messages
+            msgs = build_messages(input_text)
+            return self._backend.generate_label(msgs, max_new_tokens=self.max_new_tokens)
+
+
 def create_provider(cfg) -> LLMProvider:
     """Map ProviderConfig.provider_type -> concrete provider.
 
@@ -226,8 +276,17 @@ def create_provider(cfg) -> LLMProvider:
             structured_output=cfg.structured_output,
         )
     if cfg.provider_type == "local_teacher":
-        return UnimplementedProvider(
-            name=cfg.name, provider_type="local_teacher", model=cfg.model,
+        from generation_config import ConfigError
+        if not cfg.model:
+            raise ConfigError(
+                f"local_teacher provider {cfg.name!r} requires `model` "
+                f"(path to the adapter directory)."
+            )
+        return LocalTeacherProvider(
+            name=cfg.name,
+            adapter_dir=Path(cfg.model),
+            max_seq_length=1024,
+            max_new_tokens=cfg.max_tokens or 384,
         )
     raise ValueError(
         f"Unknown provider type {cfg.provider_type!r} for provider {cfg.name!r}"
@@ -286,6 +345,7 @@ class DeepSeekProvider:
         self.max_retries = max_retries
         self.timeout = timeout
         self._sleep = time.sleep   # test hook
+        self._tls = threading.local()
 
         from openai import OpenAI                                       # lazy
         from openai import APITimeoutError, RateLimitError, APIConnectionError
@@ -299,6 +359,20 @@ class DeepSeekProvider:
         self._client = OpenAI(api_key=key, base_url=base_url)
         self._retryable_excs = (APITimeoutError, RateLimitError, APIConnectionError)
 
+    def pop_last_usage(self) -> dict | None:
+        u = getattr(self._tls, "usage", None)
+        self._tls.usage = None
+        return u
+
+    def _stash_usage(self, prompt_tokens=None, completion_tokens=None) -> None:
+        if prompt_tokens is None and completion_tokens is None:
+            self._tls.usage = None
+        else:
+            self._tls.usage = {
+                "prompt_tokens": int(prompt_tokens or 0),
+                "completion_tokens": int(completion_tokens or 0),
+            }
+
     def generate_inputs(self, prompt: str, n: int) -> list[str]:
         if n < 0:
             raise ProviderError(f"generate_inputs: n must be >= 0, got {n}")
@@ -308,9 +382,39 @@ class DeepSeekProvider:
         return _parse_input_lines(text, expected=n)
 
     def generate_label(self, input_text: str) -> str:
-        raise NotImplementedError(
-            f"deepseek provider {self.name!r}: output labeling lands in Slice 3"
+        """Single chat-completion call to label this input. Returns raw text;
+        orchestrator validates."""
+        from _lib import build_messages
+        msgs = build_messages(input_text)
+        return self._call_with_retry_label(msgs)
+
+    def _call_with_retry_label(self, messages: list[dict]) -> str:
+        from _retry import retry_with_backoff
+        return retry_with_backoff(
+            lambda: self._call_api_messages(messages),
+            retryable=self._retryable_excs,
+            max_retries=self.max_retries,
+            logger_name=f"deepseek.{self.name}",
+            sleep=self._sleep,
         )
+
+    def _call_api_messages(self, messages: list[dict]) -> str:
+        kwargs = {
+            "model": self.model,
+            "messages": messages,
+            "timeout": self.timeout,
+        }
+        if self.temperature is not None:
+            kwargs["temperature"] = self.temperature
+        if self.max_tokens is not None:
+            kwargs["max_tokens"] = self.max_tokens
+        resp = self._client.chat.completions.create(**kwargs)
+        usage = getattr(resp, "usage", None)
+        self._stash_usage(
+            getattr(usage, "prompt_tokens", None),
+            getattr(usage, "completion_tokens", None),
+        )
+        return resp.choices[0].message.content or ""
 
     def _call_with_retry(self, prompt: str) -> str:
         from _retry import retry_with_backoff
@@ -333,6 +437,11 @@ class DeepSeekProvider:
         if self.max_tokens is not None:
             kwargs["max_tokens"] = self.max_tokens
         resp = self._client.chat.completions.create(**kwargs)
+        usage = getattr(resp, "usage", None)
+        self._stash_usage(
+            getattr(usage, "prompt_tokens", None),
+            getattr(usage, "completion_tokens", None),
+        )
         return resp.choices[0].message.content or ""
 
 
@@ -345,6 +454,32 @@ def _is_retryable_gemini_error(exc: BaseException) -> bool:
     except (TypeError, ValueError):
         return False
     return status_int in {429, 500, 502, 503, 504}
+
+
+def _label_schema_for_gemini() -> dict:
+    """Gemini-shaped schema for transaction labels. Enums sourced from
+    _lib so they stay in lockstep with the validator."""
+    from _lib import CATEGORIES, TYPES, CURRENCIES
+    return {
+        "type": "OBJECT",
+        "properties": {
+            "transactions": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "amount":   {"type": "NUMBER"},
+                        "currency": {"type": "STRING", "enum": list(CURRENCIES)},
+                        "item":     {"type": "STRING"},
+                        "category": {"type": "STRING", "enum": list(CATEGORIES)},
+                        "type":     {"type": "STRING", "enum": list(TYPES)},
+                    },
+                    "required": ["amount", "currency", "item", "category", "type"],
+                },
+            },
+        },
+        "required": ["transactions"],
+    }
 
 
 class GeminiProvider:
@@ -374,6 +509,7 @@ class GeminiProvider:
         self.max_retries = max_retries
         self.structured_output = structured_output
         self._sleep = time.sleep
+        self._tls = threading.local()
 
         from google import genai                                          # lazy
         from google.genai import errors as genai_errors
@@ -387,6 +523,20 @@ class GeminiProvider:
         # Tuple is broad on purpose; the is_retryable predicate filters by status.
         self._retryable_excs = (genai_errors.APIError, genai_errors.ClientError)
 
+    def pop_last_usage(self) -> dict | None:
+        u = getattr(self._tls, "usage", None)
+        self._tls.usage = None
+        return u
+
+    def _stash_usage(self, prompt_tokens=None, completion_tokens=None) -> None:
+        if prompt_tokens is None and completion_tokens is None:
+            self._tls.usage = None
+        else:
+            self._tls.usage = {
+                "prompt_tokens": int(prompt_tokens or 0),
+                "completion_tokens": int(completion_tokens or 0),
+            }
+
     def generate_inputs(self, prompt: str, n: int) -> list[str]:
         if n < 0:
             raise ProviderError(f"generate_inputs: n must be >= 0, got {n}")
@@ -396,9 +546,43 @@ class GeminiProvider:
         return _parse_input_lines(text, expected=n)
 
     def generate_label(self, input_text: str) -> str:
-        raise NotImplementedError(
-            f"gemini provider {self.name!r}: output labeling lands in Slice 3"
+        """Single content-generation call to label this input. Returns raw text."""
+        return self._call_with_retry_label(input_text)
+
+    def _call_with_retry_label(self, input_text: str) -> str:
+        from _retry import retry_with_backoff
+        return retry_with_backoff(
+            lambda: self._call_api_label(input_text),
+            retryable=self._retryable_excs,
+            is_retryable=_is_retryable_gemini_error,
+            max_retries=self.max_retries,
+            logger_name=f"gemini.{self.name}",
+            sleep=self._sleep,
         )
+
+    def _call_api_label(self, input_text: str) -> str:
+        from google.genai import types
+        from _lib import SYSTEM_PROMPT
+        cfg_kwargs = {"system_instruction": SYSTEM_PROMPT}
+        if self.temperature is not None:
+            cfg_kwargs["temperature"] = self.temperature
+        if self.max_tokens is not None:
+            cfg_kwargs["max_output_tokens"] = self.max_tokens
+        if self.structured_output:
+            cfg_kwargs["response_mime_type"] = "application/json"
+            cfg_kwargs["response_schema"] = _label_schema_for_gemini()
+        config = types.GenerateContentConfig(**cfg_kwargs)
+        resp = self._client.models.generate_content(
+            model=self.model,
+            contents=input_text,
+            config=config,
+        )
+        usage = getattr(resp, "usage_metadata", None)
+        self._stash_usage(
+            getattr(usage, "prompt_token_count", None),
+            getattr(usage, "candidates_token_count", None),
+        )
+        return resp.text or ""
 
     def _call_with_retry(self, prompt: str) -> str:
         from _retry import retry_with_backoff
@@ -423,5 +607,10 @@ class GeminiProvider:
             model=self.model,
             contents=prompt,
             config=config,
+        )
+        usage = getattr(resp, "usage_metadata", None)
+        self._stash_usage(
+            getattr(usage, "prompt_token_count", None),
+            getattr(usage, "candidates_token_count", None),
         )
         return resp.text or ""
