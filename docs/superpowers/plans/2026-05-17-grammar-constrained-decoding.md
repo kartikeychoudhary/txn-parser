@@ -12,7 +12,7 @@
 
 **Branch:** `feat/grammar-decoding` (already checked out, branched from `main` HEAD after the multi-provider PR merged).
 
-**Test baseline at start:** Whatever `pytest tests/ -q` reports on this branch. Target at end of plan: **baseline + ~19 new tests** (~14 grammar + ~5 wiring). Treat exact counts as smoke signals, not hard blockers.
+**Test baseline at start:** Whatever `pytest tests/ -q` reports on this branch. Target at end of plan: **baseline + ~20 new tests** (15 grammar + 5 wiring). If `llama-cpp-python` is not installed in the test environment, 2 of the 15 grammar tests skip via `pytest.importorskip`, yielding +18. Treat exact counts as smoke signals, not hard blockers.
 
 **Single commit at landing.** Same convention as previous slices: spec lives on the branch as its own commit; the implementation lands as one additive commit at Task 8. Files in `data/distill/*`, `eval_results/*`, `.coverage`, and `reports/` are NEVER staged.
 
@@ -273,6 +273,9 @@ def test_load_label_grammar_compiles_and_caches(monkeypatch):
 
 
 def test_load_label_grammar_failure_is_loud(monkeypatch):
+    """Skipped when llama_cpp is missing: this test patches the real
+    LlamaGrammar class to force a compile failure, which requires the
+    real module to exist."""
     pytest.importorskip("llama_cpp")
     import grammar
     monkeypatch.setattr(grammar, "_LABEL_GRAMMAR", None)
@@ -432,14 +435,14 @@ category ::= "\"Food & Drinks\"" | "\"Groceries\"" | "\"Travel\"" | ...
 ...
 ```
 
-If `repr(...)` doesn't match: do NOT edit the tests. Fix `_gbnf_literal` in `scripts/grammar.py` until the repr output matches the test expectations exactly.
+If `repr(...)` doesn't match the test expectation: **do not weaken the assertion**. The intended GBNF terminal is unambiguous — for `"INR"` it must be the 7-character GBNF sequence `"\"INR\""` (quote, escaped-quote, I, N, R, escaped-quote, quote). Verify the intended GBNF terminal visually first, then fix whichever side is wrong (implementation OR the test's Python literal) so both reflect that GBNF target. Python escape semantics are confusing; the GBNF text is the invariant.
 
 - [ ] **Step 5: Run the tests — expect all pass**
 
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/test_grammar.py -v 2>&1 | tail -25
 ```
-Expected: 14 passed (3 escape + 6 presence + 3 uniqueness + 1 empty-enum + 2 compile/cache). If `pytest.importorskip("llama_cpp")` skips the last 2 because `llama-cpp-python` isn't installed in this dev environment, that's expected; 12 pass + 2 skip is fine.
+Expected: 15 passed (3 escape + 6 presence + 3 uniqueness + 1 empty-enum + 2 compile/cache). If `pytest.importorskip("llama_cpp")` skips the last 2 because `llama-cpp-python` isn't installed in this dev environment, that's expected; 13 pass + 2 skip is fine.
 
 - [ ] **Step 6: Verify `import grammar` doesn't pull in `llama_cpp`**
 
@@ -458,7 +461,7 @@ Expected: `import grammar: clean (no llama_cpp pulled in at import time)`.
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: baseline + 14 passed (or +12 if 2 skipped).
+Expected: baseline + 15 passed (or +13 if 2 skipped).
 
 - [ ] **Step 8: Do NOT commit.** Single commit lands at Task 8.
 
@@ -687,7 +690,7 @@ Expected: 5 passed.
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: baseline + 19 (or +17 if 2 grammar tests skipped due to missing llama-cpp-python).
+Expected: baseline + 20 (or +18 if 2 grammar tests skipped due to missing llama-cpp-python).
 
 - [ ] **Step 7: Do NOT commit.**
 
@@ -712,11 +715,17 @@ Find `def parse_args() -> argparse.Namespace:` (around line 381). After the last
                         "TransformersBackend ignores this flag (no grammar surface).")
 ```
 
-- [ ] **Step 2: Thread `use_grammar` into `resolve_backend`**
+- [ ] **Step 2: Thread `use_grammar` into every `GgufBackend` construction**
 
-Find `def resolve_backend(path: Path, args: argparse.Namespace) -> Backend:` (around line 185). The current body constructs `GgufBackend(path, n_ctx=args.n_ctx, n_gpu_layers=args.n_gpu_layers)` in two branches.
+First find every call site:
 
-Replace BOTH `GgufBackend(...)` constructions with:
+```bash
+cd "C:/work/llm training" && grep -n "GgufBackend(" scripts/04_eval.py
+```
+
+Expected: two matches inside `resolve_backend` (one for the `.gguf` file branch, one for the directory-glob branch). If the grep finds more or fewer call sites than expected, update ALL of them — the rule is every `GgufBackend(...)` construction in `04_eval.py` gets the `use_grammar` kwarg.
+
+Replace each `GgufBackend(...)` construction with:
 
 ```python
 GgufBackend(
@@ -740,6 +749,8 @@ Find `main()` (around line 405). After the line `logging.info("Evaluating %s on 
 ```
 
 This only logs for GGUF runs; TransformersBackend runs stay quiet.
+
+**If `04_eval.py` has a `--all` / multi-backend loop:** the current file (as of `f5636f7`) has a single `backend = resolve_backend(...)` call in `main()`, so the log line above is correct as written. If a future change adds a per-backend loop, the log line must move INSIDE that loop so each constructed GGUF backend emits its own state line. Verify by re-running `grep -n "resolve_backend\|backend = " scripts/04_eval.py` after this change.
 
 - [ ] **Step 4: Add `_grammar` to each per-row JSONL output**
 
@@ -851,29 +862,28 @@ def main() -> int:
     return 0
 ```
 
-Replace the entire `main()` body with:
+**Preserve existing behavior.** Do NOT wholesale-replace `main()`; make four minimal patches in place:
+
+1. **Add the `--no-grammar` argument** to the existing argparse block. Place it next to the other flags:
 
 ```python
-def main() -> int:
-    p = argparse.ArgumentParser(description="Predict one input against a GGUF.")
-    p.add_argument("--model", required=True, help="Path to a .gguf file.")
-    p.add_argument("--max-tokens", type=int, default=512)
-    p.add_argument("--n-ctx", type=int, default=2048)
-    p.add_argument("--n-gpu-layers", type=int, default=-1,
-                   help="-1 = all on GPU, 0 = CPU only.")
     p.add_argument("--no-grammar", action="store_true",
                    help="Disable GBNF grammar-constrained decoding.")
-    p.add_argument("input", help="The transcribed transaction string to parse.")
-    args = p.parse_args()
+```
 
-    from llama_cpp import Llama  # lazy import
-    llm = Llama(
-        model_path=args.model,
-        n_gpu_layers=args.n_gpu_layers,
-        n_ctx=args.n_ctx,
-        verbose=False,
-        seed=42,
+2. **Convert the `create_chat_completion` call to use a kwargs dict.** Find the existing call:
+
+```python
+    resp = llm.create_chat_completion(
+        messages=build_messages(args.input),
+        temperature=0.0, top_p=1.0,
+        max_tokens=args.max_tokens,
     )
+```
+
+Replace with:
+
+```python
     kwargs = dict(
         messages=build_messages(args.input),
         temperature=0.0, top_p=1.0,
@@ -883,16 +893,21 @@ def main() -> int:
         from grammar import load_label_grammar
         kwargs["grammar"] = load_label_grammar()
     resp = llm.create_chat_completion(**kwargs)
-    raw = resp["choices"][0]["message"]["content"] or ""
-    parsed = extract_json(raw)
-
-    print(f"GRAMMAR: {'off' if args.no_grammar else 'on'}")
-    print(f"MODEL  : {args.model}")
-    print(f"INPUT  : {args.input}")
-    print(f"RAW    : {raw}")
-    print(f"PARSED : {json.dumps(parsed, indent=2, ensure_ascii=False) if parsed else '(not valid JSON)'}")
-    return 0
 ```
+
+3. **Add a `GRAMMAR:` header line** before the existing `MODEL:` print. Find:
+
+```python
+    print(f"MODEL  : {args.model}")
+```
+
+Insert above it:
+
+```python
+    print(f"GRAMMAR: {'off' if args.no_grammar else 'on'}")
+```
+
+4. **Leave everything else (other flags, `Llama(...)` construction, `extract_json`, the other print lines) exactly as it is.** Verify with `git diff scripts/predict_one.py` that no behavior was deleted — only the four additions above appear.
 
 - [ ] **Step 2: Verify syntax + `--help` still works**
 
@@ -926,78 +941,40 @@ Spec reference: §5.3.
 
 No new tests; smoke-tested in Task 7.
 
-- [ ] **Step 1: Add `--no-grammar` flag and load grammar at startup**
+- [ ] **Step 1: Make three minimal patches — do NOT replace the whole `main()` body**
 
-Open `viewer/inference_worker.py`. Find `def main() -> int:` (around line 37). The current shape is:
+Open `viewer/inference_worker.py`. Make these three discrete edits in place; leave everything else (logging helpers, model-path validation, send/receive protocol, error handling) exactly as it is.
+
+**Patch A — add the `--no-grammar` argument** to the existing argparse block:
 
 ```python
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Stage 7 inference worker.")
-    parser.add_argument("--model", required=True, help="Path to a .gguf file.")
-    parser.add_argument("--n-ctx", type=int, default=2048)
-    parser.add_argument("--n-gpu-layers", type=int, default=-1,
-                        help="-1 offloads everything to GPU; 0 forces CPU.")
-    args = parser.parse_args()
-    # ...
-    from llama_cpp import Llama  # noqa: E402
-    from _lib import build_messages  # noqa: E402
+    parser.add_argument("--no-grammar", action="store_true",
+                        help="Disable GBNF grammar-constrained decoding.")
+```
 
-    t0 = time.perf_counter()
-    llm = Llama(
-        model_path=str(model_path),
-        n_ctx=args.n_ctx,
-        n_gpu_layers=args.n_gpu_layers,
-        verbose=False,
-        seed=42,
-        logits_all=False,
-    )
+**Patch B — load grammar after the `Llama(...)` construction.** Find the existing line:
+
+```python
     log(f"loaded in {time.perf_counter() - t0:.1f}s")
     send({"ready": True, "model": model_path.name})
 ```
 
-Replace it with:
+INSERT between these two lines:
 
 ```python
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Stage 7 inference worker.")
-    parser.add_argument("--model", required=True, help="Path to a .gguf file.")
-    parser.add_argument("--n-ctx", type=int, default=2048)
-    parser.add_argument("--n-gpu-layers", type=int, default=-1,
-                        help="-1 offloads everything to GPU; 0 forces CPU.")
-    parser.add_argument("--no-grammar", action="store_true",
-                        help="Disable GBNF grammar-constrained decoding.")
-    args = parser.parse_args()
-
-    model_path = Path(args.model)
-    if not model_path.exists():
-        log(f"FATAL: model file not found: {model_path}")
-        return 2
-
-    log(f"loading {model_path.name}  n_ctx={args.n_ctx}  n_gpu_layers={args.n_gpu_layers}")
-
-    from llama_cpp import Llama  # noqa: E402
-    from _lib import build_messages  # noqa: E402
-
-    t0 = time.perf_counter()
-    llm = Llama(
-        model_path=str(model_path),
-        n_ctx=args.n_ctx,
-        n_gpu_layers=args.n_gpu_layers,
-        verbose=False,
-        seed=42,
-        logits_all=False,
-    )
-    log(f"loaded in {time.perf_counter() - t0:.1f}s")
 
     grammar_obj = None
     if not args.no_grammar:
         from grammar import load_label_grammar
         grammar_obj = load_label_grammar()
     log(f"grammar: {'enabled' if grammar_obj is not None else 'disabled'}")
-    send({"ready": True, "model": model_path.name})
 ```
 
-(Note: the model-path-existence check and the `loading` log line are pre-existing — the replacement keeps them. Verify the block you replace includes only the args/imports/llm-load section; do not delete the pre-existing `model_path = Path(args.model)` validation if it's structured differently than shown here.)
+The result is: `loaded in ...` → blank line → grammar load + log → `send({"ready"...})`.
+
+**Patch C — thread grammar into the request loop (Step 2 below).**
+
+Do not delete or rewrite the model-path validation, the `loading` log line, the lazy SDK imports, or anything else. Use `git diff viewer/inference_worker.py` after the patches to confirm only the three additions above appear.
 
 - [ ] **Step 2: Thread grammar into each request**
 
@@ -1122,6 +1099,8 @@ Spec reference: §7.
 
 These smokes require `llama-cpp-python` with a working CUDA build AND a real trained student GGUF at `models/student/gguf/gemma3_text-fixed.Q5_K_M.gguf`. If your dev environment lacks either, document this in the Task 8 commit message and skip smokes 1–5; rely on the unit tests for coverage.
 
+**CLI flag note:** `scripts/04_eval.py` takes `--model` (not `--gguf`). Confirmed by `python scripts/04_eval.py --help`. Smoke commands below use the verified flag.
+
 - [ ] **Step 1: Smoke 1 — `predict_one.py` with grammar (default)**
 
 ```bash
@@ -1193,7 +1172,7 @@ These MUST NOT appear staged at Task 8:
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ -q 2>&1 | tail -3
 ```
-Expected: baseline + 19 passed (or +17 if 2 compile-step tests skipped).
+Expected: baseline + 20 passed (or +18 if 2 compile-step tests skipped).
 
 ```bash
 cd "C:/work/llm training" && python -m pytest tests/ --cov=grammar --cov-report=term 2>&1 | tail -10
@@ -1249,8 +1228,10 @@ Adds:
   compile/import failure — no silent fallback.
 
 Grammar shape:
-- Single top-level {"transactions": [...]} (grammar termination after
-  the closing brace acts as a first-object stop).
+- Single top-level {"transactions": [...]}. The grammar has no valid
+  continuation after the closing brace, so llama.cpp terminates
+  constrained generation there. Existing max_tokens and extract_json
+  remain as defensive backups.
 - Strict enums for currency / type / category from _lib.
 - Free-form item string, JSON number for amount.
 - Empty transactions array allowed.
@@ -1267,7 +1248,7 @@ Invariants pinned:
 - 04_eval.py emits a startup log line for the GGUF backend and a
   per-row _grammar field in eval_results JSONL.
 
-Tests: 14 in test_grammar.py (3 escape + 6 presence + 3 uniqueness +
+Tests: 15 in test_grammar.py (3 escape + 6 presence + 3 uniqueness +
 1 empty-enum + 2 compile/cache) + 5 in test_eval_grammar_wiring.py
 (GgufBackend plumbing via injected fake llama_cpp module). Compile-step
 tests use pytest.importorskip("llama_cpp") so the suite runs even
@@ -1298,7 +1279,7 @@ Expected: new commit on top of `f5636f7` (spec). Working tree shows only pre-exi
 
 Surface to the user:
 - The new commit SHA.
-- Final test pass count (record exact number; baseline + 19 expected, treat ±2 as smoke signal).
+- Final test pass count (record exact number; baseline + 20 expected, treat ±2 as smoke signal — and 2 compile-step tests skip silently if llama-cpp-python isn't installed).
 - `grammar.py` coverage.
 - Which smokes ran (3/3 unit + 5/5 manual? or 3/3 unit + 0/5 manual if no GPU/GGUF available?).
 - Smoke 3 vs Smoke 4 JSON-valid lift (if smokes ran).
