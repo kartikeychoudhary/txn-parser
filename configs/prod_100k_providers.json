@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "input_generation": {
+    "enabled": true,
+    "target_inputs": 100000,
+    "batch_size": 50,
+    "dedupe": true,
+    "providers": [
+      {
+        "name": "deepseek_v4_pro",
+        "type": "deepseek",
+        "model": "deepseek-v4-flash",
+        "weight": 50,
+        "threads": 8,
+        "max_retries": 3,
+        "temperature": 1.0,
+        "max_tokens": 4000
+      },
+      {
+        "name": "gemini_flash",
+        "type": "gemini",
+        "model": "gemini-2.5-flash",
+        "weight": 50,
+        "threads": 8,
+        "max_retries": 3,
+        "temperature": 1.0,
+        "max_tokens": 4000
+      }
+    ]
+  },
+  "output_generation": {
+    "enabled": true,
+    "label_attempts_per_input": 2,
+    "selection_policy": "first_valid_then_score",
+    "providers": [
+      {
+        "name": "deepseek_v4_pro",
+        "type": "deepseek",
+        "model": "deepseek-v4-flash",
+        "weight": 50,
+        "threads": 8,
+        "temperature": 0.0,
+        "max_tokens": 512
+      },
+      {
+        "name": "gemini_flash",
+        "type": "gemini",
+        "model": "gemini-2.5-flash",
+        "weight": 50,
+        "threads": 8,
+        "temperature": 0.0,
+        "max_tokens": 512,
+        "structured_output": true
+      }
+    ],
+    "provider_priority": ["gemini_flash", "deepseek_v4_pro"]
+  },
+  "validation": {
+    "schema": true,
+    "semantic_validator": true,
+    "reject_invalid": true,
+    "retry_invalid_with_stricter_prompt": true,
+    "max_repair_attempts": 1
+  },
+  "rate_limits": {
+    "global_max_workers": 16,
+    "write_flush_every": 250
+  }
+}

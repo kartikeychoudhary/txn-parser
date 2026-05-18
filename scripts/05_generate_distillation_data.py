@@ -222,6 +222,9 @@ def phase_inputs(args: argparse.Namespace) -> None:
         raise SystemExit("DEEPSEEK_API_KEY env var is not set.")
 
     DISTILL_DIR.mkdir(parents=True, exist_ok=True)
+    if getattr(args, "force", False) and INPUTS_FILE.exists():
+        logging.info("--force: removing existing %s", INPUTS_FILE)
+        INPUTS_FILE.unlink()
     existing = set(read_inputs_jsonl(INPUTS_FILE))
     logging.info("Phase 1: %d existing inputs, target %d", len(existing), args.n_inputs)
 
@@ -373,6 +376,12 @@ def phase_label(args: argparse.Namespace) -> None:
             f"Teacher adapter not found at {TEACHER_ADAPTER_DIR}. Run Stage 3 first, "
             "or use --backend gguf with a trained GGUF."
         )
+
+    if getattr(args, "force", False):
+        for f in (TRAIN_FILE, FAILED_FILE):
+            if f.exists():
+                logging.info("--force: removing existing %s", f)
+                f.unlink()
 
     all_inputs = read_inputs_jsonl(INPUTS_FILE)
 
@@ -856,6 +865,12 @@ def phase_label_multi_provider(args: argparse.Namespace, recorder=None) -> int:
         seen_norm.add(key)
         all_inputs_unique.append(inp)
 
+    if getattr(args, "force", False):
+        for f in (TRAIN_FILE, FAILED_FILE):
+            if f.exists():
+                logging.info("--force: removing existing %s", f)
+                f.unlink()
+
     labeled_keys = {normalize_input(s) for s in _read_labeled_inputs(TRAIN_FILE)}
     failed_skip_keys = {normalize_input(s) for s in _read_failed_skip_set(FAILED_FILE, args)}
     pending = [
@@ -1178,6 +1193,9 @@ def phase_inputs_multi_provider(args: argparse.Namespace, recorder=None) -> int:
         return 0
 
     DISTILL_DIR.mkdir(parents=True, exist_ok=True)
+    if getattr(args, "force", False) and INPUTS_FILE.exists():
+        logging.info("--force: removing existing %s", INPUTS_FILE)
+        INPUTS_FILE.unlink()
     existing_inputs = read_inputs_jsonl(INPUTS_FILE)
     existing_normalized = {normalize_input(s) for s in existing_inputs}
     existing_unique = len(existing_normalized)
@@ -1381,6 +1399,12 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     # Phase 3
     p.add_argument("--force-eval-copy", action="store_true",
                    help="Phase 3: copy eval.jsonl even if the destination is already up to date.")
+    # Global reset
+    p.add_argument("--force", action="store_true",
+                   help="Truncate prior on-disk state before this phase: "
+                        "phase=inputs deletes data/distill/inputs_raw.jsonl; "
+                        "phase=label deletes data/distill/{train,failed}.jsonl. "
+                        "Use to regenerate from scratch.")
     return p, p.parse_args()
 
 
