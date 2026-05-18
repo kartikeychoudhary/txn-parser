@@ -163,10 +163,21 @@ function updateCommandPreview() {
   $("#command-preview-text").textContent = "python " + parts.map(p => /\s/.test(p) ? `"${p}"` : p).join(" ");
 }
 
+const GPU_FLOWS = new Set([
+  "stage_3_train_teacher", "stage_4_eval", "stage_5_legacy",
+  "stage_6_train_student", "predict_one",
+]);
+
 $("#start-btn").addEventListener("click", async () => {
   const flow = state.flows.find(f => f.id === state.selectedFlowId);
   if (!flow) return;
   const { args, extraArgs } = collectFormValues();
+  if (GPU_FLOWS.has(flow.id)) {
+    const busy = [...state.jobs.values()].some(j =>
+      GPU_FLOWS.has(j.flowId) && (j.status === "running" || j.status === "stopping")
+    );
+    if (busy && !confirm("Another GPU-using job is already running. Starting this one may OOM. Continue?")) return;
+  }
   try {
     const { job } = await api("POST", "/api/jobs", { flowId: flow.id, args, extraArgs });
     state.jobs.set(job.id, { ...job, tail: [] });
