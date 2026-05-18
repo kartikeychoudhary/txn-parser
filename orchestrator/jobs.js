@@ -13,13 +13,14 @@ const TAIL_MAX = 500;
 const TERMINAL = new Set(["succeeded", "failed", "killed", "orphaned"]);
 
 export class JobManager {
-  constructor({ runsDir, projectRoot }) {
+  constructor({ runsDir, projectRoot, stopGraceMs }) {
     if (!runsDir) throw new Error("JobManager: runsDir required");
     if (!projectRoot) throw new Error("JobManager: projectRoot required");
     this.runsDir = runsDir;
     this.projectRoot = projectRoot;
-    this.jobs = new Map();     // jobId -> in-memory state
-    this.subscribers = new Set(); // (event) => void
+    this.stopGraceMs = stopGraceMs ?? 5000;
+    this.jobs = new Map();
+    this.subscribers = new Set();
     fs.mkdirSync(runsDir, { recursive: true });
   }
 
@@ -171,5 +172,52 @@ export class JobManager {
     const metaPath = path.join(this.runsDir, job.id, "meta.json");
     const meta = this._publicMeta(job);
     await fsp.writeFile(metaPath, JSON.stringify(meta, null, 2));
+  }
+
+  async stop(id) {
+    const job = this.jobs.get(id);
+    if (!job) return null;
+    if (TERMINAL.has(job.status)) return this._publicMeta(job);
+
+    job.stopAttempts++;
+    const isFirst = job.stopAttempts === 1;
+    const child = job.child;
+    if (!child || child.exitCode !== null) return this._publicMeta(job);
+
+    if (isFirst) {
+      job.status = "stopping";
+      this._emit({ type: "status", jobId: id, status: "stopping" });
+      await this._writeMeta(job);
+
+      if (process.platform === "win32") {
+        // taskkill /T walks the process tree, no /F so handlers can run.
+        spawn("taskkill", ["/PID", String(child.pid), "/T"], { windowsHide: true });
+      } else {
+        try { process.kill(-child.pid, "SIGINT"); } catch (e) {
+          try { child.kill("SIGINT"); } catch {}
+        }
+      }
+      // Auto-escalate after grace period
+      job.killTimer = setTimeout(() => {
+        this._hardKill(job);
+      }, this.stopGraceMs);
+    } else {
+      // Second call: hard kill now
+      this._hardKill(job);
+    }
+    return this._publicMeta(job);
+  }
+
+  _hardKill(job) {
+    if (job.killTimer) { clearTimeout(job.killTimer); job.killTimer = null; }
+    const child = job.child;
+    if (!child || child.exitCode !== null) return;
+    if (process.platform === "win32") {
+      spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true });
+    } else {
+      try { process.kill(-child.pid, "SIGKILL"); } catch {
+        try { child.kill("SIGKILL"); } catch {}
+      }
+    }
   }
 }
