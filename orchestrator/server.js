@@ -37,12 +37,14 @@ app.get("/api/jobs/:id", (req, res) => {
 });
 
 app.get("/api/jobs/:id/log", async (req, res) => {
+  // Gate on the in-memory job map to prevent path traversal via :id.
+  if (!jm.get(req.params.id)) return res.status(404).type("text/plain").send("not found");
   const logPath = path.join(runsDir, req.params.id, "output.log");
   try {
     const content = await fs.readFile(logPath, "utf8");
     res.type("text/plain").send(content);
   } catch {
-    res.status(404).send("not found");
+    res.status(404).type("text/plain").send("not found");
   }
 });
 
