@@ -101,3 +101,21 @@ test("get returns rolling tail", async () => {
   assert.ok(detail.tail.length >= 10);
   assert.ok(detail.tail.some(l => l.text.includes("9")));
 });
+
+test("start emits failed status when pythonBin does not exist", async () => {
+  const runsDir = await freshRunsDir();
+  const jm = new JobManager({ runsDir, projectRoot: process.cwd() });
+
+  const job = await jm.start({
+    flowId: "smoke", label: "missing",
+    argv: ["-c", "print('never runs')"],
+    pythonBin: "definitely-not-a-real-binary-xyz123",
+  });
+
+  const exit = await waitForEvent(jm, "status", ev => ev.jobId === job.id && ["failed","killed","succeeded"].includes(ev.status));
+  assert.equal(exit.status, "failed");
+
+  const meta = JSON.parse(await fs.readFile(path.join(runsDir, job.id, "meta.json"), "utf8"));
+  assert.equal(meta.status, "failed");
+  assert.ok(meta.endedAt);
+});

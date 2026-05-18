@@ -98,17 +98,26 @@ export class JobManager {
     job.logStream = fs.createWriteStream(logPath, { flags: "a" });
 
     const env = { ...process.env, PYTHONUNBUFFERED: "1" };
-    const child = spawn(pythonBin, argv, {
-      cwd: this.projectRoot,
-      env,
-      windowsHide: true,
-      detached: process.platform !== "win32",
-      shell: false,
-    });
+    let child;
+    try {
+      child = spawn(pythonBin, argv, {
+        cwd: this.projectRoot,
+        env,
+        windowsHide: true,
+        detached: process.platform !== "win32",
+        shell: false,
+      });
+    } catch (err) {
+      try { job.logStream.end(); } catch {}
+      job.status = "failed";
+      job.exitCode = null;
+      job.endedAt = new Date().toISOString();
+      await this._writeMeta(job);
+      this._emit({ type: "status", jobId: id, status: "failed", exitCode: null, endedAt: job.endedAt });
+      throw err;
+    }
     job.child = child;
     job.pid = child.pid;
-
-    await this._writeMeta(job);
 
     const writeLine = (text, stream) => {
       const ts = new Date().toISOString().slice(11, 23); // HH:MM:SS.mmm
@@ -121,27 +130,38 @@ export class JobManager {
       this._emit({ type: "line", jobId: id, ...line });
     };
 
-    const rlOut = readline.createInterface({ input: child.stdout });
-    rlOut.on("line", l => writeLine(l, "stdout"));
-    const rlErr = readline.createInterface({ input: child.stderr });
-    rlErr.on("line", l => writeLine(l, "stderr"));
-
-    child.on("error", err => writeLine(`spawn error: ${err.message}`, "stderr"));
-
-    child.on("exit", async (code, signal) => {
+    let finalized = false;
+    const finalize = async (status, exitCode) => {
+      if (finalized) return;
+      finalized = true;
       if (job.killTimer) { clearTimeout(job.killTimer); job.killTimer = null; }
-      // Status precedence: if user requested stop, mark killed; else infer from exit code.
+      job.status = status;
+      job.exitCode = exitCode;
+      job.endedAt = new Date().toISOString();
+      try { job.logStream.end(); } catch {}
+      await this._writeMeta(job);
+      this._emit({ type: "status", jobId: id, status, exitCode, endedAt: job.endedAt });
+    };
+
+    child.on("error", err => {
+      writeLine(`spawn error: ${err.message}`, "stderr");
+      finalize("failed", null);
+    });
+
+    child.on("exit", code => {
       let status;
       if (job.stopAttempts > 0) status = "killed";
       else if (code === 0) status = "succeeded";
       else status = "failed";
-      job.status = status;
-      job.exitCode = code;
-      job.endedAt = new Date().toISOString();
-      try { job.logStream.end(); } catch {}
-      await this._writeMeta(job);
-      this._emit({ type: "status", jobId: id, status, exitCode: code, endedAt: job.endedAt });
+      finalize(status, code);
     });
+
+    await this._writeMeta(job);
+
+    const rlOut = readline.createInterface({ input: child.stdout });
+    rlOut.on("line", l => writeLine(l, "stdout"));
+    const rlErr = readline.createInterface({ input: child.stderr });
+    rlErr.on("line", l => writeLine(l, "stderr"));
 
     this._emit({ type: "status", jobId: id, status: "running", startedAt });
     return this._publicMeta(job);
