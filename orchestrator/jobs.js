@@ -191,7 +191,8 @@ export class JobManager {
 
       if (process.platform === "win32") {
         // taskkill /T walks the process tree, no /F so handlers can run.
-        spawn("taskkill", ["/PID", String(child.pid), "/T"], { windowsHide: true });
+        const tk = spawn("taskkill", ["/PID", String(child.pid), "/T"], { windowsHide: true });
+        tk.on("error", () => {});
       } else {
         try { process.kill(-child.pid, "SIGINT"); } catch (e) {
           try { child.kill("SIGINT"); } catch {}
@@ -213,7 +214,8 @@ export class JobManager {
     const child = job.child;
     if (!child || child.exitCode !== null) return;
     if (process.platform === "win32") {
-      spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true });
+      const tk = spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true });
+      tk.on("error", () => {});
     } else {
       try { process.kill(-child.pid, "SIGKILL"); } catch {
         try { child.kill("SIGKILL"); } catch {}
