@@ -3,6 +3,7 @@
 const state = {
   flows: [],
   jobs: new Map(),     // jobId -> meta + tail
+  configs: [],         // list of available configs/*.json filenames
   selectedFlowId: null,
   selectedJobId: null,
   sockets: new Map(),  // jobId -> WebSocket
@@ -26,11 +27,13 @@ async function api(method, url, body) {
 // ---------- Initial load ----------
 
 async function init() {
-  const [{ flows }, { jobs }] = await Promise.all([
+  const [{ flows }, { jobs }, { configs }] = await Promise.all([
     api("GET", "/api/flows"),
     api("GET", "/api/jobs"),
+    api("GET", "/api/configs").catch(() => ({ configs: [] })),
   ]);
   state.flows = flows;
+  state.configs = configs;
   for (const j of jobs) state.jobs.set(j.id, { ...j, tail: [] });
 
   renderFlows();
@@ -80,7 +83,22 @@ function renderFlowDetail() {
 
   const form = $("#flow-form");
   form.innerHTML = "";
-  for (const arg of flow.args) form.appendChild(renderField(arg));
+
+  const basic = flow.args.filter(a => (a.group ?? "basic") === "basic");
+  const advanced = flow.args.filter(a => a.group === "advanced");
+
+  for (const arg of basic) form.appendChild(renderField(arg));
+
+  if (advanced.length) {
+    const det = document.createElement("details");
+    det.className = "advanced-group";
+    det.innerHTML = `<summary>Advanced (${advanced.length})</summary>`;
+    const grid = document.createElement("div");
+    grid.className = "args-form";
+    for (const arg of advanced) grid.appendChild(renderField(arg));
+    det.appendChild(grid);
+    form.appendChild(det);
+  }
 
   const extra = document.createElement("div");
   extra.className = "field field-extra";
@@ -91,30 +109,64 @@ function renderFlowDetail() {
   form.appendChild(extra);
 
   form.addEventListener("input", updateCommandPreview);
+  form.addEventListener("change", e => {
+    if (e.target.dataset?.type === "config") refreshConfigEditor();
+  });
+
+  // If this flow has a config arg, fetch the current contents into the editor.
+  const cfgArg = flow.args.find(a => a.type === "config");
+  if (cfgArg) refreshConfigEditor();
+
   updateCommandPreview();
 }
 
 function renderField(arg) {
   const wrap = document.createElement("div");
   const safeName = `arg-${arg.name}`;
+  const helpHtml = arg.help ? `<span class="field-help">${escapeHtml(arg.help)}</span>` : "";
+
   if (arg.type === "flag") {
     wrap.className = "field flag";
     wrap.innerHTML = `
       <input type="checkbox" id="${safeName}" data-arg="${arg.name}" data-type="flag" ${arg.default ? "checked" : ""}/>
       <label for="${safeName}">--${arg.name}</label>
+      ${helpHtml}
     `;
   } else if (arg.type === "choice") {
     wrap.className = "field";
     const opts = arg.choices.map(c => `<option value="${c}" ${c === arg.default ? "selected" : ""}>${c}</option>`).join("");
     wrap.innerHTML = `
-      <label for="${safeName}">--${arg.name}</label>
+      <label for="${safeName}">--${arg.name}${arg.required ? " *" : ""}</label>
       <select id="${safeName}" data-arg="${arg.name}" data-type="choice">${opts}</select>
+      ${helpHtml}
     `;
   } else if (arg.type === "positional") {
     wrap.className = "field field-extra";
     wrap.innerHTML = `
       <label for="${safeName}">${arg.name} (positional${arg.required ? ", required" : ""})</label>
-      <input type="text" id="${safeName}" data-arg="${arg.name}" data-type="positional" value="${arg.default ?? ""}"/>
+      <input type="text" id="${safeName}" data-arg="${arg.name}" data-type="positional" value="${escapeAttr(arg.default ?? "")}"/>
+      ${helpHtml}
+    `;
+  } else if (arg.type === "config") {
+    wrap.className = "field field-extra config-field";
+    const opts = state.configs
+      .map(n => `<option value="${escapeAttr(n)}" ${n === arg.default ? "selected" : ""}>${escapeHtml(n)}</option>`)
+      .join("");
+    wrap.innerHTML = `
+      <label for="${safeName}">--${arg.name}${arg.required ? " *" : ""} (configs/&lt;name&gt;.json)</label>
+      <select id="${safeName}" data-arg="${arg.name}" data-type="config">${opts || `<option value="${escapeAttr(arg.default ?? "")}">${escapeHtml(arg.default ?? "")}</option>`}</select>
+      ${helpHtml}
+      <details class="config-editor">
+        <summary>View / edit config JSON</summary>
+        <div class="config-editor-body">
+          <textarea id="config-editor-text" spellcheck="false" rows="14" placeholder="Loading…"></textarea>
+          <div class="config-editor-actions">
+            <button type="button" id="config-save" class="btn btn-primary">Save</button>
+            <button type="button" id="config-reload" class="btn">Reload</button>
+            <span id="config-status" class="muted"></span>
+          </div>
+        </div>
+      </details>
     `;
   } else {
     const inputType = (arg.type === "int" || arg.type === "float") ? "number" : "text";
@@ -122,11 +174,62 @@ function renderField(arg) {
     wrap.className = "field";
     wrap.innerHTML = `
       <label for="${safeName}">--${arg.name}${arg.required ? " *" : ""}</label>
-      <input type="${inputType}" step="${step}" id="${safeName}" data-arg="${arg.name}" data-type="${arg.type}" value="${arg.default ?? ""}"/>
+      <input type="${inputType}" step="${step}" id="${safeName}" data-arg="${arg.name}" data-type="${arg.type}" value="${escapeAttr(arg.default ?? "")}" ${arg.required ? "required" : ""}/>
+      ${helpHtml}
     `;
   }
   return wrap;
 }
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+// ---------- Config editor ----------
+
+async function refreshConfigEditor() {
+  const sel = document.querySelector('[data-type="config"]');
+  if (!sel) return;
+  const name = sel.value;
+  const ta = document.getElementById("config-editor-text");
+  const status = document.getElementById("config-status");
+  if (!ta || !status) return;
+  status.textContent = "Loading…";
+  try {
+    const r = await fetch(`/api/configs/${encodeURIComponent(name)}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const text = await r.text();
+    // Pretty-print so editing is sane
+    try { ta.value = JSON.stringify(JSON.parse(text), null, 2); }
+    catch { ta.value = text; }
+    status.textContent = `Loaded ${name}`;
+  } catch (e) {
+    ta.value = "";
+    status.textContent = `Failed: ${e.message}`;
+  }
+}
+
+document.addEventListener("click", async e => {
+  if (e.target.id === "config-save") {
+    const sel = document.querySelector('[data-type="config"]');
+    const ta = document.getElementById("config-editor-text");
+    const status = document.getElementById("config-status");
+    if (!sel || !ta || !status) return;
+    let body;
+    try { body = JSON.parse(ta.value); }
+    catch (err) { status.textContent = `Invalid JSON: ${err.message}`; return; }
+    status.textContent = "Saving…";
+    try {
+      await api("PUT", `/api/configs/${encodeURIComponent(sel.value)}`, body);
+      status.textContent = `Saved ${sel.value}`;
+    } catch (err) {
+      status.textContent = `Save failed: ${err.message}`;
+    }
+  } else if (e.target.id === "config-reload") {
+    refreshConfigEditor();
+  }
+});
 
 function collectFormValues() {
   const args = {};
@@ -154,7 +257,8 @@ function updateCommandPreview() {
     if (spec.type === "flag") { if (v === true) parts.push(`--${spec.name}`); continue; }
     if (spec.type === "positional") continue;
     if (v === "" || v === null || v === undefined) continue;
-    parts.push(`--${spec.name}`, String(v));
+    const rendered = spec.type === "config" ? `configs/${v}` : String(v);
+    parts.push(`--${spec.name}`, rendered);
   }
   if (extraArgs && extraArgs.trim()) parts.push(...extraArgs.trim().split(/\s+/));
   for (const spec of flow.args) {

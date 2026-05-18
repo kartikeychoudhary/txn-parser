@@ -35,6 +35,52 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 app.get("/api/flows", (_req, res) => res.json({ flows: FLOWS }));
 
+const configsDir = path.join(projectRoot, "configs");
+
+function safeConfigPath(name) {
+  // Only allow plain *.json filenames inside configs/. No slashes, no ..
+  if (!/^[A-Za-z0-9._-]+\.json$/.test(name)) return null;
+  const resolved = path.resolve(configsDir, name);
+  if (path.dirname(resolved) !== path.resolve(configsDir)) return null;
+  return resolved;
+}
+
+app.get("/api/configs", async (_req, res) => {
+  try {
+    const entries = await fs.readdir(configsDir);
+    const names = entries.filter(n => n.endsWith(".json")).sort();
+    res.json({ configs: names });
+  } catch {
+    res.json({ configs: [] });
+  }
+});
+
+app.get("/api/configs/:name", async (req, res) => {
+  const p = safeConfigPath(req.params.name);
+  if (!p) return res.status(400).json({ error: "invalid config name" });
+  try {
+    const content = await fs.readFile(p, "utf8");
+    res.type("application/json").send(content);
+  } catch {
+    res.status(404).json({ error: "not found" });
+  }
+});
+
+app.put("/api/configs/:name", async (req, res) => {
+  const p = safeConfigPath(req.params.name);
+  if (!p) return res.status(400).json({ error: "invalid config name" });
+  const body = req.body;
+  if (typeof body !== "object" || body === null) {
+    return res.status(400).json({ error: "body must be a JSON object" });
+  }
+  try {
+    await fs.writeFile(p, JSON.stringify(body, null, 2) + "\n", "utf8");
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get("/api/jobs", (req, res) => {
   const all = jm.list();
   const filtered = req.query.status === "running"

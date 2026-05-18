@@ -167,3 +167,60 @@ body {
 
 .hidden { display: none !important; }
 .empty-state { color: var(--muted); padding: 40px; text-align: center; font-size: 14px; }
+
+.field-help {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+  line-height: 1.35;
+}
+.field.flag .field-help { flex-basis: 100%; margin-top: 0; margin-left: 24px; }
+
+.advanced-group {
+  grid-column: 1 / -1;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.advanced-group > summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 0;
+  list-style: revert;
+}
+.advanced-group[open] > summary { color: var(--text); }
+.advanced-group .args-form { margin-top: 10px; }
+
+.config-field .config-editor {
+  margin-top: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.config-field .config-editor > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 2px 0;
+  list-style: revert;
+}
+.config-field .config-editor[open] > summary { color: var(--text); }
+.config-editor-body { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.config-editor-body textarea {
+  font: 12px/1.5 var(--font-mono);
+  min-height: 240px;
+  background: var(--console-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+.config-editor-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.config-editor-actions .muted { font-size: 12px; }
