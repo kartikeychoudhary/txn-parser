@@ -16,8 +16,23 @@ npm start
 Environment:
 - `PORT` — bind port (default `3100`).
 - `HOST` — bind host (default `127.0.0.1`).
-- `PYTHON_BIN` — Python interpreter to spawn (default `python` on Windows,
-  `python3` elsewhere).
+- `CONDA_ENV` — conda env name to launch scripts in (default `llm-training`).
+- `PYTHON_BIN` — explicit Python interpreter. If set, overrides conda logic.
+
+## Conda env handling
+
+Scripts are launched inside the project's conda env regardless of whether
+you activated it before `npm start`:
+
+- If `PYTHON_BIN` is set, the orchestrator uses it directly.
+- Else, if `CONDA_DEFAULT_ENV` already matches `CONDA_ENV` (you activated),
+  it spawns plain `python` — fast path, no `conda run` overhead.
+- Else, it wraps every spawn as `conda run --no-capture-output -n <CONDA_ENV> python ...`
+  so torch / unsloth / llama-cpp imports resolve correctly.
+
+`conda` must be on PATH for the wrap path. On Windows that usually means
+running from the Anaconda Prompt or a shell where `conda init` has been
+run. The startup log prints which mode is in use.
 
 ## Flows
 

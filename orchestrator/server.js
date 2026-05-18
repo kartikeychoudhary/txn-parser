@@ -9,7 +9,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 const runsDir = path.join(__dirname, "runs");
 
-const pythonBin = process.env.PYTHON_BIN ?? (process.platform === "win32" ? "python" : "python3");
+// Resolve how to spawn Python so scripts always run in the project's conda env.
+// Precedence: explicit PYTHON_BIN > already-activated matching env > `conda run`.
+const condaEnv = process.env.CONDA_ENV ?? "llm-training";
+let pythonBin;
+let argvPrefix = [];
+if (process.env.PYTHON_BIN) {
+  pythonBin = process.env.PYTHON_BIN;
+} else if (process.env.CONDA_DEFAULT_ENV === condaEnv) {
+  pythonBin = process.platform === "win32" ? "python" : "python3";
+} else {
+  pythonBin = "conda";
+  argvPrefix = ["run", "--no-capture-output", "-n", condaEnv, "python"];
+}
+console.log(`[orchestrator] python launch: ${pythonBin} ${argvPrefix.join(" ")}`.trim());
+
 const jm = new JobManager({ runsDir, projectRoot });
 await jm.loadFromDisk();
 
@@ -60,7 +74,7 @@ app.post("/api/jobs", async (req, res) => {
   try { await fs.access(scriptAbs); }
   catch { return res.status(400).json({ error: `script not found: ${argv[0]}` }); }
 
-  const job = await jm.start({ flowId, label: flow.label, argv, pythonBin });
+  const job = await jm.start({ flowId, label: flow.label, argv: [...argvPrefix, ...argv], pythonBin });
   res.status(201).json({ job });
 });
 
