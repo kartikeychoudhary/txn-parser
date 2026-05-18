@@ -87,4 +87,29 @@ export const server = app.listen(PORT, HOST, () => {
   console.log(`[orchestrator] listening on http://${HOST}:${PORT}`);
 });
 
+import { WebSocketServer } from "ws";
+
+const wss = new WebSocketServer({ noServer: true });
+
+server.on("upgrade", (req, socket, head) => {
+  const url = new URL(req.url, "http://localhost");
+  const m = url.pathname.match(/^\/ws\/jobs\/([^/]+)\/?$/);
+  if (!m) { socket.destroy(); return; }
+  const jobId = m[1];
+  wss.handleUpgrade(req, socket, head, ws => {
+    const job = jm.get(jobId);
+    if (!job) { ws.close(1008, "unknown job"); return; }
+    ws.send(JSON.stringify({ type: "snapshot", job }));
+
+    const handler = ev => {
+      if (ev.jobId !== jobId) return;
+      if (ws.readyState !== ws.OPEN) return;
+      try { ws.send(JSON.stringify(ev)); } catch {}
+    };
+    jm.on(handler);
+    ws.on("close", () => jm.off(handler));
+    ws.on("error", () => jm.off(handler));
+  });
+});
+
 export { app, jm };
