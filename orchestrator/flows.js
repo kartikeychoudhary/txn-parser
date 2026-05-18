@@ -20,7 +20,7 @@ export const FLOWS = [
     args: [
       { name: "batches",     type: "int",    default: 25,  help: "How many batches" },
       { name: "start-batch", type: "int",    default: 1,   help: "Resume from batch N (1..)" },
-      { name: "model",       type: "string", default: "deepseek-chat" },
+      { name: "model",       type: "string", default: "deepseek-v4-flash" },
       { name: "temperature", type: "float",  default: 1.0 },
       { name: "max-tokens",  type: "int",    default: 8000, group: "advanced" },
       { name: "max-retries", type: "int",    default: 5,    group: "advanced" },
@@ -101,7 +101,7 @@ export const FLOWS = [
       { name: "max-new-tokens",  type: "int",    default: 384 },
       { name: "max-seq-length",  type: "int",    default: 1024, group: "advanced" },
       { name: "limit",           type: "int",    default: 0, help: "Label first N pending" },
-      { name: "model",           type: "string", default: "deepseek-chat", group: "advanced", help: "Phase 1 input gen model" },
+      { name: "model",           type: "string", default: "deepseek-v4-flash", group: "advanced", help: "Phase 1 input gen model" },
       { name: "max-tokens",      type: "int",    default: 8000, group: "advanced" },
       { name: "temperature",     type: "float",  default: 1.0,  group: "advanced" },
       { name: "max-retries",     type: "int",    default: 5,    group: "advanced" },

@@ -45,7 +45,40 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
+import signal
 from tqdm import tqdm
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+except ImportError:
+    pass
+
+
+_INTERRUPT_COUNT = 0
+
+
+def _install_sigint_handler() -> None:
+    """Ctrl+C: 1st press = graceful stop hint; 2nd press = hard exit.
+
+    Background threads in ThreadPoolExecutor can keep the process alive
+    after KeyboardInterrupt, so the 2nd press calls os._exit(130).
+    All phases are resumable — re-run the same command to continue.
+    """
+    def _handler(signum, frame):
+        global _INTERRUPT_COUNT
+        _INTERRUPT_COUNT += 1
+        if _INTERRUPT_COUNT == 1:
+            print(
+                "\n[Ctrl+C] Stopping — finishing in-flight work. "
+                "Press Ctrl+C again to force quit.",
+                file=sys.stderr, flush=True,
+            )
+            raise KeyboardInterrupt
+        print("\n[Ctrl+C x2] Force quit.", file=sys.stderr, flush=True)
+        os._exit(130)
+
+    signal.signal(signal.SIGINT, _handler)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
@@ -1287,7 +1320,7 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
                    help="Target number of unique synthetic inputs (Phase 1).")
     p.add_argument("--inputs-per-call", type=int, default=200,
                    help="Inputs requested per DeepSeek call.")
-    p.add_argument("--model", default="deepseek-chat",
+    p.add_argument("--model", default="deepseek-v4-flash",
                    help="DeepSeek model ID.")
     p.add_argument("--base-url", default="https://api.deepseek.com")
     p.add_argument("--max-tokens", type=int, default=8000,
@@ -1405,6 +1438,7 @@ def _run_dry_run(config_path: Path) -> int:
 def main() -> int:
     parser, args = parse_args()
     _enforce_flag_contract(args, parser)
+    _install_sigint_handler()
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     setup_logging(LOGS_DIR / f"05_generate_distillation_data_{ts}.log")
@@ -1460,4 +1494,11 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print(
+            "\nInterrupted. Re-run the same command to resume.",
+            file=sys.stderr, flush=True,
+        )
+        os._exit(130)

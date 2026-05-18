@@ -172,7 +172,7 @@ def call_deepseek(
     *,
     api_key: str,
     base_url: str = "https://api.deepseek.com",
-    model: str = "deepseek-chat",
+    model: str = "deepseek-v4-flash",
     max_tokens: int = 8000,
     temperature: float = 1.0,
     timeout: int = 300,

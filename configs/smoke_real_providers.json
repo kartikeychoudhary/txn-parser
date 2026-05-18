@@ -6,7 +6,7 @@
     "batch_size": 25,
     "dedupe": true,
     "providers": [
-      {"name": "deepseek_v4_pro", "type": "deepseek", "model": "deepseek-chat",
+      {"name": "deepseek_v4_pro", "type": "deepseek", "model": "deepseek-v4-flash",
        "weight": 50, "threads": 4, "max_retries": 3,
        "temperature": 1.0, "max_tokens": 4000},
       {"name": "gemini_flash", "type": "gemini", "model": "gemini-2.5-flash",
@@ -19,7 +19,7 @@
     "label_attempts_per_input": 2,
     "selection_policy": "first_valid_then_score",
     "providers": [
-      {"name": "deepseek_v4_pro", "type": "deepseek", "model": "deepseek-chat",
+      {"name": "deepseek_v4_pro", "type": "deepseek", "model": "deepseek-v4-flash",
        "weight": 50, "threads": 4, "temperature": 0.0, "max_tokens": 512},
       {"name": "gemini_flash", "type": "gemini", "model": "gemini-2.5-flash",
        "weight": 50, "threads": 4, "temperature": 0.0, "max_tokens": 512,
