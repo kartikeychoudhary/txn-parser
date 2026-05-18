@@ -160,11 +160,15 @@ export function buildArgv(flow, values, extraArgsString) {
       continue;
     }
     if (spec.type === "int") {
-      argv.push(`--${spec.name}`, String(parseInt(raw, 10)));
+      const n = parseInt(raw, 10);
+      if (Number.isNaN(n)) throw new Error(`invalid int for ${spec.name}: ${raw}`);
+      argv.push(`--${spec.name}`, String(n));
       continue;
     }
     if (spec.type === "float") {
-      argv.push(`--${spec.name}`, formatNumber(Number(raw)));
+      const n = Number(raw);
+      if (Number.isNaN(n)) throw new Error(`invalid float for ${spec.name}: ${raw}`);
+      argv.push(`--${spec.name}`, formatNumber(n));
       continue;
     }
     if (spec.type === "string") {

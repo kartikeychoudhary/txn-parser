@@ -67,3 +67,18 @@ test("buildArgv: choice arg validated", () => {
   assert.deepEqual(argv, ["scripts/05_generate_distillation_data.py", "--phase", "label"]);
   assert.throws(() => buildArgv(flow, { phase: "bogus" }, ""), /invalid choice/);
 });
+
+test("buildArgv: invalid int throws", () => {
+  const flow = getFlow("stage_6_train_student");
+  assert.throws(() => buildArgv(flow, { "batch-size": "abc" }, ""), /invalid int for batch-size/);
+});
+
+test("buildArgv: invalid float throws", () => {
+  const flow = getFlow("stage_6_train_student");
+  assert.throws(() => buildArgv(flow, { epochs: "abc" }, ""), /invalid float for epochs/);
+});
+
+test("buildArgv: missing required arg throws", () => {
+  const flow = getFlow("stage_4_eval");
+  assert.throws(() => buildArgv(flow, {}, ""), /missing required arg: model/);
+});
