@@ -1,0 +1,6 @@
+{"input":"500 beer","output":{"transactions":[{"amount":500,"currency":"INR","item":"beer","category":"Drinks","type":"expense"}]}}
+{"input":"schema fail case","raw_output":"{\"transactions\":[{\"amount\":100}]}"}
+{"input":"json fail case","raw_output":"{not json"}
+{"input":"no amount input","raw_output":"{\"transactions\":[{\"amount\":999,\"currency\":\"INR\",\"item\":\"thing\",\"category\":\"Other\",\"type\":\"expense\"}]}"}
+{"input":"500 beer wait no 600 beer","raw_output":"{\"transactions\":[{\"amount\":500,\"currency\":\"INR\",\"item\":\"beer\",\"category\":\"Drinks\",\"type\":\"expense\"}]}"}
+{"input":"500 beer once","raw_output":"{\"transactions\":[{\"amount\":500,\"currency\":\"INR\",\"item\":\"beer\",\"category\":\"Drinks\",\"type\":\"expense\"},{\"amount\":500,\"currency\":\"INR\",\"item\":\"beer\",\"category\":\"Drinks\",\"type\":\"expense\"}]}"}

@@ -37,3 +37,7 @@ xformers; platform_system == "Linux"
 # Used by save_pretrained_gguf to convert + quantize.
 gguf>=0.10.0
 protobuf>=4.25.0
+
+# Multi-provider generation (Slice 2).
+openai>=1.50
+google-genai>=1.73.1

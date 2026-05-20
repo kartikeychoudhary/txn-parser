@@ -172,7 +172,7 @@ def call_deepseek(
     *,
     api_key: str,
     base_url: str = "https://api.deepseek.com",
-    model: str = "deepseek-chat",
+    model: str = "deepseek-v4-flash",
     max_tokens: int = 8000,
     temperature: float = 1.0,
     timeout: int = 300,
@@ -250,3 +250,132 @@ def extract_json(text: str) -> dict | None:
         if isinstance(obj, dict):
             return obj
     return None
+
+
+# ---------------------------------------------------------------------------
+# Input-line cleaning helpers (shared between legacy phase_inputs and the
+# multi-provider _parse_input_lines). Migrated here in Slice 2 so both
+# call sites use the same fixed regex.
+# ---------------------------------------------------------------------------
+
+# Strips leading bullets ("- ", "* ") and numbering ("1. ", "2) ").
+# Deliberately narrow: must NOT match digit-led natural content like "500 beer".
+# The previous regex r"^[\s\-\*\d]+[.)\s]+" had this bug.
+_LINE_PREFIX_RE = re.compile(r"^\s*(?:[-*]\s+|\d+[.)]\s+)")
+
+
+def clean_input_line(line: str) -> str | None:
+    """Strip leading bullets/numbering and surrounding whitespace.
+
+    Strips:
+      "- 500 beer"   -> "500 beer"
+      "* 500 beer"   -> "500 beer"
+      "1. 500 beer"  -> "500 beer"
+      "2) 500 beer"  -> "500 beer"
+
+    Does NOT strip digit-led natural content:
+      "500 beer"     -> "500 beer"
+      "1 lakh rent"  -> "1 lakh rent"
+
+    Returns None for blank, fenced, or out-of-range inputs.
+    """
+    s = line.strip()
+    if not s:
+        return None
+    if s.startswith("```") or s.lower().startswith("output:") or s.lower().startswith("example"):
+        return None
+    s = _LINE_PREFIX_RE.sub("", s).strip()
+    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+        s = s[1:-1].strip()
+    if len(s) < 3 or len(s) > 300:
+        return None
+    return s
+
+
+def normalize_input(text: str) -> str:
+    """Canonical dedupe key. Lower-cased, whitespace-collapsed."""
+    return " ".join(text.lower().split())
+
+
+# ---------------------------------------------------------------------------
+# Teacher fp16 backend builder (Slice 3). Used by:
+#   - scripts/llm_providers.py::LocalTeacherProvider (multi-provider labeling)
+#   - scripts/05_generate_distillation_data.py::_build_label_backend
+#     (legacy single-teacher labeling)
+#
+# Heavy imports (unsloth, torch) are INSIDE function bodies so that
+# `import _lib` stays light. Importing _lib must NOT pull in CUDA/Unsloth.
+# ---------------------------------------------------------------------------
+
+
+def build_teacher_fp16_backend(
+    *,
+    adapter_dir,
+    max_seq_length: int = 1024,
+):
+    """Build an fp16 transformers backend wrapping the Unsloth-trained
+    teacher LoRA adapter. Returns an _FP16Backend instance.
+
+    Heavy imports happen inside this function (unsloth + torch); do not
+    move them to module scope.
+    """
+    from unsloth import FastLanguageModel    # lazy
+
+    model, processor = FastLanguageModel.from_pretrained(
+        model_name=str(adapter_dir),
+        max_seq_length=max_seq_length,
+        dtype=None,
+        load_in_4bit=False,
+    )
+    FastLanguageModel.for_inference(model)
+    tokenizer = getattr(processor, "tokenizer", processor)
+    tokenizer.padding_side = "left"
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    return _FP16Backend(model=model, processor=processor, tokenizer=tokenizer)
+
+
+class _FP16Backend:
+    """Wraps the loaded model + tokenizer. NOT thread-safe;
+    LocalTeacherProvider owns the lock."""
+
+    def __init__(self, model, processor, tokenizer):
+        self.model = model
+        self.processor = processor
+        self.tokenizer = tokenizer
+
+    def generate_label(self, messages: list[dict], *, max_new_tokens: int) -> str:
+        import torch    # lazy
+
+        templater = (
+            self.processor if hasattr(self.processor, "apply_chat_template") else self.tokenizer
+        )
+        prompt = templater.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True,
+        )
+        enc = self.tokenizer(
+            [prompt], return_tensors="pt", padding=True, truncation=True,
+            max_length=self.tokenizer.model_max_length or 1024,
+        ).to(self.model.device)
+        with torch.inference_mode():
+            out = self.model.generate(
+                **enc,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
+                pad_token_id=self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
+            )
+        input_len = enc["input_ids"].shape[1]
+        return self.tokenizer.decode(out[0][input_len:], skip_special_tokens=True).strip()
+
+
+# ---------------------------------------------------------------------------
+# Re-exports — placed at the bottom of _lib.py so amount_parser/validator can
+# `from _lib import is_schema_valid, schema_errors` lazily without a circular
+# load. Existing imports of _lib symbols are untouched.
+# ---------------------------------------------------------------------------
+
+from amount_parser import AmountCandidate, parse_amounts  # noqa: E402
+from validator import (  # noqa: E402
+    ValidationError, ValidationResult,
+    validate_example, serialize_validation_result,
+)

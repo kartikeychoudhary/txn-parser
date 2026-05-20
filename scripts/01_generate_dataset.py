@@ -113,7 +113,7 @@ def main() -> int:
                         help="1-indexed batch number to start from (1..25).")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR,
                         help="Directory to write batch_NN.jsonl files.")
-    parser.add_argument("--model", default="deepseek-chat",
+    parser.add_argument("--model", default="deepseek-v4-flash",
                         help="DeepSeek model ID (e.g. deepseek-chat, deepseek-reasoner).")
     parser.add_argument("--base-url", default="https://api.deepseek.com",
                         help="DeepSeek-compatible API base URL.")

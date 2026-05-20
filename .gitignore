@@ -31,3 +31,8 @@ Thumbs.db
 .vscode/
 .claude/
 *.swp
+data/distill/metrics.json
+
+# Orchestrator UI run history
+orchestrator/runs/
+orchestrator/node_modules/

@@ -136,6 +136,15 @@ python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_
 > torch ≥ 2.6. The older cu124 wheels predate sm_120 and will either crash with
 > "no kernel image" or silently fall back to ptxas JIT (very slow).
 
+### Dev dependencies
+
+Tests for the amount parser and validator use `pytest`:
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests/ --cov=amount_parser --cov=validator
+```
+
 ## Environment variables
 
 | Variable | Used by | Notes |
@@ -254,11 +263,28 @@ python scripts/04_eval.py --model models/teacher/adapters --batch-size 32
 
 Reports % JSON-valid, % schema-valid, % exact match, and a confusion matrix for `category`. Per-example results land in `eval_results/<model_name>.jsonl`.
 
+Stage 4 also reports four validator-derived aggregates: `amount_exact` (predicted
+amounts equal expected as multisets), `txn_count_exact`, `duplicate_rate` (fraction
+of examples with `duplicate_transactions_found`), and `superseded_amount_used_rate`.
+Per-example rows in `eval_results/<name>.jsonl` carry the same fields plus
+`validation_errors[]` for failed rows.
+
 Useful flags:
 - `--batch-size N` — examples per forward pass for the **transformers/adapter** backend. Default 16. A100 80GB: try 32-64. 5060 Ti 16GB: 8-16. The **GGUF** backend ignores this — `llama.cpp` doesn't natively batch chat completions.
 - `--max-tokens N` — generation cap per example (default 512).
 - `--n-gpu-layers N` / `--ngl` — GGUF only; `-1` = all (default), `0` = CPU.
 - `--n-ctx N` — context window (default 2048).
+- `--no-grammar` — GGUF only; disable GBNF grammar-constrained decoding for baseline comparisons (see below).
+
+### GBNF grammar (default-on for GGUF inference)
+
+By default, every GGUF-based inference path (Stage 4 eval, Stage 7
+playground, and `scripts/predict_one.py`) constrains output via a GBNF
+grammar derived from the validator's enum constants
+(`_lib.CATEGORIES`/`TYPES`/`CURRENCIES`). Pass `--no-grammar` to disable
+for baseline comparisons. The grammar is rebuilt from `_lib` at every
+process start, so adding a category never drifts. See `scripts/grammar.py`
+and the design at `docs/superpowers/specs/2026-05-17-grammar-constrained-decoding-design.md`.
 
 ## Stage 5 — Teacher generates distillation data
 
@@ -299,6 +325,113 @@ Useful flags (Phase 2):
 - `--backend gguf` — use the teacher GGUF (Q3_K_M) via `llama-cpp-python` instead of fp16. Lossier but useful if VRAM is tight or fp16 isn't an option. Sequential — batch_size is ignored.
 - `--ngl N` / `--n-gpu-layers N` — GGUF backend only; `-1` = all layers on GPU.
 - `--no-mmap`, `--mlock`, `--n-ctx`, `--n-batch` — passthrough to `llama-cpp-python`.
+
+**Validator gate (Phase 2).** Phase 2 uses `scripts/validator.py` to gate teacher
+labels: a label must pass the JSON schema AND the semantic checks (amount-in-input,
+no-superseded-amount, currency hint, txn count, no unjustified duplicates). Rejected
+rows land in `data/distill/failed.jsonl` with `reason ∈ {validation_failed,
+json_parse_failed, teacher_error}` and structured `validation.errors[]` carrying
+machine-readable codes. The `failed.jsonl` shape changed in this release — delete
+or archive the old file before re-running. Re-attempt only semantic-validation
+failures with `--retry-validation-failed`.
+
+### Multi-provider scaffolding (Slice 1)
+
+Stage 5 has a new optional path for multi-provider input/label generation, gated behind `--provider-config`. Slice 1 only supports dry-run config validation; real multi-provider execution lands in Slice 2/3.
+
+```bash
+# Validate a provider config and see quota allocations
+python scripts/05_generate_distillation_data.py \
+    --provider-config configs/test_providers.json \
+    --dry-run-quota
+```
+
+The full config schema is documented in `docs/provider_config.md`. Two example configs ship:
+- `configs/test_providers.json` — fake-only, used by smoke tests.
+- `configs/example_providers.json` — realistic shape with DeepSeek / Gemini / local-teacher providers.
+
+A standalone validator probe lets you inspect any JSONL of `(input, output)` pairs against the semantic validator:
+
+```bash
+python scripts/probe_validator.py \
+    --input data/distill/train.jsonl \
+    --output reports/validator_probe.jsonl
+```
+
+The probe reports per-code failure counts (e.g., AMOUNT_NOT_IN_INPUT, SUSPICIOUS_DUPLICATE) and writes an inspectable per-row report.
+
+Without `--provider-config`, Stage 5 behaves exactly as before.
+
+### Multi-provider input generation (Slice 2)
+
+Slice 2 makes `--phase inputs --provider-config <path> --multi-provider` actually run with real DeepSeek + Gemini API calls. Set the API keys, point at a config, and run:
+
+```bash
+export DEEPSEEK_API_KEY=sk-...
+export GOOGLE_API_KEY=...     # or GEMINI_API_KEY
+python scripts/05_generate_distillation_data.py \
+    --phase inputs \
+    --provider-config configs/smoke_real_providers.json \
+    --multi-provider
+```
+
+The generation loop is threaded per-provider (each provider's `threads` field in the config), with global dedupe against the existing `data/distill/inputs_raw.jsonl` and resume safety (re-running picks up at the unique-input count and only generates the remaining `target_inputs`). New rows include provider metadata: `_provider`, `_model`, `_batch_id`.
+
+Quota is a soft scheduling hint — workers stop when the global accepted-unique total reaches `target_inputs`, not when a per-provider quota fills. Provider distribution may drift from configured weights based on latency and duplicate rate.
+
+For tests and CI, set `DISTILL_DIR_OVERRIDE=<tmp_path>` to redirect writes away from `data/distill/`. This is a dev/test-only knob and is not surfaced in `--help`.
+
+### Multi-provider output labeling (Slice 3)
+
+Slice 3 makes `--phase label --provider-config <path> --multi-provider` actually run: real DeepSeek + Gemini label generation, a `LocalTeacherProvider` wrapping the fp16 Unsloth backend, validator-gated candidate scoring, and an optional repair-on-failure retry loop.
+
+```bash
+# Real API smoke (DeepSeek + Gemini)
+export DEEPSEEK_API_KEY=sk-...
+export GOOGLE_API_KEY=...     # or GEMINI_API_KEY
+python scripts/05_generate_distillation_data.py \
+    --phase label \
+    --provider-config configs/smoke_real_providers.json \
+    --multi-provider \
+    --limit 10
+```
+
+For each input the orchestrator generates `label_attempts_per_input` candidates across configured providers, hard-rejects any with validator errors, scores survivors (clean validator pass is base 80; +10 count match, +5 no warnings, +5 priority bonus; max 100), and picks the highest-scoring. If all candidates fail and repair is enabled (`validation.retry_invalid_with_stricter_prompt: true` plus `max_repair_attempts > 0`), the orchestrator re-prompts the highest-priority provider with a stricter repair prompt containing the parsed amount candidates and validator failure summary.
+
+Accepted rows in `data/distill/train.jsonl` carry `_source: "multi_provider_label"`, `_provider`, `_model`, `_validation_score`, `_attempts` metadata. Failed inputs land in `data/distill/failed.jsonl` with `reason ∈ {all_candidates_failed, repair_exhausted, provider_error}` and an `attempts[]` array of per-provider diagnostics.
+
+Resume-safe: re-running skips inputs already in `train.jsonl` and (unless `--retry-failed`) inputs already in `failed.jsonl`. Use `--retry-validation-failed` to re-attempt only rows whose attempts include a validator-class failure.
+
+`--phase eval` is legacy-only — omit `--multi-provider` for eval. `--phase all` exits via `parser.error`.
+
+For local-teacher labeling (requires GPU + trained adapter at `models/teacher/adapters`), use `configs/smoke_local_teacher_providers.json`.
+
+### Per-run metrics (Slice 4)
+
+Every multi-provider Stage 5 run emits `data/distill/metrics.json` with per-
+provider call counts, accepted/rejected candidates, latency (p50/p95), token
+counts, and estimated USD cost. A compact summary is logged at the end of the
+run:
+
+```
+=== Stage 5 metrics (phase=label, 100 inputs, 2m41s) ===
+Calls: 213 (198 ok, 15 failed)  Accepted: 87  Failed rows: 13
+Estimated cost: $0.0342 (rates from configs/prices.json)
+
+Provider          Calls  Ok    Fail%   Acc   Cost      p50    p95    Top failure
+gemini_flash      108    105   2.78%   52    $0.0283   812    1421   validation_failed (7)
+deepseek_v4_pro   105    93    11.43%  35    $0.0059   1104   2210   provider_error (12)
+
+Repair: 12 attempted, 5 accepted, 7 exhausted
+```
+
+Costs are estimates based on `configs/prices.json` at run time. The script
+does not fetch live pricing — update `configs/prices.json` to match current
+provider rates if you care about USD accuracy.
+
+Metrics fire only for `--multi-provider --phase {inputs,label}`. Legacy
+single-provider phases, `--phase eval`, `--phase all`, and `--dry-run-quota`
+produce no metrics file.
 
 ## Stage 6 — Fine-tune the student (Gemma 3 270M)
 

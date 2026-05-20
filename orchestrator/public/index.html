@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pipeline Orchestrator</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🜲</span>
+      <span class="title">Pipeline Orchestrator</span>
+    </div>
+    <div class="topbar-stats">
+      <span class="pill pill-running" id="running-count">● 0 running</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="col col-flows">
+      <h2 class="col-title">Flows</h2>
+      <ul id="flow-list" class="flow-list"></ul>
+    </aside>
+
+    <section class="col col-main">
+      <div id="flow-detail" class="flow-detail hidden">
+        <header class="flow-header">
+          <h2 id="flow-label"></h2>
+          <p id="flow-description" class="muted"></p>
+        </header>
+        <form id="flow-form" class="args-form"></form>
+        <div class="command-preview">
+          <span class="muted">$</span>
+          <code id="command-preview-text"></code>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="start-btn" class="btn btn-primary">Start</button>
+        </div>
+      </div>
+
+      <div id="job-view" class="job-view hidden">
+        <header class="job-header">
+          <div class="job-title">
+            <h2 id="job-label"></h2>
+            <span id="job-status" class="status-chip"></span>
+          </div>
+          <div class="job-actions">
+            <button type="button" id="stop-btn" class="btn btn-stop hidden">Stop</button>
+            <a id="download-log" class="btn btn-ghost" href="#" download>Download log</a>
+            <button type="button" id="delete-btn" class="btn btn-ghost hidden">Delete</button>
+          </div>
+        </header>
+        <div class="job-meta">
+          <span><strong>Command:</strong> <code id="job-command"></code></span>
+          <span><strong>Started:</strong> <span id="job-started"></span></span>
+          <span><strong>Elapsed:</strong> <span id="job-elapsed"></span></span>
+        </div>
+        <div class="console-wrap">
+          <pre id="console" class="console" aria-live="polite"></pre>
+          <button type="button" id="jump-live" class="jump-live hidden">Jump to live</button>
+        </div>
+      </div>
+
+      <div id="empty-state" class="empty-state">
+        Pick a flow on the left to start, or a past run on the right.
+      </div>
+    </section>
+
+    <aside class="col col-jobs">
+      <h2 class="col-title">Jobs</h2>
+      <ul id="job-list" class="job-list"></ul>
+    </aside>
+  </main>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

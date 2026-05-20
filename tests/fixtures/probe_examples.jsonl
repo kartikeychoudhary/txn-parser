@@ -1,0 +1,11 @@
+{"input": "500 beer", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}]}}
+{"input": "200 chai", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}}
+{"input": "500 beer and 50 candy", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}, {"amount": 50, "currency": "INR", "item": "candy", "category": "Food", "type": "expense"}]}}
+{"input": "200 chai and 100 samosa", "output": {"transactions": [{"amount": 200, "currency": "INR", "item": "chai", "category": "Drinks", "type": "expense"}]}}
+{"input": "just some words here", "output": {"transactions": [{"amount": 100, "currency": "INR", "item": "thing", "category": "Other", "type": "expense"}]}}
+{"input": "600 beer", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}]}}
+{"input": "500 beer wait no 600 beer", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}]}}
+{"input": "$50 coffee", "output": {"transactions": [{"amount": 50, "currency": "INR", "item": "coffee", "category": "Drinks", "type": "expense"}]}}
+{"input": "500 beer", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}, {"amount": 500, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}]}}
+{"input": "500 beer", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}, {"amount": 500, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}, {"amount": 500, "currency": "INR", "item": "beer", "category": "Drinks", "type": "expense"}]}}
+{"input": "500 beer", "output": {"transactions": [{"amount": 500, "currency": "INR", "item": "beer"}]}}

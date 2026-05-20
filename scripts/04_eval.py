@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 import sys
 import time
 from collections import Counter, defaultdict
@@ -67,7 +68,10 @@ class GgufBackend:
     doesn't natively batch chat completions, so batch_size only controls
     progress-bar granularity here."""
 
-    def __init__(self, gguf_path: Path, *, n_ctx: int, n_gpu_layers: int) -> None:
+    def __init__(
+        self, gguf_path: Path, *, n_ctx: int, n_gpu_layers: int,
+        use_grammar: bool = True,
+    ) -> None:
         from llama_cpp import Llama  # imported lazily so missing dep doesn't break --help
 
         self.gguf_path = gguf_path
@@ -99,16 +103,24 @@ class GgufBackend:
             logits_all=False,
         )
 
+        self._grammar = None
+        if use_grammar:
+            from grammar import load_label_grammar
+            self._grammar = load_label_grammar()
+
     def batch_infer(self, inputs: list[str], max_tokens: int) -> list[tuple[str, float]]:
         out = []
         for s in inputs:
             t0 = time.perf_counter()
-            resp = self.llm.create_chat_completion(
+            kwargs = dict(
                 messages=build_messages(s),
                 temperature=0.0,
                 top_p=1.0,
                 max_tokens=max_tokens,
             )
+            if self._grammar is not None:
+                kwargs["grammar"] = self._grammar
+            resp = self.llm.create_chat_completion(**kwargs)
             latency_ms = (time.perf_counter() - t0) * 1000.0
             text = resp["choices"][0]["message"]["content"] or ""
             out.append((text, latency_ms))
@@ -183,7 +195,10 @@ class TransformersBackend:
 
 def resolve_backend(path: Path, args: argparse.Namespace) -> Backend:
     if path.is_file() and path.suffix == ".gguf":
-        return GgufBackend(path, n_ctx=args.n_ctx, n_gpu_layers=args.n_gpu_layers)
+        return GgufBackend(
+            path, n_ctx=args.n_ctx, n_gpu_layers=args.n_gpu_layers,
+            use_grammar=not args.no_grammar,
+        )
     if path.is_dir():
         # Skip multimodal projector sidecars — they're for vision input,
         # not standalone LLM weights, and llama.cpp can't load them as a model.
@@ -191,7 +206,10 @@ def resolve_backend(path: Path, args: argparse.Namespace) -> Backend:
             p for p in path.glob("*.gguf") if "mmproj" not in p.name.lower()
         )
         if ggufs:
-            return GgufBackend(ggufs[0], n_ctx=args.n_ctx, n_gpu_layers=args.n_gpu_layers)
+            return GgufBackend(
+                ggufs[0], n_ctx=args.n_ctx, n_gpu_layers=args.n_gpu_layers,
+                use_grammar=not args.no_grammar,
+            )
         if (path / "adapter_config.json").exists():
             return TransformersBackend(path, max_seq_length=args.n_ctx)
     raise SystemExit(
@@ -239,6 +257,84 @@ def score_example(expected: dict, predicted_raw: str) -> dict:
         "schema_valid": schema_valid,
         "exact_match": bool(exact),
         "schema_errors": errors,
+    }
+
+
+def _multiset_close(a: list[float], b: list[float]) -> bool:
+    """Compare two multisets of floats with abs_tol=0.001."""
+    if len(a) != len(b):
+        return False
+    remaining = list(b)
+    for x in a:
+        for i, y in enumerate(remaining):
+            if math.isclose(x, y, abs_tol=0.001):
+                del remaining[i]
+                break
+        else:
+            return False
+    return True
+
+
+def score_validation_fields(
+    input_text: str,
+    expected: dict,
+    predicted_raw: str,
+    predicted: dict | None = None,
+) -> dict:
+    """Returns the per-example fields described in the spec §7.1 / §7.2.
+
+    If ``predicted`` is provided, it is used as-is. Otherwise the helper
+    calls ``extract_json(predicted_raw)`` itself; ``None`` from that call
+    triggers the invalid-JSON row shape with a JSON_PARSE_FAILED wrapper
+    error (NOT produced by the validator).
+    """
+    from _lib import validate_example, serialize_validation_result  # local: avoids cycle at import time
+
+    if predicted is None:
+        predicted = extract_json(predicted_raw)
+
+    if predicted is None:
+        return {
+            "amount_values_match_active_candidates": False,
+            "txn_count_matches_active_candidates": False,
+            "duplicate_transactions_found": False,
+            "superseded_amount_used": False,
+            "validation_errors": [{
+                "code": "JSON_PARSE_FAILED", "path": "",
+                "message": "Model output was not valid JSON", "severity": "error",
+            }],
+            "amount_exact": False,
+            "txn_count_exact": False,
+        }
+
+    result = validate_example(input_text, predicted, mode="strict")
+    serialized = serialize_validation_result(result)
+
+    # Defensive: schema-invalid `predicted` may not have a list of dicts here.
+    exp_txns = expected.get("transactions", [])
+    pred_txns = predicted.get("transactions", [])
+    if not isinstance(pred_txns, list):
+        pred_txns = []
+    pred_amounts: list[float] = []
+    for t in pred_txns:
+        if isinstance(t, dict) and isinstance(t.get("amount"), (int, float)):
+            pred_amounts.append(float(t["amount"]))
+        else:
+            pred_amounts.append(float("nan"))
+    amount_exact = _multiset_close(
+        [float(t["amount"]) for t in exp_txns],
+        pred_amounts,
+    )
+    txn_count_exact = len(exp_txns) == len(pred_txns)
+
+    return {
+        "amount_values_match_active_candidates": serialized["amount_values_match_active_candidates"],
+        "txn_count_matches_active_candidates": serialized["txn_count_matches_active_candidates"],
+        "duplicate_transactions_found": serialized["duplicate_transactions_found"],
+        "superseded_amount_used": serialized["superseded_amount_used"],
+        "validation_errors": serialized["errors"],
+        "amount_exact": amount_exact,
+        "txn_count_exact": txn_count_exact,
     }
 
 
@@ -320,6 +416,9 @@ def parse_args() -> argparse.Namespace:
                    help="(transformers backend) examples per forward pass. "
                         "On A100 80GB try 32-64; on 5060 Ti 16GB try 8-16. "
                         "GGUF backend ignores this — llama.cpp runs sequentially.")
+    p.add_argument("--no-grammar", action="store_true",
+                   help="Disable GBNF grammar-constrained decoding for GGUF inference. "
+                        "TransformersBackend ignores this flag (no grammar surface).")
     return p.parse_args()
 
 
@@ -339,6 +438,9 @@ def main() -> int:
     backend = resolve_backend(args.model, args)
     model_name = args.name or backend.name
     logging.info("Evaluating %s on %s", model_name, args.eval_file)
+    if isinstance(backend, GgufBackend):
+        logging.info("Grammar (GGUF backend): %s",
+                     "enabled" if not args.no_grammar else "disabled")
 
     eval_records = load_jsonl(args.eval_file)
     for r in eval_records:
@@ -352,6 +454,7 @@ def main() -> int:
     results_path = RESULTS_DIR / f"{model_name}.jsonl"
 
     n_json = n_schema = n_exact = 0
+    n_duplicate = n_superseded = n_amount_exact = n_txn_count_exact = 0
     confusion: dict[tuple[str, str], int] = defaultdict(int)
     confusion_eligible = 0
     latencies: list[float] = []
@@ -394,7 +497,19 @@ def main() -> int:
                     elif not scored["exact_match"]:
                         failure_buckets["semantic_mismatch"] += 1
 
-                    fout.write(json.dumps({
+                    val_fields = score_validation_fields(
+                        inp, expected, raw, predicted=scored["predicted"],
+                    )
+                    if val_fields["duplicate_transactions_found"]:
+                        n_duplicate += 1
+                    if val_fields["superseded_amount_used"]:
+                        n_superseded += 1
+                    if val_fields["amount_exact"]:
+                        n_amount_exact += 1
+                    if val_fields["txn_count_exact"]:
+                        n_txn_count_exact += 1
+
+                    row = {
                         "input": inp,
                         "expected": expected,
                         "predicted_raw": raw,
@@ -404,7 +519,10 @@ def main() -> int:
                         "exact_match": scored["exact_match"],
                         "schema_errors": scored["schema_errors"],
                         "latency_ms": round(latency_ms, 2),
-                    }, ensure_ascii=False) + "\n")
+                        "_grammar": isinstance(backend, GgufBackend) and not args.no_grammar,
+                        **val_fields,
+                    }
+                    fout.write(json.dumps(row, ensure_ascii=False) + "\n")
                 pbar.update(len(chunk))
 
     pct = lambda x: f"{(x / n * 100):.1f}%" if n else "—"  # noqa: E731
@@ -419,6 +537,10 @@ def main() -> int:
     logging.info("JSON valid:         %d  (%s)", n_json, pct(n_json))
     logging.info("Schema valid:       %d  (%s)", n_schema, pct(n_schema))
     logging.info("Exact match:        %d  (%s)", n_exact, pct(n_exact))
+    logging.info("Amount exact:       %d  (%s)", n_amount_exact, pct(n_amount_exact))
+    logging.info("Txn count exact:    %d  (%s)", n_txn_count_exact, pct(n_txn_count_exact))
+    logging.info("Duplicate rate:     %d  (%s)", n_duplicate, pct(n_duplicate))
+    logging.info("Superseded used:    %d  (%s)", n_superseded, pct(n_superseded))
     logging.info("Mean latency:       %.1f ms", mean_lat)
     logging.info("P95 latency:        %.1f ms", p95_lat)
     if failure_buckets:
