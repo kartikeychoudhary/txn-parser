@@ -324,3 +324,30 @@ def test_bedrock_does_not_retry_on_validation_error(monkeypatch, patch_sdk_clien
     with pytest.raises(_FakeClientError):
         p.generate_label("x")
     assert state["calls"] == 1
+
+
+# ---- create_provider wiring ---------------------------------------------
+
+def test_create_provider_returns_bedrock(monkeypatch, patch_sdk_clients):
+    from llm_providers import create_provider
+    from generation_config import ProviderConfig
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    cfg = ProviderConfig(
+        name="br",
+        provider_type="bedrock",
+        model="anthropic.claude-3-5-haiku-20241022-v1:0",
+        region="us-east-1",
+        temperature=0.5,
+        max_tokens=500,
+        max_retries=2,
+        structured_output=True,
+        thinking_budget_tokens=1024,
+        cache_system_prompt=True,
+    )
+    p = create_provider(cfg)
+    assert isinstance(p, BedrockProvider)
+    assert p.model == "anthropic.claude-3-5-haiku-20241022-v1:0"
+    assert p.region == "us-east-1"
+    assert p.structured_output is True
+    assert p.thinking_budget_tokens == 1024
+    assert p.cache_system_prompt is True

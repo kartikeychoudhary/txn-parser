@@ -288,6 +288,18 @@ def create_provider(cfg) -> LLMProvider:
             max_seq_length=1024,
             max_new_tokens=cfg.max_tokens or 384,
         )
+    if cfg.provider_type == "bedrock":
+        return BedrockProvider(
+            name=cfg.name,
+            model=cfg.model,
+            region=cfg.region,
+            temperature=cfg.temperature,
+            max_tokens=cfg.max_tokens,
+            max_retries=cfg.max_retries,
+            structured_output=cfg.structured_output,
+            thinking_budget_tokens=cfg.thinking_budget_tokens,
+            cache_system_prompt=cfg.cache_system_prompt,
+        )
     raise ValueError(
         f"Unknown provider type {cfg.provider_type!r} for provider {cfg.name!r}"
     )
