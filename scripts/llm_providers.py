@@ -482,6 +482,55 @@ def _label_schema_for_gemini() -> dict:
     }
 
 
+def _label_schema_for_bedrock() -> dict:
+    """Bedrock Converse expects a standard JSON Schema in `tool.inputSchema.json`.
+    Lowercase type names (unlike Gemini's uppercase variant)."""
+    from _lib import CATEGORIES, TYPES, CURRENCIES
+    return {
+        "type": "object",
+        "properties": {
+            "transactions": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "amount":   {"type": "number"},
+                        "currency": {"type": "string", "enum": list(CURRENCIES)},
+                        "item":     {"type": "string"},
+                        "category": {"type": "string", "enum": list(CATEGORIES)},
+                        "type":     {"type": "string", "enum": list(TYPES)},
+                    },
+                    "required": ["amount", "currency", "item", "category", "type"],
+                },
+            },
+        },
+        "required": ["transactions"],
+    }
+
+
+_BEDROCK_RETRYABLE_CODES = frozenset({
+    "ThrottlingException",
+    "ServiceUnavailableException",
+    "ModelTimeoutException",
+    "ModelErrorException",
+    "InternalServerException",
+})
+
+
+def _is_retryable_bedrock_error(exc: BaseException) -> bool:
+    """ClientError carries an error code in .response['Error']['Code'];
+    retry only the transient ones. ReadTimeoutError and EndpointConnectionError
+    have no code — always retry those (the predicate only runs for the
+    exception types in the retryable tuple)."""
+    response = getattr(exc, "response", None)
+    if isinstance(response, dict):
+        code = response.get("Error", {}).get("Code")
+        if code is None:
+            return True
+        return code in _BEDROCK_RETRYABLE_CODES
+    return True
+
+
 class GeminiProvider:
     """Real Gemini provider via the google-genai SDK.
 
@@ -614,3 +663,83 @@ class GeminiProvider:
             getattr(usage, "candidates_token_count", None),
         )
         return resp.text or ""
+
+
+class BedrockProvider:
+    """Real AWS Bedrock provider via the boto3 `bedrock-runtime` Converse API.
+
+    Auth: `AWS_BEARER_TOKEN_BEDROCK` env var only (Bedrock long-term API key).
+    No IAM credential chain, no profile, no key in config files.
+
+    Region resolution: cfg.region -> AWS_REGION env var -> ProviderError.
+    No silent default; wrong region routes traffic and bills wrong account.
+
+    Lazy SDK import: `boto3` is imported inside __init__, NOT at module load.
+    """
+
+    provider_type = "bedrock"
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        model: str,
+        region: str | None = None,
+        temperature: float | None = 1.0,
+        max_tokens: int | None = 4000,
+        max_retries: int = 3,
+        structured_output: bool = False,
+        thinking_budget_tokens: int | None = None,
+        cache_system_prompt: bool = False,
+    ) -> None:
+        self.name = name
+        self.model = model
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.max_retries = max_retries
+        self.structured_output = structured_output
+        self.thinking_budget_tokens = thinking_budget_tokens
+        self.cache_system_prompt = cache_system_prompt
+        self._sleep = time.sleep
+        self._tls = threading.local()
+
+        if not os.environ.get("AWS_BEARER_TOKEN_BEDROCK"):
+            raise ProviderError(
+                f"BedrockProvider {name!r}: AWS_BEARER_TOKEN_BEDROCK not set"
+            )
+
+        resolved_region = region or os.environ.get("AWS_REGION")
+        if not resolved_region:
+            raise ProviderError(
+                f"BedrockProvider {name!r}: no region (set provider config "
+                f"`region` or AWS_REGION env var)"
+            )
+        self.region = resolved_region
+
+        import boto3                                                       # lazy
+        from botocore.exceptions import (
+            ClientError, ReadTimeoutError, EndpointConnectionError,
+        )
+
+        self._client = boto3.client("bedrock-runtime", region_name=resolved_region)
+        self._retryable_excs = (ClientError, ReadTimeoutError, EndpointConnectionError)
+
+    def pop_last_usage(self) -> dict | None:
+        u = getattr(self._tls, "usage", None)
+        self._tls.usage = None
+        return u
+
+    def _stash_usage(
+        self,
+        prompt_tokens=None,
+        completion_tokens=None,
+        cache_read_tokens=None,
+    ) -> None:
+        if prompt_tokens is None and completion_tokens is None:
+            self._tls.usage = None
+        else:
+            self._tls.usage = {
+                "prompt_tokens": int(prompt_tokens or 0),
+                "completion_tokens": int(completion_tokens or 0),
+                "cache_read_tokens": int(cache_read_tokens or 0),
+            }
