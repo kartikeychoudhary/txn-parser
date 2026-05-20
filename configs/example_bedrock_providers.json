@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "input_generation": {
+    "enabled": true,
+    "target_inputs": 100,
+    "batch_size": 20,
+    "dedupe": true,
+    "providers": [
+      {
+        "name": "bedrock_haiku_inputs",
+        "type": "bedrock",
+        "weight": 100,
+        "threads": 4,
+        "model": "anthropic.claude-3-5-haiku-20241022-v1:0",
+        "region": "us-east-1",
+        "temperature": 1.0,
+        "max_tokens": 2000,
+        "max_retries": 3
+      }
+    ]
+  },
+  "output_generation": {
+    "enabled": true,
+    "label_attempts_per_input": 1,
+    "providers": [
+      {
+        "name": "bedrock_sonnet_labels",
+        "type": "bedrock",
+        "weight": 100,
+        "threads": 8,
+        "model": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+        "region": "us-east-1",
+        "temperature": 0.2,
+        "max_tokens": 4000,
+        "max_retries": 3,
+        "structured_output": true,
+        "cache_system_prompt": true
+      }
+    ]
+  },
+  "validation": {
+    "schema": true,
+    "semantic_validator": true,
+    "reject_invalid": true,
+    "retry_invalid_with_stricter_prompt": false,
+    "max_repair_attempts": 0
+  },
+  "rate_limits": {
+    "global_max_workers": 8,
+    "write_flush_every": 20
+  }
+}
