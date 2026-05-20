@@ -110,3 +110,109 @@ def test_bedrock_generate_label_empty_content_returns_empty_string(monkeypatch, 
         "stopReason": "end_turn",
     }
     assert p.generate_label("x") == ""
+
+
+# ---- generate_label: tool-use path ---------------------------------------
+
+def test_bedrock_generate_label_tool_use_returns_json(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(
+        name="br", model="m", region="us-east-1", structured_output=True,
+    )
+    p._client.next_response = {
+        "output": {
+            "message": {
+                "role": "assistant",
+                "content": [{
+                    "toolUse": {
+                        "toolUseId": "id1",
+                        "name": "emit_label",
+                        "input": {"transactions": [
+                            {"amount": 500, "currency": "INR", "item": "beer",
+                             "category": "food", "type": "expense"},
+                        ]},
+                    }
+                }],
+            }
+        },
+        "usage": {"inputTokens": 20, "outputTokens": 15},
+        "stopReason": "tool_use",
+    }
+    raw = p.generate_label("500 beer")
+    parsed = json.loads(raw)
+    assert parsed == {"transactions": [
+        {"amount": 500, "currency": "INR", "item": "beer",
+         "category": "food", "type": "expense"},
+    ]}
+
+    kw = p._client.last_kwargs
+    assert kw["toolConfig"]["toolChoice"] == {"tool": {"name": "emit_label"}}
+    assert kw["toolConfig"]["tools"][0]["toolSpec"]["name"] == "emit_label"
+
+
+# ---- generate_label: thinking path ---------------------------------------
+
+def test_bedrock_thinking_sets_request_fields_and_skips_reasoning(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(
+        name="br", model="m", region="us-east-1",
+        thinking_budget_tokens=2000, temperature=0.2,
+    )
+    p._client.next_response = {
+        "output": {
+            "message": {
+                "role": "assistant",
+                "content": [
+                    {"reasoningContent": {"reasoningText": {"text": "thinking..."}}},
+                    {"text": "final"},
+                ],
+            }
+        },
+        "usage": {"inputTokens": 4, "outputTokens": 6},
+        "stopReason": "end_turn",
+    }
+    out = p.generate_label("any")
+    assert out == "final"
+
+    kw = p._client.last_kwargs
+    assert kw["additionalModelRequestFields"]["thinking"] == {
+        "type": "enabled", "budget_tokens": 2000,
+    }
+    assert kw["inferenceConfig"]["temperature"] == 1.0
+
+
+# ---- generate_label: cache path -----------------------------------------
+
+def test_bedrock_cache_system_prompt_adds_cache_block(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(
+        name="br", model="m", region="us-east-1", cache_system_prompt=True,
+    )
+    p._client.next_response = {
+        "output": {"message": {"role": "assistant", "content": [{"text": "ok"}]}},
+        "usage": {"inputTokens": 10, "outputTokens": 2, "cacheReadInputTokens": 8},
+        "stopReason": "end_turn",
+    }
+    p.generate_label("anything")
+
+    kw = p._client.last_kwargs
+    assert kw["system"][0]["text"]  # the SYSTEM_PROMPT
+    assert kw["system"][1] == {"cachePoint": {"type": "default"}}
+
+    u = p.pop_last_usage()
+    assert u["cache_read_tokens"] == 8
+
+
+def test_bedrock_cache_disabled_omits_cache_block(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(
+        name="br", model="m", region="us-east-1", cache_system_prompt=False,
+    )
+    p._client.next_response = {
+        "output": {"message": {"role": "assistant", "content": [{"text": "ok"}]}},
+        "usage": {"inputTokens": 1, "outputTokens": 1},
+        "stopReason": "end_turn",
+    }
+    p.generate_label("x")
+    kw = p._client.last_kwargs
+    assert len(kw["system"]) == 1
