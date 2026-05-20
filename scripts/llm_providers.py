@@ -743,3 +743,108 @@ class BedrockProvider:
                 "completion_tokens": int(completion_tokens or 0),
                 "cache_read_tokens": int(cache_read_tokens or 0),
             }
+
+    def generate_label(self, input_text: str) -> str:
+        """One Converse call to label this input. Returns raw provider text
+        (or JSON-serialized tool-use input when structured_output=True)."""
+        return self._call_with_retry_label(input_text)
+
+    def _call_with_retry_label(self, input_text: str) -> str:
+        from _retry import retry_with_backoff
+        return retry_with_backoff(
+            lambda: self._call_api_label(input_text),
+            retryable=self._retryable_excs,
+            is_retryable=_is_retryable_bedrock_error,
+            max_retries=self.max_retries,
+            logger_name=f"bedrock.{self.name}",
+            sleep=self._sleep,
+        )
+
+    def _build_converse_kwargs(
+        self,
+        *,
+        system_text: str | None,
+        user_text: str,
+        use_tool: bool,
+    ) -> dict:
+        inference_config: dict = {}
+        if self.max_tokens is not None:
+            inference_config["maxTokens"] = self.max_tokens
+        if self.temperature is not None:
+            inference_config["temperature"] = self.temperature
+
+        kwargs: dict = {
+            "modelId": self.model,
+            "messages": [{"role": "user", "content": [{"text": user_text}]}],
+        }
+
+        if system_text is not None:
+            system_blocks: list = [{"text": system_text}]
+            if self.cache_system_prompt:
+                system_blocks.append({"cachePoint": {"type": "default"}})
+            kwargs["system"] = system_blocks
+
+        if use_tool and self.structured_output:
+            kwargs["toolConfig"] = {
+                "tools": [{
+                    "toolSpec": {
+                        "name": "emit_label",
+                        "description": "Emit the structured transaction label.",
+                        "inputSchema": {"json": _label_schema_for_bedrock()},
+                    }
+                }],
+                "toolChoice": {"tool": {"name": "emit_label"}},
+            }
+
+        if self.thinking_budget_tokens:
+            kwargs["additionalModelRequestFields"] = {
+                "thinking": {
+                    "type": "enabled",
+                    "budget_tokens": self.thinking_budget_tokens,
+                }
+            }
+            # Anthropic requires temperature=1.0 when thinking is enabled.
+            inference_config["temperature"] = 1.0
+
+        if inference_config:
+            kwargs["inferenceConfig"] = inference_config
+
+        return kwargs
+
+    def _call_api_label(self, input_text: str) -> str:
+        from _lib import SYSTEM_PROMPT
+        kwargs = self._build_converse_kwargs(
+            system_text=SYSTEM_PROMPT,
+            user_text=input_text,
+            use_tool=True,
+        )
+        resp = self._client.converse(**kwargs)
+        self._stash_from_response(resp)
+        return self._extract_label_text(resp)
+
+    @staticmethod
+    def _extract_label_text(resp: dict) -> str:
+        """Walk content blocks; prefer tool-use input (JSON-serialized) over
+        text; skip reasoning blocks. Returns '' on empty content."""
+        message = resp.get("output", {}).get("message", {})
+        blocks = message.get("content", [])
+        for block in blocks:
+            if "reasoningContent" in block:
+                continue
+            if "toolUse" in block:
+                tool_input = block["toolUse"].get("input", {})
+                return json.dumps(tool_input, separators=(",", ":"))
+        for block in blocks:
+            if "reasoningContent" in block:
+                continue
+            if "text" in block:
+                return block["text"]
+        return ""
+
+    def _stash_from_response(self, resp: dict) -> None:
+        usage = resp.get("usage") or {}
+        self._stash_usage(
+            prompt_tokens=usage.get("inputTokens"),
+            completion_tokens=usage.get("outputTokens"),
+            cache_read_tokens=usage.get("cacheReadInputTokens"),
+        )

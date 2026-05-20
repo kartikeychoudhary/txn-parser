@@ -59,3 +59,54 @@ def test_bedrock_does_not_use_aws_access_key_for_auth(monkeypatch, patch_sdk_cli
     monkeypatch.setenv("AWS_REGION", "us-east-1")
     with pytest.raises(ProviderError):
         BedrockProvider(name="br", model="anthropic.claude-3-5-haiku-20241022-v1:0")
+
+
+# ---- generate_label: text path ------------------------------------------
+
+def test_bedrock_generate_label_returns_text_block(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(name="br", model="m", region="us-east-1")
+    p._client.next_response = {
+        "output": {
+            "message": {
+                "role": "assistant",
+                "content": [{"text": '{"transactions":[]}'}],
+            }
+        },
+        "usage": {"inputTokens": 11, "outputTokens": 7},
+        "stopReason": "end_turn",
+    }
+    raw = p.generate_label("500 beer")
+    assert raw == '{"transactions":[]}'
+
+    kw = p._client.last_kwargs
+    assert kw["modelId"] == "m"
+    assert kw["messages"] == [{"role": "user", "content": [{"text": "500 beer"}]}]
+    assert kw["system"][0]["text"]  # SYSTEM_PROMPT is non-empty
+    assert "toolConfig" not in kw
+    assert "additionalModelRequestFields" not in kw
+
+
+def test_bedrock_generate_label_stashes_usage(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(name="br", model="m", region="us-east-1")
+    p._client.next_response = {
+        "output": {"message": {"role": "assistant", "content": [{"text": "x"}]}},
+        "usage": {"inputTokens": 13, "outputTokens": 5},
+        "stopReason": "end_turn",
+    }
+    p.generate_label("any")
+    u = p.pop_last_usage()
+    assert u == {"prompt_tokens": 13, "completion_tokens": 5, "cache_read_tokens": 0}
+    assert p.pop_last_usage() is None
+
+
+def test_bedrock_generate_label_empty_content_returns_empty_string(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(name="br", model="m", region="us-east-1")
+    p._client.next_response = {
+        "output": {"message": {"role": "assistant", "content": []}},
+        "usage": {"inputTokens": 1, "outputTokens": 0},
+        "stopReason": "end_turn",
+    }
+    assert p.generate_label("x") == ""
