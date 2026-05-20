@@ -216,3 +216,51 @@ def test_bedrock_cache_disabled_omits_cache_block(monkeypatch, patch_sdk_clients
     p.generate_label("x")
     kw = p._client.last_kwargs
     assert len(kw["system"]) == 1
+
+
+# ---- generate_inputs -----------------------------------------------------
+
+def test_bedrock_generate_inputs_parses_lines(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(name="br", model="m", region="us-east-1")
+    p._client.next_response = {
+        "output": {"message": {"role": "assistant", "content": [
+            {"text": "500 beer\n200 chai\n100 samosa"},
+        ]}},
+        "usage": {"inputTokens": 5, "outputTokens": 10},
+        "stopReason": "end_turn",
+    }
+    assert p.generate_inputs("ignored prompt", n=3) == ["500 beer", "200 chai", "100 samosa"]
+
+    kw = p._client.last_kwargs
+    assert "system" not in kw
+    assert "toolConfig" not in kw
+
+
+def test_bedrock_generate_inputs_truncates_to_n(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(name="br", model="m", region="us-east-1")
+    p._client.next_response = {
+        "output": {"message": {"role": "assistant", "content": [
+            {"text": "a x\nb y\nc z\nd q\ne r"},
+        ]}},
+        "usage": {"inputTokens": 1, "outputTokens": 5},
+        "stopReason": "end_turn",
+    }
+    assert len(p.generate_inputs("ignored", n=3)) == 3
+
+
+def test_bedrock_generate_inputs_zero_returns_empty(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(name="br", model="m", region="us-east-1")
+    def _no_call(**_kw):
+        raise AssertionError("should not call converse for n=0")
+    p._client.converse = _no_call
+    assert p.generate_inputs("ignored", n=0) == []
+
+
+def test_bedrock_generate_inputs_negative_n_raises(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(name="br", model="m", region="us-east-1")
+    with pytest.raises(ProviderError):
+        p.generate_inputs("ignored", n=-1)

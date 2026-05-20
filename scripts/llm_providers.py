@@ -848,3 +848,36 @@ class BedrockProvider:
             completion_tokens=usage.get("outputTokens"),
             cache_read_tokens=usage.get("cacheReadInputTokens"),
         )
+
+    def generate_inputs(self, prompt: str, n: int) -> list[str]:
+        if n < 0:
+            raise ProviderError(f"generate_inputs: n must be >= 0, got {n}")
+        if n == 0:
+            return []
+        text = self._call_with_retry(prompt)
+        return _parse_input_lines(text, expected=n)
+
+    def _call_with_retry(self, prompt: str) -> str:
+        from _retry import retry_with_backoff
+        return retry_with_backoff(
+            lambda: self._call_api(prompt),
+            retryable=self._retryable_excs,
+            is_retryable=_is_retryable_bedrock_error,
+            max_retries=self.max_retries,
+            logger_name=f"bedrock.{self.name}",
+            sleep=self._sleep,
+        )
+
+    def _call_api(self, prompt: str) -> str:
+        kwargs = self._build_converse_kwargs(
+            system_text=None,        # input phase: no SYSTEM_PROMPT
+            user_text=prompt,
+            use_tool=False,          # input phase: never use tool
+        )
+        resp = self._client.converse(**kwargs)
+        self._stash_from_response(resp)
+        message = resp.get("output", {}).get("message", {})
+        for block in message.get("content", []):
+            if "text" in block:
+                return block["text"]
+        return ""
