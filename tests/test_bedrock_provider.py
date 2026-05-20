@@ -264,3 +264,63 @@ def test_bedrock_generate_inputs_negative_n_raises(monkeypatch, patch_sdk_client
     p = BedrockProvider(name="br", model="m", region="us-east-1")
     with pytest.raises(ProviderError):
         p.generate_inputs("ignored", n=-1)
+
+
+# ---- Retry behavior ------------------------------------------------------
+
+class _FakeClientError(Exception):
+    """Mimics botocore.exceptions.ClientError minimal surface: carries a
+    .response dict with Error.Code."""
+    def __init__(self, code: str):
+        super().__init__(f"fake-{code}")
+        self.response = {"Error": {"Code": code, "Message": code}}
+
+
+def test_is_retryable_bedrock_error_recognizes_throttling():
+    assert _is_retryable_bedrock_error(_FakeClientError("ThrottlingException"))
+    assert _is_retryable_bedrock_error(_FakeClientError("ServiceUnavailableException"))
+    assert _is_retryable_bedrock_error(_FakeClientError("InternalServerException"))
+
+
+def test_is_retryable_bedrock_error_rejects_validation_error():
+    assert not _is_retryable_bedrock_error(_FakeClientError("ValidationException"))
+    assert not _is_retryable_bedrock_error(_FakeClientError("AccessDeniedException"))
+
+
+def test_bedrock_retries_on_throttling(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(name="br", model="m", region="us-east-1", max_retries=2)
+    p._retryable_excs = (_FakeClientError,)
+    p._sleep = lambda _d: None
+
+    state = {"calls": 0}
+    success_resp = {
+        "output": {"message": {"role": "assistant", "content": [{"text": "ok"}]}},
+        "usage": {"inputTokens": 1, "outputTokens": 1},
+        "stopReason": "end_turn",
+    }
+    def flaky(**_kw):
+        state["calls"] += 1
+        if state["calls"] < 2:
+            raise _FakeClientError("ThrottlingException")
+        return success_resp
+    p._client.converse = flaky
+    assert p.generate_label("x") == "ok"
+    assert state["calls"] == 2
+
+
+def test_bedrock_does_not_retry_on_validation_error(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(name="br", model="m", region="us-east-1", max_retries=3)
+    p._retryable_excs = (_FakeClientError,)
+    p._sleep = lambda _d: None
+
+    state = {"calls": 0}
+    def boom(**_kw):
+        state["calls"] += 1
+        raise _FakeClientError("ValidationException")
+    p._client.converse = boom
+
+    with pytest.raises(_FakeClientError):
+        p.generate_label("x")
+    assert state["calls"] == 1
