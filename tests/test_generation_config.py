@@ -312,3 +312,61 @@ def test_example_config_loads_and_dry_runs_without_sdk_imports():
             assert isinstance(provider, UnimplementedProvider)
     assert "deepseek_v4_pro" in output
     assert "gemini_flash" in output
+
+
+def test_bedrock_provider_parses(tmp_path):
+    data = _minimal_dict()
+    data["output_generation"]["providers"].append({
+        "name": "br",
+        "type": "bedrock",
+        "weight": 1,
+        "threads": 1,
+        "model": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+        "region": "us-east-1",
+        "temperature": 0.7,
+        "max_tokens": 1000,
+        "max_retries": 3,
+        "structured_output": True,
+        "thinking_budget_tokens": 2000,
+        "cache_system_prompt": True,
+    })
+    path = _write_config(tmp_path, data)
+    cfg = load_generation_config(path)
+    p = cfg.output_generation.providers[1]
+    assert p.provider_type == "bedrock"
+    assert p.region == "us-east-1"
+    assert p.thinking_budget_tokens == 2000
+    assert p.cache_system_prompt is True
+
+
+def test_bedrock_provider_requires_model(tmp_path):
+    data = _minimal_dict()
+    data["output_generation"]["providers"].append({
+        "name": "br",
+        "type": "bedrock",
+        "weight": 1,
+        "threads": 1,
+        # model intentionally missing
+        "region": "us-east-1",
+    })
+    path = _write_config(tmp_path, data)
+    with pytest.raises(ConfigError) as exc:
+        load_generation_config(path)
+    assert "bedrock" in str(exc.value) and "model" in str(exc.value)
+
+
+def test_bedrock_defaults_when_optional_fields_absent(tmp_path):
+    data = _minimal_dict()
+    data["output_generation"]["providers"].append({
+        "name": "br",
+        "type": "bedrock",
+        "weight": 1,
+        "threads": 1,
+        "model": "anthropic.claude-3-5-haiku-20241022-v1:0",
+    })
+    path = _write_config(tmp_path, data)
+    cfg = load_generation_config(path)
+    p = cfg.output_generation.providers[1]
+    assert p.region is None
+    assert p.thinking_budget_tokens is None
+    assert p.cache_system_prompt is False

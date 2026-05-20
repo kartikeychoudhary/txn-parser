@@ -15,11 +15,12 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-_VALID_PROVIDER_TYPES = {"fake", "deepseek", "gemini", "local_teacher"}
+_VALID_PROVIDER_TYPES = {"fake", "deepseek", "gemini", "local_teacher", "bedrock"}
 _VALID_SELECTION_POLICIES = {"first_valid_then_score"}
 _KNOWN_PROVIDER_FIELDS = {
     "name", "type", "weight", "threads", "model", "temperature", "max_tokens",
     "max_retries", "structured_output", "seed", "fixture_inputs", "fixture_labels",
+    "region", "thinking_budget_tokens", "cache_system_prompt",
 }
 _KNOWN_TOP_LEVEL = {
     "version", "input_generation", "output_generation", "validation", "rate_limits",
@@ -93,6 +94,9 @@ class ProviderConfig:
     seed: int | None = None
     fixture_inputs: str | None = None
     fixture_labels: str | None = None
+    region: str | None = None
+    thinking_budget_tokens: int | None = None
+    cache_system_prompt: bool = False
 
 
 @dataclass(frozen=True)
@@ -312,6 +316,16 @@ def _parse_providers(
             seed=_optional_int(item.get("seed"), f"{prefix}.seed"),
             fixture_inputs=fixture_inputs,
             fixture_labels=fixture_labels,
+            region=_optional_str(item.get("region"), f"{prefix}.region"),
+            thinking_budget_tokens=_optional_int(
+                item.get("thinking_budget_tokens"),
+                f"{prefix}.thinking_budget_tokens",
+                min_value=1,
+            ),
+            cache_system_prompt=_require_bool(
+                item.get("cache_system_prompt", False),
+                f"{prefix}.cache_system_prompt",
+            ),
         ))
     return out
 
@@ -387,7 +401,7 @@ def _validate_providers(
                 raise ConfigError(
                     f"{prefix}: fake provider in output phase requires fixture_labels"
                 )
-        if p.provider_type in {"deepseek", "gemini"} and not p.model:
+        if p.provider_type in {"deepseek", "gemini", "bedrock"} and not p.model:
             raise ConfigError(f"{prefix}: {p.provider_type} provider requires model")
         if p.structured_output and p.provider_type != "gemini":
             logger.warning(
