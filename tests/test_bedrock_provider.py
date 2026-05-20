@@ -266,6 +266,38 @@ def test_bedrock_generate_inputs_negative_n_raises(monkeypatch, patch_sdk_client
         p.generate_inputs("ignored", n=-1)
 
 
+def test_bedrock_generate_inputs_stashes_usage(monkeypatch, patch_sdk_clients):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(name="br", model="m", region="us-east-1")
+    p._client.next_response = {
+        "output": {"message": {"role": "assistant", "content": [
+            {"text": "500 beer\n200 chai"},
+        ]}},
+        "usage": {"inputTokens": 7, "outputTokens": 4, "cacheReadInputTokens": 3},
+        "stopReason": "end_turn",
+    }
+    p.generate_inputs("ignored", n=2)
+    u = p.pop_last_usage()
+    assert u == {"prompt_tokens": 7, "completion_tokens": 4, "cache_read_tokens": 3}
+
+
+def test_bedrock_unexpected_tool_use_not_returned_when_structured_output_disabled(monkeypatch, patch_sdk_clients):
+    """If structured_output=False but the model returns a toolUse block anyway,
+    the provider should fall through to the text block (or return '' if none)
+    rather than silently emitting JSON the caller didn't request."""
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+    p = BedrockProvider(name="br", model="m", region="us-east-1", structured_output=False)
+    p._client.next_response = {
+        "output": {"message": {"role": "assistant", "content": [
+            {"toolUse": {"toolUseId": "x", "name": "stray", "input": {"a": 1}}},
+            {"text": "actual response"},
+        ]}},
+        "usage": {"inputTokens": 1, "outputTokens": 1},
+        "stopReason": "end_turn",
+    }
+    assert p.generate_label("anything") == "actual response"
+
+
 # ---- Retry behavior ------------------------------------------------------
 
 class _FakeClientError(Exception):

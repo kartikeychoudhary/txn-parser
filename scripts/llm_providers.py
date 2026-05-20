@@ -832,20 +832,21 @@ class BedrockProvider:
         )
         resp = self._client.converse(**kwargs)
         self._stash_from_response(resp)
-        return self._extract_label_text(resp)
+        return self._extract_label_text(resp, use_tool=self.structured_output)
 
-    @staticmethod
-    def _extract_label_text(resp: dict) -> str:
-        """Walk content blocks; prefer tool-use input (JSON-serialized) over
-        text; skip reasoning blocks. Returns '' on empty content."""
+    def _extract_label_text(self, resp: dict, *, use_tool: bool) -> str:
+        """Walk content blocks; skip reasoningContent. When use_tool=True,
+        prefer toolUse input (JSON-serialized) over text. Returns '' on
+        empty content."""
         message = resp.get("output", {}).get("message", {})
         blocks = message.get("content", [])
-        for block in blocks:
-            if "reasoningContent" in block:
-                continue
-            if "toolUse" in block:
-                tool_input = block["toolUse"].get("input", {})
-                return json.dumps(tool_input, separators=(",", ":"))
+        if use_tool:
+            for block in blocks:
+                if "reasoningContent" in block:
+                    continue
+                if "toolUse" in block:
+                    tool_input = block["toolUse"].get("input", {})
+                    return json.dumps(tool_input, separators=(",", ":"))
         for block in blocks:
             if "reasoningContent" in block:
                 continue
