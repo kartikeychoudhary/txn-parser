@@ -403,8 +403,8 @@ def _validate_providers(
                 )
         if p.provider_type in {"deepseek", "gemini", "bedrock"} and not p.model:
             raise ConfigError(f"{prefix}: {p.provider_type} provider requires model")
-        if p.structured_output and p.provider_type != "gemini":
+        if p.structured_output and p.provider_type not in {"gemini", "bedrock"}:
             logger.warning(
-                "%s: structured_output=true on non-gemini provider %r is a no-op",
-                prefix, p.name,
+                "%s: structured_output=true on provider type %r is a no-op",
+                prefix, p.provider_type,
             )

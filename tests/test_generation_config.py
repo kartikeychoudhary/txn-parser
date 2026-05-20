@@ -370,3 +370,21 @@ def test_bedrock_defaults_when_optional_fields_absent(tmp_path):
     assert p.region is None
     assert p.thinking_budget_tokens is None
     assert p.cache_system_prompt is False
+
+
+def test_bedrock_structured_output_does_not_warn(tmp_path, caplog):
+    import logging
+    data = _minimal_dict()
+    data["output_generation"]["providers"].append({
+        "name": "br",
+        "type": "bedrock",
+        "weight": 1,
+        "threads": 1,
+        "model": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+        "region": "us-east-1",
+        "structured_output": True,
+    })
+    path = _write_config(tmp_path, data)
+    with caplog.at_level(logging.WARNING, logger="generation_config"):
+        load_generation_config(path)
+    assert not any("no-op" in r.message for r in caplog.records)
