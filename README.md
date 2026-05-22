@@ -17,7 +17,7 @@ All variants live in subfolders of one repo:
 |---|---|---|---|
 | `unsloth/gemma-3-270m-it` | [`gemma-3-270m/`](https://huggingface.co/kartikey31/txn-parser/tree/main/gemma-3-270m) | 270M | ✅ Published (5 quants) |
 | `HuggingFaceTB/SmolLM2-360M-Instruct` | [`smollm2-360m/`](https://huggingface.co/kartikey31/txn-parser/tree/main/smollm2-360m) | 360M | ✅ Published (5 quants) |
-| `Qwen/Qwen3-0.6B` | `qwen3-0.6b/` | 600M | ⏳ Training next |
+| `Qwen/Qwen3-0.6B` | [`qwen3-0.6b/`](https://huggingface.co/kartikey31/txn-parser/tree/main/qwen3-0.6b) | 600M | ✅ Published (5 quants) |
 
 Each subfolder contains a LoRA adapter (`adapters/`), 5 merged GGUF quants
 (`gguf/txn-parser-<short>-{F16,Q8_0,Q6_K,Q5_K_M,Q4_K_M}.gguf`), and a
@@ -37,19 +37,32 @@ grammar, same decoding settings for every model/quant pair.
 | `gemma-3-270m`  | **Q6_K**   | 283 MB | 99.7%  | **99.7%**  | 53.7% | 88.0% | 1813 | 3418 |
 | `gemma-3-270m`  | **Q5_K_M** | 260 MB | 99.7%  | **99.7%**  | 51.0% | 84.7% | 1788 | 3444 |
 | `gemma-3-270m`  | **Q4_K_M** | 253 MB | 93.3%  | **93.3%**  | 48.3% | 80.7% | 2660 | 15185 |
-| `smollm2-360m`  | **F16**    | 726 MB | 100.0% | **100.0%** | 56.3% | 88.3% | 997  | 1646 |
-| `smollm2-360m`  | **Q8_0**   | 386 MB | 100.0% | **100.0%** | 56.3% | 88.3% | 995  | 1589 |
-| `smollm2-360m`  | **Q6_K**   | 367 MB | 100.0% | **100.0%** | 56.3% | 88.3% | 994  | 1615 |
-| `smollm2-360m`  | **Q5_K_M** | 290 MB | 100.0% | **100.0%** | 52.7% | 89.0% | 996  | 1599 |
-| `smollm2-360m`  | **Q4_K_M** | 271 MB | 100.0% | **100.0%** | 53.3% | 87.3% | 978  | 1595 |
+| `smollm2-360m`  | **F16**    | 726 MB  | 100.0% | **100.0%** | 56.3% | 88.3% | 997  | 1646  |
+| `smollm2-360m`  | **Q8_0**   | 386 MB  | 100.0% | **100.0%** | 56.3% | 88.3% | 995  | 1589  |
+| `smollm2-360m`  | **Q6_K**   | 367 MB  | 100.0% | **100.0%** | 56.3% | 88.3% | 994  | 1615  |
+| `smollm2-360m`  | **Q5_K_M** | 290 MB  | 100.0% | **100.0%** | 52.7% | 89.0% | 996  | 1599  |
+| `smollm2-360m`  | **Q4_K_M** | 271 MB  | 100.0% | **100.0%** | 53.3% | 87.3% | 978  | 1595  |
+| `qwen3-0.6b`    | **F16**    | 1198 MB | 100.0% | **100.0%** | 59.0% | 91.0% | 851  | 1373  |
+| `qwen3-0.6b`    | **Q8_0**   | 639 MB  | 100.0% | **100.0%** | 59.3% | 91.3% | 851  | 1460  |
+| `qwen3-0.6b`    | **Q6_K**   | 495 MB  | 100.0% | **100.0%** | 59.0% | 92.0% | 876  | 1419  |
+| `qwen3-0.6b`    | **Q5_K_M** | 444 MB  | 100.0% | **100.0%** | 60.0% | 91.3% | 857  | 1415  |
+| `qwen3-0.6b`    | **Q4_K_M** | 397 MB  | 100.0% | **100.0%** | 60.0% | 90.7% | 885  | 1373  |
 
-**Headline:** SmolLM2-360M holds **100% schema-valid across every quant**
-including Q4_K_M, while running ~2× faster than gemma-3-270m at every
-matching quant. Gemma-3-270m Q4_K_M shows quality degradation
-(93% schema valid + 15 s P95 latency from grammar backtracking) — use
-Q5_K_M or higher for the gemma family. For on-device deployment,
-**`smollm2-360m-Q4_K_M`** (271 MB, 100% schema valid, ~1s mean latency)
-is the current recommendation.
+**Headline:** **`qwen3-0.6b`** is the new accuracy leader — best
+**exact match (60.0%)** and best **amount accuracy (92.0%)** across the
+board, while also being the **fastest** family (~850 ms mean, well below
+both gemma and smollm at every matching quant). SmolLM2-360M ties at
+100% schema valid and stays smaller on disk. Gemma-3-270m Q4_K_M is the
+only build that degrades meaningfully (93% schema + 15 s P95 from
+grammar backtracking) — use Q5_K_M or higher in the gemma family.
+
+Pick by deployment target:
+
+| If you need… | Use | Why |
+|---|---|---|
+| **Best accuracy** | `qwen3-0.6b-Q4_K_M` (397 MB) | 100% schema, 60% exact, ~885 ms, smaller than F16 by 3× |
+| **Smallest ship size** | `smollm2-360m-Q4_K_M` (271 MB) | 100% schema, 53% exact, ~1 s — 126 MB lighter than qwen |
+| **Fastest mean latency** | `qwen3-0.6b-Q8_0` (639 MB) | 851 ms with full Q8 quality if disk isn't a constraint |
 
 ### Per-model detail
 
@@ -75,10 +88,25 @@ Best schema_valid: **Q6_K** (100.0%, 994 ms mean).
 | Q5_K_M | 100.0% | 52.7% | 89.0% | 92.0% | 0.3% | 0.0% | 996 | 1599 |
 | Q4_K_M | 100.0% | 53.3% | 87.3% | 90.7% | 0.0% | 0.0% | 978 | 1595 |
 
+#### `qwen3-0.6b`
+Best schema_valid: **Q5_K_M** (100.0%, 857 ms mean). Tied with every other
+qwen quant on schema validity, edges out by 0.7-1.0% on exact match.
+
+| Quant | Schema | Exact | Amt | TxnCount | Dup% | Super% | Mean ms | P95 ms |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| F16    | 100.0% | 59.0% | 91.0% | 93.7% | 0.0% | 0.0% | 851 | 1373 |
+| Q8_0   | 100.0% | 59.3% | 91.3% | 94.0% | 0.0% | 0.0% | 851 | 1460 |
+| Q6_K   | 100.0% | 59.0% | 92.0% | 93.7% | 0.0% | 0.0% | 876 | 1419 |
+| Q5_K_M | 100.0% | 60.0% | 91.3% | 93.3% | 0.0% | 0.0% | 857 | 1415 |
+| Q4_K_M | 100.0% | 60.0% | 90.7% | 93.7% | 0.0% | 0.0% | 885 | 1373 |
+
+Quantization barely moves the needle for qwen — F16 → Q4_K_M loses only
+0.3% amount accuracy while shrinking 3×. Safe to ship Q4_K_M.
+
 Full JSON results in `eval_results/REPORT.json`; per-example predictions
-in `eval_results/<model>-<quant>.jsonl`. Numbers above will refresh once
-the qwen3-0.6b run completes — re-run `python scripts/eval_all_quants.py`
-to regenerate.
+in `eval_results/<model>-<quant>.jsonl`. Regenerate any time via
+`python scripts/eval_all_quants.py` (re-uses cached evals — only re-runs
+ones with missing or `--force`'d results).
 
 ## Quick start (Linux / WSL)
 
