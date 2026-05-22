@@ -40,15 +40,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+# 06_train_student.py and export_gguf.py BOTH hardcode this path. We train
+# into it, then RENAME to a per-model dir (models/student-<short>/) so the
+# artifacts coexist after the run and a failure in model N doesn't clobber
+# the published bits from model N-1.
 STUDENT_DIR = REPO_ROOT / "models" / "student"
-ADAPTERS_DIR = STUDENT_DIR / "adapters"
-GGUF_DIR = STUDENT_DIR / "gguf"
 LOGS_DIR = REPO_ROOT / "logs"
 TRAIN_FILE = REPO_ROOT / "data" / "distill" / "train.jsonl"
 EVAL_FILE = REPO_ROOT / "data" / "distill" / "eval.jsonl"
 
 DEFAULT_HF_NAMESPACE = "kartikey31"
 DEFAULT_QUANTS = ["q4_k_m", "q5_k_m", "q6_k", "q8_0", "f16"]
+
+
+def final_dir_for(short: str) -> Path:
+    """Per-model output dir, e.g. models/student-gemma-3-270m/."""
+    return REPO_ROOT / "models" / f"student-{short}"
 
 
 @dataclass
@@ -110,12 +117,31 @@ def fmt_duration(seconds: float) -> str:
 # ---------------------------------------------------------------------------
 
 
-def wipe_student() -> None:
+def wipe_student(also: Path | None = None) -> None:
     """Clean slate before each training run so adapters/checkpoints/gguf
-    from the previous model don't bleed into this one."""
+    from the previous model don't bleed into this one.
+
+    `also` lets us wipe the per-model final dir too if it exists (e.g. from
+    a prior aborted run of the same model)."""
     if STUDENT_DIR.exists():
         logging.info("Wiping prior %s", STUDENT_DIR)
         shutil.rmtree(STUDENT_DIR)
+    if also is not None and also.exists():
+        logging.info("Wiping prior %s", also)
+        shutil.rmtree(also)
+
+
+def promote_to_final(short: str) -> Path:
+    """Rename models/student/ -> models/student-<short>/ and return the
+    new path. Called AFTER train+export+readme so the renamed dir contains
+    a complete deliverable."""
+    final = final_dir_for(short)
+    if final.exists():
+        shutil.rmtree(final)
+    final.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(STUDENT_DIR), str(final))
+    logging.info("Promoted student/ -> %s", final)
+    return final
 
 
 def train_one(spec: ModelSpec) -> None:
@@ -146,9 +172,10 @@ def write_model_card(spec: ModelSpec, quants: list[str], train_started: str,
     """Drop a README.md into STUDENT_DIR with provenance + usage notes."""
     train_count = _line_count(TRAIN_FILE)
     eval_count = _line_count(EVAL_FILE)
+    gguf_dir = STUDENT_DIR / "gguf"
     gguf_listing = "\n".join(
         f"  - `{p.name}` ({p.stat().st_size / 1e6:.1f} MB)"
-        for p in sorted(GGUF_DIR.glob("*.gguf"))
+        for p in sorted(gguf_dir.glob("*.gguf"))
     ) or "  (none — export step did not produce any files)"
     readme = f"""---
 license: apache-2.0
@@ -225,8 +252,8 @@ python scripts/train_and_publish.py --only {spec.short}
     return readme_path
 
 
-def push_to_hf(spec: ModelSpec, namespace: str) -> str:
-    """Create the HF repo if missing, then upload adapters/, gguf/, README.
+def push_to_hf(spec: ModelSpec, folder: Path, namespace: str) -> str:
+    """Create the HF repo if missing, then upload `folder` (adapters/, gguf/, README).
 
     Returns the repo URL. Requires HF_TOKEN env var (or prior `huggingface-cli login`)."""
     from huggingface_hub import HfApi, create_repo
@@ -235,13 +262,13 @@ def push_to_hf(spec: ModelSpec, namespace: str) -> str:
     api = HfApi()
 
     create_repo(repo_id, exist_ok=True, repo_type="model")
-    logging.info("Uploading %s -> https://huggingface.co/%s", STUDENT_DIR, repo_id)
+    logging.info("Uploading %s -> https://huggingface.co/%s", folder, repo_id)
 
     # Skip the Trainer checkpoints (huge, can't be used directly) and any
     # transient training artifacts. Adapters + GGUFs + README is what users
     # actually need.
     api.upload_folder(
-        folder_path=str(STUDENT_DIR),
+        folder_path=str(folder),
         repo_id=repo_id,
         repo_type="model",
         commit_message=(
@@ -291,6 +318,15 @@ def parse_args() -> argparse.Namespace:
                    help=f"HF org/user. Default: {DEFAULT_HF_NAMESPACE}")
     p.add_argument("--quants", default=",".join(DEFAULT_QUANTS),
                    help=f"Comma-separated GGUF quants. Default: {','.join(DEFAULT_QUANTS)}")
+    p.add_argument("--batch", type=int, default=0,
+                   help="Override per-device training batch size for ALL "
+                        "models in the run. 0 = keep each model's tuned default "
+                        "(see MODELS table). Useful when you're on a smaller GPU "
+                        "than the A100 the defaults target.")
+    p.add_argument("--eval-batch", type=int, default=0,
+                   help="Override eval batch size for ALL models. 0 = per-model "
+                        "default. Drop this to 2 on a 40GB A100 to avoid OOM at "
+                        "eval boundaries on Gemma's 256k-vocab logits.")
     p.add_argument("--keep-on-failure", action="store_true",
                    help="If a model fails, continue to the next instead of aborting.")
     return p.parse_args()
@@ -317,6 +353,24 @@ def main() -> int:
                       args.only, ", ".join(s.short for s in MODELS))
         return 2
 
+    # Apply CLI overrides to the selected specs. We mutate copies rather
+    # than the module-level MODELS so a downstream --only re-run sees the
+    # original defaults.
+    if args.batch or args.eval_batch:
+        from dataclasses import replace
+        selected = [
+            replace(
+                s,
+                batch_size=args.batch or s.batch_size,
+                eval_batch_size=args.eval_batch or s.eval_batch_size,
+            )
+            for s in selected
+        ]
+        logging.info(
+            "CLI override: batch_size=%s eval_batch_size=%s (0 = keep per-model default)",
+            args.batch or "default", args.eval_batch or "default",
+        )
+
     if not args.skip_push and not os.environ.get("HF_TOKEN"):
         logging.warning(
             "HF_TOKEN env var not set. Upload will fall back to whatever "
@@ -335,16 +389,21 @@ def main() -> int:
         per_started_iso = datetime.now(timezone.utc).isoformat()
         record = {"model": spec.short, "base": spec.base_model}
         try:
-            wipe_student()
+            wipe_student(also=final_dir_for(spec.short))
             train_one(spec)
             export_quants(quants)
             per_finished_iso = datetime.now(timezone.utc).isoformat()
             write_model_card(spec, quants, per_started_iso, per_finished_iso)
+            # Rename models/student/ -> models/student-<short>/ so the
+            # artifacts coexist across the run AND the published folder
+            # has a self-documenting name on disk.
+            final_dir = promote_to_final(spec.short)
+            record["local_dir"] = str(final_dir.relative_to(REPO_ROOT))
             if args.skip_push:
                 record["status"] = "trained-only"
                 record["hf_url"] = None
             else:
-                record["hf_url"] = push_to_hf(spec, args.hf_namespace)
+                record["hf_url"] = push_to_hf(spec, final_dir, args.hf_namespace)
                 record["status"] = "published"
         except Exception as e:  # noqa: BLE001
             record["status"] = f"failed: {e}"
@@ -363,14 +422,15 @@ def main() -> int:
 
 
 def _print_summary(summary: list[dict], total_seconds: float) -> None:
-    logging.info("=" * 72)
+    logging.info("=" * 78)
     logging.info("RUN SUMMARY  (total %s)", fmt_duration(total_seconds))
-    logging.info("=" * 72)
+    logging.info("=" * 78)
     for r in summary:
         logging.info(
-            "  %-18s %-12s %-40s %s",
+            "  %-18s %-10s %-30s local=%s hf=%s",
             r["model"], r["duration"], r["status"],
-            r.get("hf_url") or "",
+            r.get("local_dir") or "—",
+            r.get("hf_url") or "—",
         )
     # Also dump as JSON next to the log for downstream automation.
     report_path = LOGS_DIR / f"train_and_publish_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
