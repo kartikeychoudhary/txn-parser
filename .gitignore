@@ -33,6 +33,19 @@ Thumbs.db
 *.swp
 data/distill/metrics.json
 
+# Test / coverage caches
+.coverage
+.pytest_cache/
+
+# Local snapshots / backups (data/ itself is committed)
+backup_data.*
+data/*.7z
+data/*.zip
+data/*.bak
+data/*.bak/
+data/distill/*.bak
+data/distill/*.pre_fix_*
+
 # Orchestrator UI run history
 orchestrator/runs/
 orchestrator/node_modules/

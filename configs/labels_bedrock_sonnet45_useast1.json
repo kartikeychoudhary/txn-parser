@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "input_generation": {
+    "enabled": false,
+    "target_inputs": 0,
+    "batch_size": 1,
+    "providers": []
+  },
+  "output_generation": {
+    "enabled": true,
+    "label_attempts_per_input": 1,
+    "selection_policy": "first_valid_then_score",
+    "providers": [
+      {
+        "name": "bedrock_sonnet_4_5",
+        "type": "bedrock",
+        "weight": 100,
+        "threads": 8,
+        "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "region": "us-east-1",
+        "temperature": 0.2,
+        "max_tokens": 4000,
+        "max_retries": 3
+      }
+    ]
+  },
+  "validation": {
+    "schema": true,
+    "semantic_validator": true,
+    "reject_invalid": true,
+    "retry_invalid_with_stricter_prompt": true,
+    "max_repair_attempts": 1
+  },
+  "rate_limits": {
+    "global_max_workers": 8,
+    "write_flush_every": 20
+  }
+}

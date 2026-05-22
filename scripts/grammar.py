@@ -47,17 +47,23 @@ def build_label_grammar() -> str:
     """Return the full GBNF text. Pure string building."""
     # Standard JSON-string and JSON-number rules, adapted from llama.cpp's
     # grammars/json.gbnf reference set.
+    # GBNF requires each rule definition on a SINGLE line. Splitting a
+    # rule's RHS across lines is a parser error ("expecting ::= at ...")
+    # and llama.cpp then segfaults downstream with a NULL grammar pointer.
+    transaction_rule = (
+        'transaction ::= "{" '
+        'ws "\\"amount\\":" ws number ws "," '
+        'ws "\\"currency\\":" ws currency ws "," '
+        'ws "\\"item\\":" ws string ws "," '
+        'ws "\\"category\\":" ws category ws "," '
+        'ws "\\"type\\":" ws type '
+        'ws "}"'
+    )
     return "\n".join([
         'root ::= "{" ws "\\"transactions\\":" ws "[" ws transactions ws "]" ws "}"',
         'transactions ::= transaction (ws "," ws transaction)* | ""',
         '',
-        'transaction ::= "{"',
-        '    ws "\\"amount\\":" ws number ws ","',
-        '    ws "\\"currency\\":" ws currency ws ","',
-        '    ws "\\"item\\":" ws string ws ","',
-        '    ws "\\"category\\":" ws category ws ","',
-        '    ws "\\"type\\":" ws type',
-        '    ws "}"',
+        transaction_rule,
         '',
         _enum_rule("currency", list(CURRENCIES)),
         _enum_rule("type", list(TYPES)),

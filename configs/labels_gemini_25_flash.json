@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "input_generation": {
+    "enabled": false,
+    "target_inputs": 0,
+    "batch_size": 1,
+    "providers": []
+  },
+  "output_generation": {
+    "enabled": true,
+    "label_attempts_per_input": 1,
+    "selection_policy": "first_valid_then_score",
+    "providers": [
+      {
+        "name": "gemini_flash",
+        "type": "gemini",
+        "model": "gemini-2.5-flash",
+        "weight": 100,
+        "threads": 32,
+        "temperature": 0.0,
+        "max_tokens": 512,
+        "max_retries": 0,
+        "structured_output": true
+      }
+    ]
+  },
+  "validation": {
+    "schema": true,
+    "semantic_validator": true,
+    "reject_invalid": true,
+    "retry_invalid_with_stricter_prompt": true,
+    "max_repair_attempts": 1
+  },
+  "rate_limits": {
+    "global_max_workers": 32,
+    "write_flush_every": 20
+  }
+}
