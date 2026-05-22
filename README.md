@@ -3,25 +3,82 @@
 [![HF Models](https://img.shields.io/badge/%F0%9F%A4%97-kartikey31%2Ftxn--parser-yellow)](https://huggingface.co/kartikey31/txn-parser)
 
 A two-stage distillation pipeline that turns voice-transcribed transaction
-strings ("500 rs on beer 50 rs on candy") into structured JSON. Final student
-ships as a **260 MB** GGUF that runs on-device on Android via `llama.cpp`.
+strings ("500 rs on beer 50 rs on candy") into structured JSON. Three
+student models trained on the same 93k teacher-labeled dataset, published
+side-by-side at [`kartikey31/txn-parser`](https://huggingface.co/kartikey31/txn-parser)
+so downstream apps can pick the size/quality tradeoff that fits.
 
-## Recommended GGUF for Android
+## Published student models
 
-| File | Size | JSON valid | Schema valid | Notes |
-|---|---|---|---|---|
-| [`gemma3_text-fixed.BF16.gguf`](https://huggingface.co/kartikey31/txn-parser/blob/main/student/gguf/gemma3_text-fixed.BF16.gguf) | 543 MB | 98% | 74% | Reference / highest quality |
-| [`gemma3_text-fixed.Q8_0.gguf`](https://huggingface.co/kartikey31/txn-parser/blob/main/student/gguf/gemma3_text-fixed.Q8_0.gguf) | ~290 MB | ~98% | ~74% | High-quality option |
-| **[`gemma3_text-fixed.Q5_K_M.gguf`](https://huggingface.co/kartikey31/txn-parser/blob/main/student/gguf/gemma3_text-fixed.Q5_K_M.gguf)** | **260 MB** | **94%** | **72%** | **Default — best size/quality** |
-| [`gemma3_text-fixed.Q4_K_M.gguf`](https://huggingface.co/kartikey31/txn-parser/blob/main/student/gguf/gemma3_text-fixed.Q4_K_M.gguf) | 253 MB | 68% | 56% | Too lossy for this 270M base |
+All variants live in subfolders of one repo:
+[`huggingface.co/kartikey31/txn-parser`](https://huggingface.co/kartikey31/txn-parser/tree/main)
 
-(50-example eval; full 300-example numbers in `eval_results/`. Base model:
-`unsloth/gemma-3-270m-it`. Architecture: Gemma 3, 270M params, 32k ctx.)
+| Base model | Subfolder | Params | Status |
+|---|---|---|---|
+| `unsloth/gemma-3-270m-it` | [`gemma-3-270m/`](https://huggingface.co/kartikey31/txn-parser/tree/main/gemma-3-270m) | 270M | ✅ Published (5 quants) |
+| `HuggingFaceTB/SmolLM2-360M-Instruct` | [`smollm2-360m/`](https://huggingface.co/kartikey31/txn-parser/tree/main/smollm2-360m) | 360M | ✅ Published (5 quants) |
+| `Qwen/Qwen3-0.6B` | `qwen3-0.6b/` | 600M | ⏳ Training next |
 
-The `-fixed` suffix means rebuilt via raw `llama.cpp/convert_hf_to_gguf.py`
-rather than Unsloth's `save_pretrained_gguf` wrapper — the latter strips the
-BOS token from the chat template and drops JSON-valid by ~26 percentage points.
-See `scripts/rebuild_gguf.py` if you want to reproduce.
+Each subfolder contains a LoRA adapter (`adapters/`), 5 merged GGUF quants
+(`gguf/txn-parser-<short>-{F16,Q8_0,Q6_K,Q5_K_M,Q4_K_M}.gguf`), and a
+model-card README with the exact system prompt to use at inference.
+
+## Eval results (300-example held-out set, GBNF-constrained decoding)
+
+Generated via `python scripts/eval_all_quants.py` — same eval set, same
+grammar, same decoding settings for every model/quant pair.
+
+### Summary
+
+| Model | Quant | Size | JSON valid | Schema valid | Exact match | Amount exact | Mean ms | P95 ms |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| `gemma-3-270m`  | **F16**    | 543 MB | 99.2%  | **99.2%**  | 51.7% | 85.8% | 1250 | 2019 |
+| `gemma-3-270m`  | **Q8_0**   | 292 MB | 99.7%  | **99.7%**  | 54.7% | 88.0% | 1697 | 3221 |
+| `gemma-3-270m`  | **Q6_K**   | 283 MB | 99.7%  | **99.7%**  | 53.7% | 88.0% | 1813 | 3418 |
+| `gemma-3-270m`  | **Q5_K_M** | 260 MB | 99.7%  | **99.7%**  | 51.0% | 84.7% | 1788 | 3444 |
+| `gemma-3-270m`  | **Q4_K_M** | 253 MB | 93.3%  | **93.3%**  | 48.3% | 80.7% | 2660 | 15185 |
+| `smollm2-360m`  | **F16**    | 726 MB | 100.0% | **100.0%** | 56.3% | 88.3% | 997  | 1646 |
+| `smollm2-360m`  | **Q8_0**   | 386 MB | 100.0% | **100.0%** | 56.3% | 88.3% | 995  | 1589 |
+| `smollm2-360m`  | **Q6_K**   | 367 MB | 100.0% | **100.0%** | 56.3% | 88.3% | 994  | 1615 |
+| `smollm2-360m`  | **Q5_K_M** | 290 MB | 100.0% | **100.0%** | 52.7% | 89.0% | 996  | 1599 |
+| `smollm2-360m`  | **Q4_K_M** | 271 MB | 100.0% | **100.0%** | 53.3% | 87.3% | 978  | 1595 |
+
+**Headline:** SmolLM2-360M holds **100% schema-valid across every quant**
+including Q4_K_M, while running ~2× faster than gemma-3-270m at every
+matching quant. Gemma-3-270m Q4_K_M shows quality degradation
+(93% schema valid + 15 s P95 latency from grammar backtracking) — use
+Q5_K_M or higher for the gemma family. For on-device deployment,
+**`smollm2-360m-Q4_K_M`** (271 MB, 100% schema valid, ~1s mean latency)
+is the current recommendation.
+
+### Per-model detail
+
+#### `gemma-3-270m`
+Best schema_valid: **Q8_0** (99.7%, 1697 ms mean).
+
+| Quant | Schema | Exact | Amt | TxnCount | Dup% | Super% | Mean ms | P95 ms |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| F16    | 99.2% | 51.7% | 85.8% | 91.7% | 0.0% | 0.0% | 1250 | 2019  |
+| Q8_0   | 99.7% | 54.7% | 88.0% | 93.0% | 0.0% | 0.3% | 1697 | 3221  |
+| Q6_K   | 99.7% | 53.7% | 88.0% | 93.3% | 0.0% | 0.3% | 1813 | 3418  |
+| Q5_K_M | 99.7% | 51.0% | 84.7% | 93.7% | 0.0% | 0.7% | 1788 | 3444  |
+| Q4_K_M | 93.3% | 48.3% | 80.7% | 85.7% | 0.0% | 0.3% | 2660 | 15185 |
+
+#### `smollm2-360m`
+Best schema_valid: **Q6_K** (100.0%, 994 ms mean).
+
+| Quant | Schema | Exact | Amt | TxnCount | Dup% | Super% | Mean ms | P95 ms |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| F16    | 100.0% | 56.3% | 88.3% | 91.7% | 0.3% | 0.0% | 997 | 1646 |
+| Q8_0   | 100.0% | 56.3% | 88.3% | 91.7% | 0.3% | 0.0% | 995 | 1589 |
+| Q6_K   | 100.0% | 56.3% | 88.3% | 91.3% | 0.3% | 0.0% | 994 | 1615 |
+| Q5_K_M | 100.0% | 52.7% | 89.0% | 92.0% | 0.3% | 0.0% | 996 | 1599 |
+| Q4_K_M | 100.0% | 53.3% | 87.3% | 90.7% | 0.0% | 0.0% | 978 | 1595 |
+
+Full JSON results in `eval_results/REPORT.json`; per-example predictions
+in `eval_results/<model>-<quant>.jsonl`. Numbers above will refresh once
+the qwen3-0.6b run completes — re-run `python scripts/eval_all_quants.py`
+to regenerate.
 
 ## Quick start (Linux / WSL)
 
@@ -40,20 +97,47 @@ steps. Manual setup instructions are below if you need finer control.
 
 ## Pretrained weights (Hugging Face)
 
-The trained teacher + student artifacts (LoRA adapters + GGUFs) are mirrored at
-[`kartikey31/txn-parser`](https://huggingface.co/kartikey31/txn-parser). The
-`models/` directory is **not** tracked in this repo — pull it from HF before
+All trained student variants live in subfolders of
+[`kartikey31/txn-parser`](https://huggingface.co/kartikey31/txn-parser) on HF.
+The `models/` directory is **not** tracked in this repo — pull from HF before
 running anything past Stage 2.
+
+### Recommended — `scripts/download_models.py`
+
+```bash
+# Everything (all 3 base models × 5 quants, lands in models/student-<short>/)
+python scripts/download_models.py
+
+# Just one base model
+python scripts/download_models.py --model gemma-3-270m
+
+# Just one quant of every model (fastest sanity check)
+python scripts/download_models.py --quant Q4_K_M
+
+# Skip the LoRA adapters (saves ~30 MB per model)
+python scripts/download_models.py --no-adapters
+```
+
+The script mirrors the HF subfolder layout into
+`models/student-<short>/{adapters,gguf,README.md}` so the rest of the
+pipeline (`eval_all_quants.py`, `predict_one.py`, the viewer) finds
+everything in the expected location. Re-running is idempotent — already-
+present files are skipped.
+
+### Manual fallback (`huggingface-cli`)
 
 ```bash
 pip install -U "huggingface_hub[cli]" hf_transfer
 export HF_HUB_ENABLE_HF_TRANSFER=1   # PowerShell: $env:HF_HUB_ENABLE_HF_TRANSFER = "1"
 
-huggingface-cli download kartikey31/txn-parser \
-    --repo-type=model --local-dir models
-```
+# All models (mirrors the full repo)
+huggingface-cli download kartikey31/txn-parser --repo-type=model --local-dir models
 
-Re-running the same command resumes — already-present files are skipped.
+# Just one quant of one model
+huggingface-cli download kartikey31/txn-parser \
+    smollm2-360m/gguf/txn-parser-smollm2-360m-Q4_K_M.gguf \
+    --local-dir .
+```
 
 ---
 
@@ -75,9 +159,15 @@ the heavy lifting of demonstrating the right structure across many phrasings.
 ## Quick predict (one input)
 
 ```bash
+# Using the recommended on-device model (smollm2-360m Q4_K_M, 271 MB)
 python scripts/predict_one.py \
-    --model models/student/gguf/gemma3_text-fixed.Q5_K_M.gguf \
+    --model models/student-smollm2-360m/gguf/txn-parser-smollm2-360m-Q4_K_M.gguf \
     "500 rs on beer 50 rs on candy"
+
+# Or any other variant — see `Published student models` above
+python scripts/predict_one.py \
+    --model models/student-gemma-3-270m/gguf/txn-parser-gemma-3-270m-Q5_K_M.gguf \
+    "do sau rupay ka chai"
 ```
 
 ---
@@ -523,7 +613,7 @@ Tuning env vars (see the table above): `PYTHON_BIN`, `LLAMA_N_GPU_LAYERS`, `INFE
 │   └── public/                 # index.html, playground.html, app.js, style.css
 ├── models/                     # NOT tracked — pulled from kartikey31/txn-parser on HF
 │   ├── teacher/{adapters,gguf,checkpoints}/
-│   └── student/{adapters,gguf,checkpoints}/
+│   └── student-<base>/{adapters,gguf,README.md}/   # one dir per published base model
 ├── eval_results/               # per-model evaluation outputs (Stage 4)
 └── logs/                       # one timestamped log per script run
 ```
