@@ -218,6 +218,11 @@ def write_model_card(spec: ModelSpec, quants: list[str], train_started: str,
         f"  ({p.stat().st_size / 1e6:.1f} MB)"
         for p in sorted(gguf_dir.glob("*.gguf"))
     ) or "  (none — export step did not produce any files)"
+
+    # Embed the exact SYSTEM_PROMPT the model was trained on so consumers
+    # can copy-paste it verbatim. Imported from _lib so it stays in sync
+    # if the training prompt ever changes.
+    from _lib import SYSTEM_PROMPT  # noqa: E402 (lazy: avoid heavy imports at module load)
     readme = f"""---
 license: apache-2.0
 base_model: {spec.base_model}
@@ -274,6 +279,20 @@ sibling fine-tunes of other base models trained on the same data.
 | Started | {train_started} |
 | Finished | {train_finished} |
 
+## System prompt (use this EXACTLY)
+
+The model was trained with one specific system prompt and Gemma/Smol/Qwen
+chat template. If you paraphrase the prompt or skip the chat template,
+quality degrades quickly. Copy-paste this verbatim into your inference
+client (no leading/trailing whitespace, no edits):
+
+```text
+{SYSTEM_PROMPT}
+```
+
+Source of truth: [`scripts/_lib.py`](https://github.com/kartikeychoudhary/txn-parser/blob/main/scripts/_lib.py)
+constant `SYSTEM_PROMPT`. Don't retype it — pull from `_lib.py` or this README.
+
 ## Download a single GGUF
 
 ```bash
@@ -282,12 +301,34 @@ huggingface-cli download {repo_id} \\
     --local-dir .
 ```
 
-## Inference (GGUF, llama.cpp)
+## Inference (Python, llama-cpp-python)
+
+```python
+from llama_cpp import Llama
+
+SYSTEM_PROMPT = '''{SYSTEM_PROMPT}'''
+
+llm = Llama(
+    model_path="txn-parser-{spec.short}-Q4_K_M.gguf",
+    n_gpu_layers=-1, n_ctx=2048,
+)
+out = llm.create_chat_completion(
+    messages=[
+        {{"role": "system", "content": SYSTEM_PROMPT}},
+        {{"role": "user",   "content": "200 ka samosa"}},
+    ],
+    temperature=0.0,
+)
+print(out["choices"][0]["message"]["content"])
+```
+
+## Inference (CLI, llama.cpp)
 
 ```bash
 ./llama-cli -m txn-parser-{spec.short}-Q4_K_M.gguf \\
     --grammar-file scripts/grammar.gbnf \\
-    -p "Spent 200 on chai" -n 256
+    --system-prompt "$(cat system_prompt.txt)" \\
+    -p "200 ka samosa" -n 256
 ```
 
 ## Reproduce
