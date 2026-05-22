@@ -6,9 +6,14 @@
 # the current toolkit with the latest fused kernels).
 #
 #   pip install --upgrade pip
-#   pip install torch==2.12.0 torchvision==0.27.0 torchaudio==2.12.0 \
+#   pip install torch==2.11.0 torchvision==0.26.0 torchaudio==2.11.0 \
 #       --index-url https://download.pytorch.org/whl/cu130
 #   pip install -r requirements-train.txt
+#
+# (We pin to 2.11 not 2.12 because torchaudio 2.12 isn't published on cu130
+# yet — torch+torchvision 2.12 are, so you can move the trio there once
+# torchaudio catches up. The cu130 kernel features for Blackwell sm_120
+# and A100 sm_80 are already present in 2.11.)
 #
 # IMPORTANT: this file deliberately does NOT pin torch/torchvision/torchaudio
 # so it cannot downgrade the cu130 wheels you installed above. The version
@@ -32,7 +37,7 @@ sentencepiece>=0.2.0
 safetensors>=0.4.5
 # xformers wheels are tied to a specific torch version via hard pins in
 # their metadata, so leave this unpinned — pip will pick the wheel that
-# matches whatever torch you installed (e.g. torch 2.12 -> matching xformers).
+# matches whatever torch you installed (e.g. torch 2.11 -> matching xformers).
 # Do NOT pin to 0.0.28 — that wheel forces torch==2.5 and will downgrade you.
 xformers; platform_system == "Linux"
 

@@ -3,7 +3,9 @@
 #
 # Installs:
 #   1. pip-upgraded Python toolchain
-#   2. torch 2.12.0 + cu130 (covers Blackwell sm_120 / 5060 Ti, Hopper, Ampere/A100)
+#   2. torch 2.11.0 + cu130 (covers Blackwell sm_120 / 5060 Ti, Hopper, Ampere/A100)
+#      Note: 2.12 exists for torch+torchvision on cu130 but torchaudio 2.12
+#      has not been published there yet (2026-05-23), so we pin the trio at 2.11.
 #   3. base + training requirements
 #   4. huggingface_hub CLI with hf_transfer
 #   5. llama-cpp-python built against CUDA (falls back to a prebuilt wheel,
@@ -28,9 +30,9 @@ set -euo pipefail
 # --------------------------------------------------------------------------
 # Config
 # --------------------------------------------------------------------------
-TORCH_VERSION="2.12.0"
-TORCHVISION_VERSION="0.27.0"
-TORCHAUDIO_VERSION="2.12.0"
+TORCH_VERSION="2.11.0"
+TORCHVISION_VERSION="0.26.0"
+TORCHAUDIO_VERSION="2.11.0"
 TORCH_INDEX="https://download.pytorch.org/whl/cu130"
 LLAMA_CPP_PREBUILT_INDEX="https://abetlen.github.io/llama-cpp-python/whl/cu124"
 HF_REPO="kartikey31/txn-parser"
