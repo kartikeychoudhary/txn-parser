@@ -145,6 +145,41 @@ def promote_to_final(short: str) -> Path:
     return final
 
 
+def restore_student_for_export(short: str) -> None:
+    """Rehydrate models/student/ for --export-only resume.
+
+    Three possible states after a mid-run failure:
+      1. models/student/adapters/ exists       -> use as-is.
+      2. models/student-<short>/adapters/ ex.  -> move back to student/.
+      3. neither                                -> raise (nothing to export).
+    """
+    student_adapters = STUDENT_DIR / "adapters"
+    if student_adapters.exists():
+        logging.info("Found existing adapter at %s; reusing for export.", student_adapters)
+        # Clear any stale gguf/ from the prior failed export attempt.
+        gguf_dir = STUDENT_DIR / "gguf"
+        if gguf_dir.exists():
+            shutil.rmtree(gguf_dir)
+        sibling = STUDENT_DIR.parent / f"{STUDENT_DIR.name}_gguf"
+        if sibling.exists():
+            shutil.rmtree(sibling, ignore_errors=True)
+        return
+
+    final = final_dir_for(short)
+    if (final / "adapters").exists():
+        logging.info("Moving %s -> %s so export_gguf can find it", final, STUDENT_DIR)
+        if STUDENT_DIR.exists():
+            shutil.rmtree(STUDENT_DIR)
+        shutil.move(str(final), str(STUDENT_DIR))
+        return
+
+    raise RuntimeError(
+        f"--export-only {short}: no adapter found at {student_adapters} or "
+        f"{final / 'adapters'}. Run training first (drop --export-only) or "
+        f"copy the adapter back into one of those locations."
+    )
+
+
 def train_one(spec: ModelSpec) -> None:
     cmd = [
         sys.executable, str(REPO_ROOT / "scripts" / "06_train_student.py"),
@@ -511,6 +546,16 @@ def parse_args() -> argparse.Namespace:
                    help="Override eval batch size for ALL models. 0 = per-model "
                         "default. Drop this to 2 on a 40GB A100 to avoid OOM at "
                         "eval boundaries on Gemma's 256k-vocab logits.")
+    p.add_argument("--skip", action="append", default=[],
+                   help="Skip this model (e.g. it already trained successfully "
+                        "in a prior run). Repeatable. Available: "
+                        f"{', '.join(s.short for s in MODELS)}")
+    p.add_argument("--export-only", action="append", default=[],
+                   help="Skip TRAINING for this model and assume the adapter "
+                        "already exists at models/student/adapters/ (or, after a "
+                        "successful prior run, at models/student-<short>/adapters/). "
+                        "Used to recover after a mid-run failure during export or "
+                        "push. Repeatable.")
     p.add_argument("--keep-on-failure", action="store_true",
                    help="If a model fails, continue to the next instead of aborting.")
     return p.parse_args()
@@ -531,10 +576,24 @@ def main() -> int:
         )
 
     quants = [q.strip() for q in args.quants.split(",") if q.strip()]
-    selected = [s for s in MODELS if not args.only or s.short in args.only]
+    selected = [
+        s for s in MODELS
+        if (not args.only or s.short in args.only)
+        and s.short not in args.skip
+    ]
     if not selected:
-        logging.error("No models match --only %s. Available: %s",
-                      args.only, ", ".join(s.short for s in MODELS))
+        logging.error(
+            "No models match --only=%s --skip=%s. Available: %s",
+            args.only, args.skip, ", ".join(s.short for s in MODELS),
+        )
+        return 2
+    export_only = set(args.export_only)
+    unknown = export_only - {s.short for s in MODELS}
+    if unknown:
+        logging.error(
+            "--export-only references unknown model(s): %s. Available: %s",
+            sorted(unknown), ", ".join(s.short for s in MODELS),
+        )
         return 2
 
     # Apply CLI overrides to the selected specs. We mutate copies rather
@@ -576,8 +635,21 @@ def main() -> int:
         per_started_iso = datetime.now(timezone.utc).isoformat()
         record = {"model": spec.short, "base": spec.base_model}
         try:
-            wipe_student(also=final_dir_for(spec.short))
-            train_one(spec)
+            if spec.short in export_only:
+                # Recovery path: training already succeeded in a previous run,
+                # but export/push failed. The adapter is either still at
+                # models/student/adapters/ (the run died right after training)
+                # or at models/student-<short>/adapters/ (a partial promote
+                # from a still-earlier attempt). Restore into student/ either
+                # way so export_gguf.py finds it at the canonical path.
+                restore_student_for_export(spec.short)
+                logging.info(
+                    "[--export-only %s] skipping training; using existing adapter",
+                    spec.short,
+                )
+            else:
+                wipe_student(also=final_dir_for(spec.short))
+                train_one(spec)
             export_quants(quants)
             normalize_gguf_names(spec.short, quants)
             per_finished_iso = datetime.now(timezone.utc).isoformat()

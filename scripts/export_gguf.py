@@ -25,10 +25,20 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
+
+# Disable Unsloth's anonymous telemetry / startup HF probes BEFORE the
+# unsloth import below. Without this, unsloth.models._utils.get_statistics
+# hits huggingface.co for the unslothai/runpod and unslothai/repeat repos
+# (a usage counter), and a 120s timeout there crashes the whole export
+# even though training is already done. We saw this kill smollm2-360m's
+# export step despite the adapter having saved correctly.
+os.environ.setdefault("UNSLOTH_DISABLE_STATISTICS", "1")
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LOGS_DIR = REPO_ROOT / "logs"
@@ -138,6 +148,16 @@ def main() -> int:
 
     # Lazy import — these pull in CUDA.
     from unsloth import FastLanguageModel  # noqa: E402
+    # Belt-and-suspenders: even with UNSLOTH_DISABLE_STATISTICS=1, older
+    # unsloth releases still call get_statistics() at model load and
+    # block for up to 120s on the unslothai/{runpod,repeat} HF probes.
+    # Force the call site to a no-op so the export can't be killed by a
+    # transient HF outage after training already succeeded.
+    try:
+        from unsloth.models import _utils as _unsloth_utils
+        _unsloth_utils.get_statistics = lambda *_, **__: None
+    except Exception:  # noqa: BLE001
+        pass
 
     logging.info("Loading adapter (fp16) once — same loaded model used for all quants")
     model, tokenizer = FastLanguageModel.from_pretrained(

@@ -11,13 +11,27 @@ config; the loop is shared.
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+# Disable Unsloth's anonymous usage probes BEFORE the unsloth import.
+# Without these, get_statistics() blocks on huggingface.co for up to
+# 120s and raises TimeoutError that propagates out of from_pretrained.
+os.environ.setdefault("UNSLOTH_DISABLE_STATISTICS", "1")
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+
 # Unsloth must be imported BEFORE transformers/trl so its monkey-patches land.
 from unsloth import FastLanguageModel, is_bfloat16_supported  # noqa: E402
+# Belt-and-suspenders: neutralize get_statistics in case the env var
+# isn't honored by the installed unsloth version. Safe to no-op.
+try:
+    from unsloth.models import _utils as _unsloth_utils
+    _unsloth_utils.get_statistics = lambda *_, **__: None
+except Exception:  # noqa: BLE001
+    pass
 
 import torch  # noqa: E402
 from datasets import Dataset  # noqa: E402
