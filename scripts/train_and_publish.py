@@ -50,6 +50,7 @@ TRAIN_FILE = REPO_ROOT / "data" / "distill" / "train.jsonl"
 EVAL_FILE = REPO_ROOT / "data" / "distill" / "eval.jsonl"
 
 DEFAULT_HF_NAMESPACE = "kartikey31"
+DEFAULT_HF_REPO_NAME = "txn-parser"   # single repo; per-model artifacts go in subfolders
 DEFAULT_QUANTS = ["q4_k_m", "q5_k_m", "q6_k", "q8_0", "f16"]
 
 
@@ -167,14 +168,54 @@ def export_quants(quants: list[str]) -> None:
     run(cmd)
 
 
+def normalize_gguf_names(short: str, quants: list[str]) -> list[str]:
+    """Rename freshly-exported GGUFs to txn-parser-<short>-<QUANT>.gguf so
+    the per-base-model artifacts have predictable, self-documenting names
+    even after the per-model folder structure on HF (the file basename
+    alone tells you the base model + quant).
+
+    Returns the list of final filenames. Mutates files in place.
+    """
+    gguf_dir = STUDENT_DIR / "gguf"
+    if not gguf_dir.exists():
+        return []
+    # Map upper-case quant tokens we expect (e.g. "Q4_K_M", "F16") back to
+    # the requested forms so we can detect which quant each output file is.
+    expected = {q.upper(): q for q in quants}
+    final_names: list[str] = []
+    for src in sorted(gguf_dir.glob("*.gguf")):
+        upper_stem = src.stem.upper()
+        matched = next((q for q in expected if q in upper_stem), None)
+        if matched is None:
+            logging.warning(
+                "GGUF %s did not match any requested quant (%s) — skipping rename",
+                src.name, ",".join(expected),
+            )
+            final_names.append(src.name)
+            continue
+        new_name = f"txn-parser-{short}-{matched}.gguf"
+        dst = gguf_dir / new_name
+        if dst == src:
+            final_names.append(src.name)
+            continue
+        if dst.exists():
+            dst.unlink()
+        src.rename(dst)
+        logging.info("Renamed %s -> %s", src.name, new_name)
+        final_names.append(new_name)
+    return final_names
+
+
 def write_model_card(spec: ModelSpec, quants: list[str], train_started: str,
-                     train_finished: str) -> Path:
+                     train_finished: str, repo_name: str, namespace: str) -> Path:
     """Drop a README.md into STUDENT_DIR with provenance + usage notes."""
     train_count = _line_count(TRAIN_FILE)
     eval_count = _line_count(EVAL_FILE)
     gguf_dir = STUDENT_DIR / "gguf"
+    repo_id = f"{namespace}/{repo_name}"
     gguf_listing = "\n".join(
-        f"  - `{p.name}` ({p.stat().st_size / 1e6:.1f} MB)"
+        f"  - [`{spec.short}/gguf/{p.name}`](https://huggingface.co/{repo_id}/resolve/main/{spec.short}/gguf/{p.name})"
+        f"  ({p.stat().st_size / 1e6:.1f} MB)"
         for p in sorted(gguf_dir.glob("*.gguf"))
     ) or "  (none — export step did not produce any files)"
     readme = f"""---
@@ -192,17 +233,22 @@ language:
 library_name: peft
 ---
 
-# txn-parser-{spec.short}
+# txn-parser / {spec.short}
 
 QLoRA fine-tune of [`{spec.base_model}`]({_hf_link(spec.base_model)}) for
 extracting structured transaction data (amount, currency, item, category,
 type) from free-form Indian-English / code-switched speech and text.
 
+This model lives in subfolder **`{spec.short}/`** of the
+[`{repo_id}`](https://huggingface.co/{repo_id}) repo, alongside
+sibling fine-tunes of other base models trained on the same data.
+
 ## What's in here
 
-- `adapters/` — PEFT LoRA adapter (rank 32). Load on top of the base model
-  with `peft.PeftModel.from_pretrained(base, "{DEFAULT_HF_NAMESPACE}/txn-parser-{spec.short}", subfolder="adapters")`.
-- `gguf/` — merged GGUF builds at multiple quantization levels:
+- `{spec.short}/adapters/` — PEFT LoRA adapter (rank 32). Load on top of the base model
+  with `peft.PeftModel.from_pretrained(base, "{repo_id}", subfolder="{spec.short}/adapters")`.
+- `{spec.short}/gguf/` — merged GGUF builds at multiple quantization levels
+  (file names follow `txn-parser-{spec.short}-<QUANT>.gguf`):
 {gguf_listing}
 
 ## Training data
@@ -227,6 +273,14 @@ type) from free-form Indian-English / code-switched speech and text.
 | Learning rate | 2e-4 (warmup 3%) |
 | Started | {train_started} |
 | Finished | {train_finished} |
+
+## Download a single GGUF
+
+```bash
+huggingface-cli download {repo_id} \\
+    {spec.short}/gguf/txn-parser-{spec.short}-Q4_K_M.gguf \\
+    --local-dir .
+```
 
 ## Inference (GGUF, llama.cpp)
 
@@ -329,27 +383,35 @@ def validate_hf_auth(namespace: str) -> None:
         )
 
 
-def push_to_hf(spec: ModelSpec, folder: Path, namespace: str) -> str:
-    """Create the HF repo if missing, then upload `folder` (adapters/, gguf/, README).
+def push_to_hf(spec: ModelSpec, folder: Path, namespace: str, repo_name: str) -> str:
+    """Create the single shared HF repo if missing, then upload `folder`
+    (adapters/, gguf/, README) into the per-base-model subfolder
+    `<short>/` inside that repo.
 
-    Returns the repo URL. Requires HF_TOKEN env var (or prior `huggingface-cli login`)."""
+    Returns the URL to the per-model subfolder (browseable on HF).
+    Requires HF_TOKEN env var (or prior `huggingface-cli login`)."""
     from huggingface_hub import HfApi, create_repo
 
-    repo_id = f"{namespace}/txn-parser-{spec.short}"
+    repo_id = f"{namespace}/{repo_name}"
     api = HfApi()
 
     create_repo(repo_id, exist_ok=True, repo_type="model")
-    logging.info("Uploading %s -> https://huggingface.co/%s", folder, repo_id)
+    logging.info(
+        "Uploading %s -> https://huggingface.co/%s/tree/main/%s",
+        folder, repo_id, spec.short,
+    )
 
     # Skip the Trainer checkpoints (huge, can't be used directly) and any
     # transient training artifacts. Adapters + GGUFs + README is what users
-    # actually need.
+    # actually need. path_in_repo segregates each base model's artifacts
+    # so they coexist in one repo without name collisions.
     api.upload_folder(
         folder_path=str(folder),
         repo_id=repo_id,
         repo_type="model",
+        path_in_repo=spec.short,
         commit_message=(
-            f"Auto-publish: base={spec.base_model} "
+            f"[{spec.short}] auto-publish: base={spec.base_model} "
             f"at {datetime.now(timezone.utc).isoformat()}"
         ),
         ignore_patterns=[
@@ -360,7 +422,7 @@ def push_to_hf(spec: ModelSpec, folder: Path, namespace: str) -> str:
             "**/.cache/**",
         ],
     )
-    return f"https://huggingface.co/{repo_id}"
+    return f"https://huggingface.co/{repo_id}/tree/main/{spec.short}"
 
 
 # ---------------------------------------------------------------------------
@@ -393,6 +455,10 @@ def parse_args() -> argparse.Namespace:
                    help="Train + export but skip the HF upload step.")
     p.add_argument("--hf-namespace", default=DEFAULT_HF_NAMESPACE,
                    help=f"HF org/user. Default: {DEFAULT_HF_NAMESPACE}")
+    p.add_argument("--hf-repo", default=DEFAULT_HF_REPO_NAME,
+                   help=f"HF repo name (not the full id). Default: {DEFAULT_HF_REPO_NAME}. "
+                        f"All base models go into ONE repo, each in its own "
+                        f"`<short>/` subfolder.")
     p.add_argument("--quants", default=",".join(DEFAULT_QUANTS),
                    help=f"Comma-separated GGUF quants. Default: {','.join(DEFAULT_QUANTS)}")
     p.add_argument("--batch", type=int, default=0,
@@ -472,8 +538,12 @@ def main() -> int:
             wipe_student(also=final_dir_for(spec.short))
             train_one(spec)
             export_quants(quants)
+            normalize_gguf_names(spec.short, quants)
             per_finished_iso = datetime.now(timezone.utc).isoformat()
-            write_model_card(spec, quants, per_started_iso, per_finished_iso)
+            write_model_card(
+                spec, quants, per_started_iso, per_finished_iso,
+                repo_name=args.hf_repo, namespace=args.hf_namespace,
+            )
             # Rename models/student/ -> models/student-<short>/ so the
             # artifacts coexist across the run AND the published folder
             # has a self-documenting name on disk.
@@ -483,7 +553,9 @@ def main() -> int:
                 record["status"] = "trained-only"
                 record["hf_url"] = None
             else:
-                record["hf_url"] = push_to_hf(spec, final_dir, args.hf_namespace)
+                record["hf_url"] = push_to_hf(
+                    spec, final_dir, args.hf_namespace, args.hf_repo,
+                )
                 record["status"] = "published"
         except Exception as e:  # noqa: BLE001
             record["status"] = f"failed: {e}"
