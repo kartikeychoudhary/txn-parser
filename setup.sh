@@ -3,7 +3,7 @@
 #
 # Installs:
 #   1. pip-upgraded Python toolchain
-#   2. torch 2.8.0 + cu128 (Blackwell-ready)
+#   2. torch 2.12.0 + cu130 (covers Blackwell sm_120 / 5060 Ti, Hopper, Ampere/A100)
 #   3. base + training requirements
 #   4. huggingface_hub CLI with hf_transfer
 #   5. llama-cpp-python built against CUDA (falls back to a prebuilt wheel,
@@ -28,10 +28,10 @@ set -euo pipefail
 # --------------------------------------------------------------------------
 # Config
 # --------------------------------------------------------------------------
-TORCH_VERSION="2.8.0"
-TORCHVISION_VERSION="0.23.0"
-TORCHAUDIO_VERSION="2.8.0"
-TORCH_INDEX="https://download.pytorch.org/whl/cu128"
+TORCH_VERSION="2.12.0"
+TORCHVISION_VERSION="0.27.0"
+TORCHAUDIO_VERSION="2.12.0"
+TORCH_INDEX="https://download.pytorch.org/whl/cu130"
 LLAMA_CPP_PREBUILT_INDEX="https://abetlen.github.io/llama-cpp-python/whl/cu124"
 HF_REPO="kartikey31/txn-parser"
 HF_LOCAL_DIR="models"
@@ -76,15 +76,15 @@ python -m pip install --upgrade pip --quiet
 ok "pip $(pip --version | awk '{print $2}')"
 
 # --------------------------------------------------------------------------
-# torch (cu128)
+# torch (cu130)
 # --------------------------------------------------------------------------
-step "Installing torch $TORCH_VERSION + cu128"
+step "Installing torch $TORCH_VERSION + cu130"
 TORCH_OK=$(py "
 try:
     import torch
     v = torch.__version__
     cu = torch.version.cuda
-    print('YES' if v.startswith('$TORCH_VERSION') and cu and cu.startswith('12.8') else 'NO', v, cu)
+    print('YES' if v.startswith('$TORCH_VERSION') and cu and cu.startswith('13.') else 'NO', v, cu)
 except Exception:
     print('NO none none')
 " 2>/dev/null || echo "NO none none")
@@ -97,7 +97,7 @@ else
         "torchvision==$TORCHVISION_VERSION" \
         "torchaudio==$TORCHAUDIO_VERSION" \
         --index-url "$TORCH_INDEX"
-    ok "installed torch $TORCH_VERSION + cu128"
+    ok "installed torch $TORCH_VERSION + cu130"
 fi
 
 # Sanity-check torch sees the GPU. Non-fatal — a CI machine without a GPU
@@ -120,10 +120,6 @@ ok "requirements.txt"
 step "Installing training requirements"
 pip install -r requirements-train.txt
 ok "requirements-train.txt"
-
-step "Installing huggingface_hub CLI + hf_transfer"
-pip install -U "huggingface_hub[cli]" hf_transfer --quiet
-ok "huggingface_hub $(py 'import huggingface_hub; print(huggingface_hub.__version__)')"
 
 # --------------------------------------------------------------------------
 # llama-cpp-python with CUDA
@@ -162,7 +158,10 @@ else
         warn "nvcc not on PATH — cannot build from source"
     fi
 
-    # Path B: prebuilt CUDA wheel (cu124 wheels run fine against cu128 driver).
+    # Path B: prebuilt CUDA wheel. NOTE: the cu124 prebuilts here do NOT
+    # carry Blackwell (sm_120) cubins, so on a 5060 Ti / 5090 the source
+    # build above is what you actually want. This fallback exists for
+    # older Ampere/Ada cards (sm_80-89) where cu124 PTX/cubins suffice.
     if [[ "$BUILT" -eq 0 ]]; then
         if pip install llama-cpp-python \
                --extra-index-url "$LLAMA_CPP_PREBUILT_INDEX" \
@@ -208,8 +207,14 @@ else
 fi
 
 # --------------------------------------------------------------------------
-# HF model download
+# Hugging Face: CLI install + model download (kept together at the end so
+# the heavy network step is the last thing to run; everything above is
+# pure local install and short-circuits on reruns).
 # --------------------------------------------------------------------------
+step "Installing huggingface_hub CLI + hf_transfer"
+pip install -U "huggingface_hub[cli]" hf_transfer --quiet
+ok "huggingface_hub $(py 'import huggingface_hub; print(huggingface_hub.__version__)')"
+
 if [[ "$DOWNLOAD_MODELS" -eq 1 ]]; then
     step "Downloading models from huggingface.co/$HF_REPO"
     export HF_HUB_ENABLE_HF_TRANSFER=1

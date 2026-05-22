@@ -1,16 +1,18 @@
 # Stage 3 / Stage 6 — training deps for Unsloth + QLoRA on RTX 50-series.
 #
-# Install ORDER matters. On RTX 5060 Ti (Blackwell, sm_120) you need
-# a CUDA 12.8 build of torch >= 2.6 (older cu124 wheels lack sm_120 kernels).
+# Install ORDER matters. On RTX 5060 Ti (Blackwell, sm_120), A100 (Hopper),
+# and Ampere/Ada cards alike, use a CUDA 13.0 build of torch >= 2.9
+# (older cu124 wheels lack sm_120 kernels; cu128 still works but cu130 is
+# the current toolkit with the latest fused kernels).
 #
 #   pip install --upgrade pip
-#   pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
-#       --index-url https://download.pytorch.org/whl/cu128
+#   pip install torch==2.12.0 torchvision==0.27.0 torchaudio==2.12.0 \
+#       --index-url https://download.pytorch.org/whl/cu130
 #   pip install -r requirements-train.txt
 #
 # IMPORTANT: this file deliberately does NOT pin torch/torchvision/torchaudio
-# so it cannot downgrade the cu128 wheels you installed above. The version
-# constraints below are picked to be compatible with torch 2.8 — bumping
+# so it cannot downgrade the cu130 wheels you installed above. The version
+# constraints below are picked to be compatible with torch 2.9+ — bumping
 # xformers floor to 0.0.29 avoids the 0.0.28 wheel (which forces torch==2.5).
 #
 # Unsloth pulls additional wheels at runtime. If install breaks, follow
@@ -30,7 +32,7 @@ sentencepiece>=0.2.0
 safetensors>=0.4.5
 # xformers wheels are tied to a specific torch version via hard pins in
 # their metadata, so leave this unpinned — pip will pick the wheel that
-# matches whatever torch you installed (e.g. torch 2.8 -> xformers 0.0.32).
+# matches whatever torch you installed (e.g. torch 2.12 -> matching xformers).
 # Do NOT pin to 0.0.28 — that wheel forces torch==2.5 and will downgrade you.
 xformers; platform_system == "Linux"
 
