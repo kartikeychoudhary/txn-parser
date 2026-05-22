@@ -108,6 +108,88 @@ in `eval_results/<model>-<quant>.jsonl`. Regenerate any time via
 `python scripts/eval_all_quants.py` (re-uses cached evals — only re-runs
 ones with missing or `--force`'d results).
 
+## Android deployment
+
+For shipping inside an Android app via `llama.cpp` JNI bindings, the choice
+between the three published models comes down to disk budget, RAM ceiling,
+and the kind of phone you're targeting:
+
+| Phone class | Recommended | Disk | RAM at runtime | Why |
+|---|---|---:|---:|---|
+| Flagship (≥6 GB RAM, Adreno 7xx / Mali G715) | **`qwen3-0.6b-Q4_K_M`** | 397 MB | ~600 MB | 60% exact, ~850 ms; GPU offload via Vulkan available |
+| Mid-range (4-6 GB RAM, Adreno 6xx / Mali G610) | **`smollm2-360m-Q4_K_M`** | 271 MB | ~400 MB | 100% schema, ~1 s, small enough for any CPU/GPU |
+| Budget / older (≤4 GB RAM) | **`gemma-3-270m-Q5_K_M`** | 260 MB | ~380 MB | smallest viable build that holds 99.7% schema valid |
+
+Avoid `gemma-3-270m-Q4_K_M` on mobile — its 93% schema-valid means roughly
+1 in 14 outputs are unparseable, and the 15 s P95 latency from grammar
+backtracking is unacceptable on a phone.
+
+### Required llama.cpp params for efficient Android inference
+
+These knobs apply to any of the three models. The grammar file is the
+**non-negotiable one** — without it, even a regressed model emits valid
+JSON at ~100% but with grammar you get a mathematical guarantee.
+
+| Param | Recommended | Why |
+|---|---|---|
+| `n_ctx` | **1024** | Our prompts top out at ~600 tokens with grammar; larger ctx wastes ~50 MB per 512 extra tokens |
+| `n_batch` | **256** | Prompt-processing chunk; smaller = less RAM spike at TTFT |
+| `n_ubatch` | **256** | Physical batch size; keep equal to `n_batch` |
+| `n_threads` | **4** | Use the *efficient* cores on big.LITTLE. More threads = oversubscription = worse latency AND battery |
+| `n_threads_batch` | **4** | Same threads for prompt processing |
+| `n_gpu_layers` | **-1** (Adreno 7xx+) / **0** (older) | Vulkan offload; check `llama_supports_gpu_offload()` at startup and fall back |
+| `flash_attn` | **true** | If your llama.cpp build supports it — halves KV-cache memory |
+| `use_mmap` | **true** | Map the GGUF; don't load it all into RAM. Default in llama.cpp |
+| `use_mlock` | **false** | Don't pin pages on mobile; let the OS evict if needed |
+| `temperature` | **0.0** | Deterministic — same input always produces same JSON |
+| `top_k` | **1** | Redundant at temp=0, but free safety net |
+| `repeat_penalty` | **1.0** | Disable — saves a few µs per token |
+| `grammar` | **load from `scripts/grammar.py` GBNF** | **REQUIRED** — guarantees parseable JSON. Bake the GBNF into the APK as a raw resource |
+| `seed` | **42** (or any fixed) | Reproducibility for debugging |
+
+### Battery & responsiveness checklist
+
+- **Load the model once at app start, hold the `Llama` handle.** Each cold load is ~300-600 ms (Q4) and reads the whole GGUF from flash — don't do it per request.
+- **Pin to efficient cores.** On Snapdragon 8 Gen 2+, set CPU affinity to the Cortex-A510 / A520 cluster. P-cores are 2× faster but burn 4× the battery for ~5-10% latency improvement on a 270M-600M model — bad trade.
+- **Don't pre-warm with a long prompt.** First `decode()` is slow because CUDA/Vulkan kernels JIT; warm with one short throwaway request at app start (cheaper than warming during a real user request).
+- **Cap output tokens.** Set `max_tokens=256` — our outputs are 50-150 tokens; the cap prevents runaway generation if the grammar somehow fails.
+- **Foreground service or WorkManager.** Inference takes ~1 s; UI thread is a no-go. Use a coroutine on `Dispatchers.Default` with the result dispatched back to main.
+
+### System prompt (use this verbatim)
+
+The model was trained with one specific system prompt and the base
+model's chat template. Use it exactly — don't paraphrase. Pull from the
+model's README on Hugging Face, or copy from
+[`scripts/_lib.py`](scripts/_lib.py) (`SYSTEM_PROMPT` constant). Skipping
+the chat template or changing the prompt text degrades quality sharply.
+
+### Quick Android-side proof-of-concept
+
+```kotlin
+// llama.cpp Android binding (any wrapper that exposes the C++ API)
+val ctx = LlamaContext.builder()
+    .model("/data/data/<your.app>/files/txn-parser-smollm2-360m-Q4_K_M.gguf")
+    .nCtx(1024).nBatch(256)
+    .nThreads(4).nThreadsBatch(4)
+    .nGpuLayers(if (vulkanSupported()) -1 else 0)
+    .flashAttn(true).useMmap(true).useMlock(false)
+    .build()
+
+val grammar = assets.open("transaction.gbnf").bufferedReader().readText()
+
+fun extract(userText: String): String = ctx.chatCompletion(
+    messages = listOf(
+        ChatMessage("system", SYSTEM_PROMPT),   // from _lib.py / HF model README
+        ChatMessage("user",   userText),
+    ),
+    temperature = 0f, topK = 1, maxTokens = 256,
+    grammar = grammar,
+)
+```
+
+(Exact API surface depends on which Android binding you use — Maid, mlc,
+or a hand-rolled JNI wrapper. The param values transfer 1:1.)
+
 ## Quick start (Linux / WSL)
 
 One-shot setup — installs everything (torch cu128, training deps, CUDA-built
