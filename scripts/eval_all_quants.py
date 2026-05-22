@@ -160,8 +160,14 @@ def eval_name_for(model_short: str, quant: str) -> str:
     return f"{model_short}-{quant}"
 
 
-def run_one_eval(gguf: Path, model_short: str, quant: str, args: argparse.Namespace) -> bool:
-    """Invoke 04_eval.py for one GGUF. Returns True on success."""
+def run_one_eval(gguf: Path, model_short: str, quant: str, args: argparse.Namespace,
+                 capture_output: bool = False) -> bool:
+    """Invoke 04_eval.py for one GGUF. Returns True on success.
+
+    When capture_output=True, the subprocess's stdout/stderr are written
+    to logs/eval_<name>.log instead of streamed to this process's console.
+    Set by the parallel runner so multiple workers' output doesn't tangle.
+    """
     name = eval_name_for(model_short, quant)
     out_path = RESULTS_DIR / f"{name}.jsonl"
     if out_path.exists() and not args.force:
@@ -173,6 +179,7 @@ def run_one_eval(gguf: Path, model_short: str, quant: str, args: argparse.Namesp
         "--model", str(gguf),
         "--name", name,
         "--eval-file", str(args.eval_file),
+        "--batch-size", str(args.batch_size),
     ]
     if args.limit > 0:
         cmd += ["--limit", str(args.limit)]
@@ -180,13 +187,64 @@ def run_one_eval(gguf: Path, model_short: str, quant: str, args: argparse.Namesp
         cmd += ["--no-grammar"]
     logging.info("[eval] %s", " ".join(cmd))
     t0 = time.time()
-    rc = subprocess.run(cmd, cwd=REPO_ROOT).returncode
+    if capture_output:
+        log_path = LOGS_DIR / f"eval_{name}.log"
+        with log_path.open("w", encoding="utf-8") as logf:
+            logf.write(f"$ {' '.join(cmd)}\n\n")
+            logf.flush()
+            rc = subprocess.run(cmd, cwd=REPO_ROOT, stdout=logf,
+                                stderr=subprocess.STDOUT).returncode
+    else:
+        rc = subprocess.run(cmd, cwd=REPO_ROOT).returncode
     elapsed = time.time() - t0
     if rc != 0:
         logging.error("[fail] %s exited with rc=%d after %.1fs", name, rc, elapsed)
         return False
     logging.info("[done] %s in %.1fs", name, elapsed)
     return True
+
+
+def run_evals_parallel(gguf_files: list[Path], args: argparse.Namespace,
+                       workers: int) -> int:
+    """Run multiple per-quant evals concurrently in separate processes.
+
+    Each worker loads its own Llama instance — CUDA serializes kernels but
+    streams them concurrently, so 2-4 workers on an 80GB A100 actually overlap
+    decently. Returns the number of FAILED evals (0 on full success).
+
+    Note: GGUFs evals are mostly GPU-bound, so workers > min(4, num_quants)
+    rarely helps. The eval_results/<name>.jsonl writes are atomic per
+    subprocess so workers don't fight each other on disk.
+    """
+    from concurrent.futures import ProcessPoolExecutor, as_completed
+
+    jobs: list[tuple[Path, str, str]] = []
+    for gguf in gguf_files:
+        model_short, quant = parse_model_and_quant(gguf)
+        jobs.append((gguf, model_short, quant))
+
+    logging.info(
+        "Running %d evals across %d worker(s). Per-worker output -> logs/eval_<name>.log",
+        len(jobs), workers,
+    )
+    failures = 0
+    with ProcessPoolExecutor(max_workers=workers) as ex:
+        # Submit all jobs; each worker invokes 04_eval.py with capture_output=True
+        # so progress bars from concurrent processes don't interleave on the terminal.
+        futures = {
+            ex.submit(run_one_eval, gguf, ms, q, args, True): (gguf, ms, q)
+            for gguf, ms, q in jobs
+        }
+        for fut in as_completed(futures):
+            gguf, ms, q = futures[fut]
+            try:
+                ok = fut.result()
+            except Exception as e:  # noqa: BLE001
+                logging.error("[worker-exception] %s-%s: %s", ms, q, e)
+                ok = False
+            if not ok:
+                failures += 1
+    return failures
 
 
 def summarize_result_file(jsonl_path: Path) -> dict:
@@ -354,6 +412,17 @@ def parse_args() -> argparse.Namespace:
                    help="Skip the eval pass entirely; just aggregate existing "
                         "eval_results/*.jsonl into REPORT.md. Use when you've "
                         "already run evals manually and only want the report.")
+    p.add_argument("--workers", type=int, default=1,
+                   help="Run this many per-quant evals in parallel processes. "
+                        "Each spawns its own Llama instance. On an 80GB A100, "
+                        "2-4 is usually a sweet spot for 270M-600M models "
+                        "(GPU is the bottleneck — more workers fight for SMs). "
+                        "Default: 1 (sequential, output streamed to console).")
+    p.add_argument("--batch-size", type=int, default=16,
+                   help="Forwarded to 04_eval.py --batch-size. Only used by the "
+                        "transformers backend (adapter dirs). GGUF backend "
+                        "ignores it — llama.cpp doesn't natively batch chat "
+                        "completions; use --workers for GGUF parallelism instead.")
     return p.parse_args()
 
 
@@ -377,9 +446,13 @@ def main() -> int:
             )
             return 2
         logging.info("Found %d GGUF(s) to evaluate.", len(gguf_files))
-        for gguf in gguf_files:
-            model_short, quant = parse_model_and_quant(gguf)
-            run_one_eval(gguf, model_short, quant, args)
+        effective_workers = max(1, min(args.workers, len(gguf_files)))
+        if effective_workers > 1:
+            run_evals_parallel(gguf_files, args, workers=effective_workers)
+        else:
+            for gguf in gguf_files:
+                model_short, quant = parse_model_and_quant(gguf)
+                run_one_eval(gguf, model_short, quant, args)
 
     # Aggregation pass: read every eval_results/<short>-<QUANT>.jsonl that
     # corresponds to a GGUF we know about, even if --skip-eval skipped the
