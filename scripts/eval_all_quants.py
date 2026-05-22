@@ -67,33 +67,93 @@ def setup_logging() -> None:
     )
 
 
-def discover_gguf_files(model_filter: str | None, quant_filter: str | None) -> list[Path]:
-    """Find every GGUF in models/student-*/gguf/ matching the filters."""
+def discover_gguf_files(model_filters: list[str], quant_filter: str | None) -> list[Path]:
+    """Resolve `--model` filters into a flat list of GGUF paths.
+
+    Each filter in `model_filters` may be:
+      - A base-model short name (e.g. 'gemma-3-270m'), matched against
+        models/student-<short>/gguf/*.gguf
+      - A path to a single .gguf file (used as-is)
+      - A path to a directory containing *.gguf (all matched, recursively)
+
+    Empty list -> auto-discover every GGUF under models/student-*/gguf/.
+    """
     out: list[Path] = []
-    for gguf_dir in sorted(REPO_ROOT.glob("models/student-*/gguf")):
-        model_short = gguf_dir.parent.name.removeprefix("student-")
-        if model_filter and model_filter != model_short:
-            continue
-        for gguf in sorted(gguf_dir.glob("*.gguf")):
+
+    def _consume_dir(d: Path) -> None:
+        for gguf in sorted(d.rglob("*.gguf")):
             if quant_filter and quant_filter.upper() not in gguf.stem.upper():
                 continue
             out.append(gguf)
+
+    if not model_filters:
+        # Auto-discover from the canonical location.
+        for gguf_dir in sorted(REPO_ROOT.glob("models/student-*/gguf")):
+            _consume_dir(gguf_dir)
+        return out
+
+    for f in model_filters:
+        as_path = Path(f)
+        if as_path.is_file() and as_path.suffix.lower() == ".gguf":
+            if quant_filter and quant_filter.upper() not in as_path.stem.upper():
+                continue
+            out.append(as_path)
+            continue
+        if as_path.is_dir():
+            _consume_dir(as_path)
+            continue
+        # Treat as a short-name filter against models/student-<short>/gguf/
+        gguf_dir = REPO_ROOT / "models" / f"student-{f}" / "gguf"
+        if not gguf_dir.exists():
+            logging.warning(
+                "[--model %s] not a file, not a dir, no models/student-%s/gguf/ — skipping.",
+                f, f,
+            )
+            continue
+        _consume_dir(gguf_dir)
     return out
 
 
 def parse_model_and_quant(gguf_path: Path) -> tuple[str, str]:
-    """`models/student-gemma-3-270m/gguf/txn-parser-gemma-3-270m-Q4_K_M.gguf`
-    -> ('gemma-3-270m', 'Q4_K_M')
+    """Pull (base-model short, quant) out of a GGUF path.
 
-    Falls back to the stem if the naming convention isn't followed."""
-    model_short = gguf_path.parent.parent.name.removeprefix("student-")
-    stem = gguf_path.stem.upper()
-    for q in QUANT_ORDER:
-        if q in stem:
-            return model_short, q
-    # Unknown quant — best-effort: last hyphen-separated chunk
-    tail = stem.rsplit("-", 1)[-1] if "-" in stem else stem
-    return model_short, tail
+    Canonical layout (produced by train_and_publish.py):
+      `models/student-gemma-3-270m/gguf/txn-parser-gemma-3-270m-Q4_K_M.gguf`
+       -> ('gemma-3-270m', 'Q4_K_M')
+
+    For paths outside that layout (user passed a one-off file), best-effort:
+      - quant: first known quant token found in the filename stem
+      - model short: parent-dir name stripped of leading 'student-' if present,
+                     else parent-dir name verbatim, else the file stem itself
+    """
+    # Quant: look for any known token in the upper-cased stem.
+    stem_upper = gguf_path.stem.upper()
+    quant = next((q for q in QUANT_ORDER if q in stem_upper),
+                 stem_upper.rsplit("-", 1)[-1] if "-" in stem_upper else stem_upper)
+
+    # Model short: prefer the canonical `student-<short>/gguf/<file>.gguf`
+    # structure (grandparent dir). Fall back to immediate parent dir, then
+    # to the file stem itself.
+    parts = gguf_path.parts
+    model_short = None
+    for ancestor in gguf_path.parents:
+        name = ancestor.name
+        if name.startswith("student-"):
+            model_short = name.removeprefix("student-")
+            break
+    if model_short is None:
+        # Strip the quant + any 'txn-parser-' prefix from the stem.
+        model_short = gguf_path.stem
+        for prefix in ("txn-parser-",):
+            if model_short.startswith(prefix):
+                model_short = model_short[len(prefix):]
+        # Drop trailing -<QUANT> if it's a known one.
+        for q in QUANT_ORDER:
+            tail = f"-{q.lower()}"
+            if model_short.lower().endswith(tail):
+                model_short = model_short[: -len(tail)]
+                break
+    return model_short, quant
 
 
 def eval_name_for(model_short: str, quant: str) -> str:
@@ -271,9 +331,13 @@ def write_report(results: list[dict], report_md: Path, report_json: Path,
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--model", default=None,
-                   help="Only eval this base-model short name "
-                        "(e.g. 'gemma-3-270m'). Default: all under models/student-*.")
+    p.add_argument("--model", action="append", default=[],
+                   help="Restrict to one model. Repeatable. Accepts any of:\n"
+                        "  - a base-model short name (e.g. 'gemma-3-270m')\n"
+                        "  - a path to a single .gguf file\n"
+                        "  - a path to a directory of .gguf files\n"
+                        "Default (no --model passed): every GGUF under "
+                        "models/student-*/gguf/.")
     p.add_argument("--quant", default=None,
                    help="Only eval this quant (e.g. 'Q4_K_M'). Default: all.")
     p.add_argument("--eval-file", type=Path, default=EVAL_FILE_DEFAULT,
@@ -306,9 +370,10 @@ def main() -> int:
         gguf_files = discover_gguf_files(args.model, args.quant)
         if not gguf_files:
             logging.error(
-                "No GGUFs found under models/student-*/gguf/ matching "
-                "model=%s quant=%s. Train first with scripts/train_and_publish.py.",
-                args.model, args.quant,
+                "No GGUFs matched model=%s quant=%s. Either:\n"
+                "  - train first via `python scripts/train_and_publish.py`, or\n"
+                "  - pull pre-trained models via `python scripts/download_models.py`",
+                args.model or "<auto-discover>", args.quant or "<all>",
             )
             return 2
         logging.info("Found %d GGUF(s) to evaluate.", len(gguf_files))
