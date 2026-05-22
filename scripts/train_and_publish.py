@@ -252,6 +252,83 @@ python scripts/train_and_publish.py --only {spec.short}
     return readme_path
 
 
+def validate_hf_auth(namespace: str) -> None:
+    """Fail fast if HF credentials can't push to <namespace>/*.
+
+    Run BEFORE any training so the user finds out about a bad/missing
+    token in seconds instead of after a multi-hour A100 run. Checks (in
+    order):
+
+      1. `huggingface_hub` is installed.
+      2. `whoami()` succeeds with whatever token is reachable
+         (HF_TOKEN env var OR cached token from `huggingface-cli login`).
+      3. The configured namespace is either the authenticated user OR an
+         org the user belongs to.
+      4. The token reports 'write' role when that field is available
+         (fine-grained tokens may not expose it — we warn rather than
+         fail in that case).
+    """
+    try:
+        from huggingface_hub import HfApi
+    except ImportError as e:
+        raise SystemExit(
+            f"huggingface_hub not installed: {e}. "
+            "Run `pip install huggingface_hub` or rerun setup.sh."
+        )
+
+    api = HfApi()
+    try:
+        info = api.whoami()
+    except Exception as e:  # noqa: BLE001
+        raise SystemExit(
+            "Hugging Face auth check FAILED — cannot reach whoami endpoint "
+            f"with the available credentials.\n  Underlying error: {e}\n"
+            "Fix one of:\n"
+            "  - export HF_TOKEN=hf_xxx   (token with write scope)\n"
+            "  - huggingface-cli login    (interactive, stores in ~/.cache/huggingface)\n"
+            "Or pass --skip-push to train without publishing."
+        )
+
+    user = info.get("name") or info.get("email") or "<unknown>"
+    orgs = [o.get("name") for o in (info.get("orgs") or []) if o.get("name")]
+    if namespace == user:
+        logging.info("HF auth OK: user '%s' (matches --hf-namespace).", user)
+    elif namespace in orgs:
+        logging.info(
+            "HF auth OK: user '%s' has access to org '%s'.", user, namespace,
+        )
+    else:
+        raise SystemExit(
+            f"HF auth ok for user '{user}', but the configured namespace "
+            f"'{namespace}' is neither that user nor one of their orgs "
+            f"({orgs or 'none'}). Either:\n"
+            f"  - pass --hf-namespace {user}\n"
+            f"  - or use a token from an account that owns '{namespace}'."
+        )
+
+    # Best-effort write-scope check. Classic tokens expose role; fine-grained
+    # tokens don't — for those we'd have to attempt an actual write, which
+    # we don't want to do for a noop preflight.
+    auth = info.get("auth") or {}
+    access = auth.get("accessToken") or {}
+    role = access.get("role")
+    if role == "write":
+        logging.info("HF token role: write — preflight complete.")
+    elif role == "read":
+        raise SystemExit(
+            "HF token has READ scope only. Generate a write token at "
+            "https://huggingface.co/settings/tokens and re-export HF_TOKEN."
+        )
+    elif role:
+        logging.info("HF token role: %r — assuming push will work.", role)
+    else:
+        logging.info(
+            "HF token role not reported (likely fine-grained token) — "
+            "preflight skipped the role check. The first create_repo / "
+            "upload_folder call will surface any permission issue."
+        )
+
+
 def push_to_hf(spec: ModelSpec, folder: Path, namespace: str) -> str:
     """Create the HF repo if missing, then upload `folder` (adapters/, gguf/, README).
 
@@ -371,12 +448,15 @@ def main() -> int:
             args.batch or "default", args.eval_batch or "default",
         )
 
-    if not args.skip_push and not os.environ.get("HF_TOKEN"):
-        logging.warning(
-            "HF_TOKEN env var not set. Upload will fall back to whatever "
-            "`huggingface-cli login` stored. If neither is present the push "
-            "step WILL fail — re-run with --skip-push or set HF_TOKEN."
-        )
+    # HF preflight runs BEFORE training so an invalid/missing token fails
+    # the run in seconds instead of after hours of GPU time.
+    if not args.skip_push:
+        if not os.environ.get("HF_TOKEN"):
+            logging.info(
+                "HF_TOKEN env var not set — will try cached token from "
+                "`huggingface-cli login` if present."
+            )
+        validate_hf_auth(args.hf_namespace)
 
     summary: list[dict] = []
     overall_start = time.time()
